@@ -4,6 +4,7 @@ import { RouteProp as NativeRouteProp } from '@react-navigation/native'
 export type RootStackParamList = {
   Home: undefined
   CourtList: undefined
+  Profile: undefined
   DateSelection: undefined
   CourtSelection: { date: string }
   TimeSelection: { courtId: number; date: string }
@@ -12,6 +13,8 @@ export type RootStackParamList = {
   Login: undefined
   Register: undefined
   Booking: undefined
+  MyBookings: undefined
+  AddMatchResult:undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

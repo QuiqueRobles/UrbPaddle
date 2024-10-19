@@ -8,7 +8,7 @@ import { colors } from '../theme/colors';
 
 type RootStackParamList = {
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string };
-  CourtList: undefined;
+  Home: undefined;
 };
 
 type ConfirmBookingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ConfirmBooking'>;
@@ -50,7 +50,7 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
       Alert.alert('Error', 'No se pudo realizar la reserva. Por favor, inténtalo de nuevo.');
     } else {
       Alert.alert('Éxito', 'Reserva confirmada', [
-        { text: 'OK', onPress: () => navigation.navigate('CourtList') }
+        { text: 'OK', onPress: () => navigation.navigate('Home') }
       ]);
     }
   };

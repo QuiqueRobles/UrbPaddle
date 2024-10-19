@@ -8,15 +8,17 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { colors } from './theme/colors'
 
+import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen'
 import RegisterScreen from './screens/RegisterScreen'
 import HomeScreen from './screens/HomeScreen'
-import CourtListScreen from './screens/CourtListScreen'
 import DateSelectionScreen from './screens/DateSelectionScreen'
 import TimeSelectionScreen from './screens/TimeSelectionScreen'
-import BookingScreen from './screens/BookingScreen'
 import ConfirmBookingScreen from './screens/ConfirmBookingScreen'
 import StatisticsScreen from './screens/StatisticsScreen'
+import CourtSelectionScreen from './screens/CourtSelection'
+import MyBookingsScreen from './screens/MyBookingsScreen';
+import AddMatchResultScreen from './screens/AddMatchResultScreen'
 
 const Stack = createStackNavigator<RootStackParamList>()
 
@@ -56,12 +58,14 @@ export default function App() {
             {session && session.user ? (
               <>
                 <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="CourtList" component={CourtListScreen} options={{ title: 'Pistas de Pádel' }} />
+                <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
                 <Stack.Screen name="DateSelection" component={DateSelectionScreen} options={{ title: 'Seleccionar Fecha' }} />
                 <Stack.Screen name="TimeSelection" component={TimeSelectionScreen} options={{ title: 'Seleccionar Hora' }} />
-                <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Seleccionar booking' }} />
                 <Stack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: 'Confirmar Reserva' }} />
+                <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'My Profile' }} />
                 <Stack.Screen name="Statistics" component={StatisticsScreen} />
+                <Stack.Screen name="MyBookings" component={MyBookingsScreen} options={{ title: 'My Bookings' }} />
+                <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
               </>
             ) : (
               <>

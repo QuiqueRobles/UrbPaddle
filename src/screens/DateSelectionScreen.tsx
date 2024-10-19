@@ -2,28 +2,16 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Button, Title, Text, useTheme } from 'react-native-paper';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
-import { colors } from '../theme/colors';
+import { NavigationProp } from '../navigation';
 import { ArrowRight } from 'lucide-react-native';
 
-type RootStackParamList = {
-  DateSelection: { courtId: number };
-  TimeSelection: { courtId: number; date: string };
-};
-
-type DateSelectionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DateSelection'>;
-type DateSelectionScreenRouteProp = RouteProp<RootStackParamList, 'DateSelection'>;
-
 type Props = {
-  navigation: DateSelectionScreenNavigationProp;
-  route: DateSelectionScreenRouteProp;
+  navigation: NavigationProp;
 };
 
-export default function DateSelectionScreen({ navigation, route }: Props) {
+export default function DateSelectionScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState('');
   const theme = useTheme();
-  const { courtId } = route.params;
 
   const handleDateSelect = (day: DateData) => {
     setSelectedDate(day.dateString);
@@ -31,7 +19,7 @@ export default function DateSelectionScreen({ navigation, route }: Props) {
 
   const handleContinue = () => {
     if (selectedDate) {
-      navigation.navigate('TimeSelection', { courtId, date: selectedDate });
+      navigation.navigate('CourtSelection', { date: selectedDate });
     }
   };
 
@@ -39,35 +27,35 @@ export default function DateSelectionScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Title style={styles.title}>Selecciona una fecha</Title>
+      <Title style={styles.title}>Select a Date</Title>
       <Calendar
         onDayPress={handleDateSelect}
         markedDates={{
-          [selectedDate]: { selected: true, selectedColor: colors.primary },
+          [selectedDate]: { selected: true, selectedColor: theme.colors.primary },
         }}
         minDate={today}
         theme={{
-          todayTextColor: colors.secondary,
-          selectedDayBackgroundColor: colors.primary,
-          selectedDayTextColor: colors.onPrimary,
+          todayTextColor: theme.colors.secondary,
+          selectedDayBackgroundColor: theme.colors.primary,
+          selectedDayTextColor: theme.colors.surface,
         }}
-        accessibilityLabel="Calendario para seleccionar fecha"
+        accessibilityLabel="Calendar for selecting date"
       />
       {selectedDate && (
         <Text style={styles.selectedDateText}>
-          Fecha seleccionada: {selectedDate}
+          Selected date: {selectedDate}
         </Text>
       )}
       <Button
         mode="contained"
         onPress={handleContinue}
         disabled={!selectedDate}
-        style={[styles.button, { backgroundColor: colors.secondary }]}
-        labelStyle={{ color: colors.onSecondary }}
-        icon={() => <ArrowRight color={colors.onSecondary} />}
-        accessibilityLabel="Continuar a selección de hora"
+        style={styles.button}
+        labelStyle={styles.buttonLabel}
+        icon={() => <ArrowRight color={theme.colors.surface} />}
+        accessibilityLabel="Continue to court selection"
       >
-        Continuar
+        Continue
       </Button>
     </View>
   );
@@ -89,6 +77,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    marginTop: 16,
+    marginTop: 24,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  buttonLabel: {
+    fontSize: 18,
   },
 });
