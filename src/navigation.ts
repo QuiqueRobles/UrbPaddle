@@ -10,6 +10,7 @@ export type RootStackParamList = {
   TimeSelection: { courtId: number; date: string }
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string }
   Statistics: undefined
+  MyStatistics:undefined
   Login: undefined
   Register: undefined
   Booking: undefined

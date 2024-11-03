@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Title, TextInput, HelperText, ActivityIndicator, useTheme, Card, Paragraph, Searchbar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, FlatList, TouchableOpacity } from 'react-native';
+import { Button, Title, TextInput, HelperText, ActivityIndicator, useTheme, Card, Paragraph, List, Chip, Avatar } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 
 type Booking = {
   id: string;
-  court_id: string;
+  court_number: string;
+  date: Date;
   start_time: string;
   end_time: string;
   user_id: string;
@@ -16,13 +17,14 @@ type Booking = {
 type Profile = {
   id: string;
   full_name: string;
+  avatar_url?: string;
 };
 
 type Player = {
   id: string;
   name: string;
-  isAnonymous: boolean;
-  isLocal: boolean;
+  profile_id: string | null;
+  avatar_url?: string;
 };
 
 export default function AddMatchResultScreen() {
@@ -31,14 +33,15 @@ export default function AddMatchResultScreen() {
   const [score, setScore] = useState('');
   const [loading, setLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: '', isAnonymous: false, isLocal: true },
-    { id: '2', name: '', isAnonymous: false, isLocal: true },
-    { id: '3', name: '', isAnonymous: false, isLocal: false },
-    { id: '4', name: '', isAnonymous: false, isLocal: false },
+    { id: '1', name: '', profile_id: null },
+    { id: '2', name: '', profile_id: null },
+    { id: '3', name: '', profile_id: null },
+    { id: '4', name: '', profile_id: null },
   ]);
-  const [winningTeam, setWinningTeam] = useState<'local' | 'visiting' | null>(null);
+  const [winningTeam, setWinningTeam] = useState<'1' | '2' | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const theme = useTheme();
   const navigation = useNavigation();
 
@@ -47,19 +50,32 @@ export default function AddMatchResultScreen() {
     fetchProfiles();
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.length > 1) {
+      const filteredProfiles = profiles.filter(profile => 
+        profile.full_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !players.some(player => player.profile_id === profile.id)
+      );
+      setSearchResults(filteredProfiles);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, profiles, players]);
+
   async function fetchBookings() {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      const currentDate = new Date().toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'confirmed')
-        .gte('end_time', new Date().toISOString())
-        .order('start_time', { ascending: true });
+        .lte('date', currentDate)
+        .order('start_time', { ascending: false });
 
       if (error) throw error;
       setBookings(data || []);
@@ -75,7 +91,7 @@ export default function AddMatchResultScreen() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, avatar_url')
         .order('full_name', { ascending: true });
 
       if (error) throw error;
@@ -102,17 +118,21 @@ export default function AddMatchResultScreen() {
         throw new Error('You can only add results for your own bookings');
       }
 
-      const { data, error } = await supabase
+      const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .insert({
           booking_id: selectedBooking,
+          player1_id: players[0].profile_id,
+          player2_id: players[1].profile_id,
+          player3_id: players[2].profile_id,
+          player4_id: players[3].profile_id,
           score,
-          winner: winningTeam,
-          user_id: user.id,
-          players: players.map(p => ({ name: p.name, is_anonymous: p.isAnonymous, is_local: p.isLocal })),
-        });
+          winner_team: winningTeam,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (matchError) throw matchError;
 
       Alert.alert('Success', 'Match result added successfully');
       navigation.goBack();
@@ -124,15 +144,17 @@ export default function AddMatchResultScreen() {
     }
   }
 
-  function handlePlayerChange(index: number, name: string, isAnonymous: boolean) {
+  function handlePlayerChange(index: number, profile: Profile | null) {
     const newPlayers = [...players];
-    newPlayers[index] = { ...newPlayers[index], name, isAnonymous };
+    newPlayers[index] = { 
+      ...newPlayers[index], 
+      name: profile ? profile.full_name : '', 
+      profile_id: profile ? profile.id : null,
+      avatar_url: profile ? profile.avatar_url : undefined
+    };
     setPlayers(newPlayers);
+    setSearchQuery('');
   }
-
-  const filteredProfiles = profiles.filter(profile =>
-    profile.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (loading) {
     return (
@@ -147,17 +169,18 @@ export default function AddMatchResultScreen() {
       <Title style={styles.title}>Add Match Result</Title>
       <Card style={styles.card}>
         <Card.Content>
-          <Paragraph>Select Booking</Paragraph>
+          <Paragraph>Select Completed Booking</Paragraph>
           <Picker
             selectedValue={selectedBooking}
             onValueChange={(itemValue) => setSelectedBooking(itemValue)}
             style={styles.picker}
+            accessibilityLabel="Select a booking"
           >
             <Picker.Item label="Select a booking" value={null} />
             {bookings.map((booking) => (
               <Picker.Item
                 key={booking.id}
-                label={`Court ${booking.court_id} - ${new Date(booking.start_time).toLocaleString()}`}
+                label={`Court ${booking.court_number} - ${new Date(booking.date).toLocaleString()}`}
                 value={booking.id}
               />
             ))}
@@ -167,39 +190,63 @@ export default function AddMatchResultScreen() {
 
       <Card style={styles.card}>
         <Card.Content>
-          <Paragraph>Enter Players</Paragraph>
-          <Searchbar
-            placeholder="Search players"
-            onChangeText={setSearchQuery}
+          <Paragraph>Select Players</Paragraph>
+          <TextInput
+            label="Search Player"
             value={searchQuery}
-            style={styles.searchBar}
+            onChangeText={setSearchQuery}
+            style={styles.input}
           />
-          {players.map((player, index) => (
-            <View key={player.id} style={styles.playerInput}>
-              <Paragraph>{player.isLocal ? 'Local' : 'Visiting'} Player {index % 2 + 1}</Paragraph>
-              <Picker
-                selectedValue={player.isAnonymous ? 'anonymous' : player.name}
-                onValueChange={(itemValue) => 
-                  handlePlayerChange(index, itemValue === 'anonymous' ? '' : itemValue, itemValue === 'anonymous')
-                }
-                style={styles.playerPicker}
-              >
-                <Picker.Item label={`Select Player ${index + 1}`} value="" />
-                <Picker.Item label="Anonymous Player" value="anonymous" />
-                {filteredProfiles.map((profile) => (
-                  <Picker.Item key={profile.id} label={profile.full_name} value={profile.full_name} />
-                ))}
-              </Picker>
-              {player.isAnonymous && (
-                <TextInput
-                  label={`Anonymous Player ${index + 1} Name`}
-                  value={player.name}
-                  onChangeText={(text) => handlePlayerChange(index, text, true)}
-                  style={styles.input}
-                />
+          {searchResults.length > 0 && (
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    const emptyPlayerIndex = players.findIndex(p => !p.profile_id);
+                    if (emptyPlayerIndex !== -1) {
+                      handlePlayerChange(emptyPlayerIndex, item);
+                    }
+                  }}
+                >
+                  <List.Item
+                    title={item.full_name}
+                    left={props => <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />}
+                  />
+                </TouchableOpacity>
               )}
+              style={styles.searchResults}
+            />
+          )}
+          <View style={styles.teamsContainer}>
+            <View style={styles.team}>
+              <Paragraph style={styles.teamTitle}>Team 1</Paragraph>
+              {players.slice(0, 2).map((player, index) => (
+                <Chip
+                  key={player.id}
+                  avatar={player.avatar_url ? <Avatar.Image size={24} source={{ uri: player.avatar_url }} /> : undefined}
+                  onClose={() => handlePlayerChange(index, null)}
+                  style={styles.playerChip}
+                >
+                  {player.name || `Player ${index + 1}`}
+                </Chip>
+              ))}
             </View>
-          ))}
+            <View style={styles.team}>
+              <Paragraph style={styles.teamTitle}>Team 2</Paragraph>
+              {players.slice(2, 4).map((player, index) => (
+                <Chip
+                  key={player.id}
+                  avatar={player.avatar_url ? <Avatar.Image size={24} source={{ uri: player.avatar_url }} /> : undefined}
+                  onClose={() => handlePlayerChange(index + 2, null)}
+                  style={styles.playerChip}
+                >
+                  {player.name || `Player ${index + 3}`}
+                </Chip>
+              ))}
+            </View>
+          </View>
         </Card.Content>
       </Card>
 
@@ -218,18 +265,18 @@ export default function AddMatchResultScreen() {
           <Paragraph>Select Winning Team</Paragraph>
           <View style={styles.winningTeamContainer}>
             <Button
-              mode={winningTeam === 'local' ? 'contained' : 'outlined'}
-              onPress={() => setWinningTeam('local')}
+              mode={winningTeam === '1' ? 'contained' : 'outlined'}
+              onPress={() => setWinningTeam('1')}
               style={styles.teamButton}
             >
-              Local Team
+              Team 1
             </Button>
             <Button
-              mode={winningTeam === 'visiting' ? 'contained' : 'outlined'}
-              onPress={() => setWinningTeam('visiting')}
+              mode={winningTeam === '2' ? 'contained' : 'outlined'}
+              onPress={() => setWinningTeam('2')}
               style={styles.teamButton}
             >
-              Visiting Team
+              Team 2
             </Button>
           </View>
         </Card.Content>
@@ -263,17 +310,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#f0f0f0',
   },
-  searchBar: {
-    marginBottom: 16,
-  },
-  playerInput: {
-    marginBottom: 16,
-  },
-  playerPicker: {
-    backgroundColor: '#f0f0f0',
+  input: {
     marginBottom: 8,
   },
-  input: {
+  searchResults: {
+    maxHeight: 200,
+    marginBottom: 16,
+  },
+  teamsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  team: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  teamTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  playerChip: {
     marginBottom: 8,
   },
   winningTeamContainer: {

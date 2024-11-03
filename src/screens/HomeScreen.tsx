@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ImageBackground, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Button, Title, Paragraph, useTheme, Avatar, IconButton } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';

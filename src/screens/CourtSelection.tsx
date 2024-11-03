@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator } from 'react-native-paper';
-import { NavigationProp, RouteProp } from '../navigation';
+import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator, HelperText, Tooltip } from 'react-native-paper';
+import { NavigationProp } from '@react-navigation/native';
+import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import { format, addMinutes, parseISO } from 'date-fns';
+import { format, addMinutes, parseISO, parse, isBefore, isAfter } from 'date-fns';
 import { Calendar } from 'lucide-react-native';
 
+type RootStackParamList = {
+  CourtSelection: { date: string };
+  ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string };
+};
+
 type Props = {
-  navigation: NavigationProp;
-  route: RouteProp<'CourtSelection'>;
+  navigation: NavigationProp<RootStackParamList, 'CourtSelection'>;
+  route: RouteProp<RootStackParamList, 'CourtSelection'>;
+};
+
+type Booking = {
+  id: string;
+  court_number: number;
+  date: string;
+  start_time: string;
+  end_time: string;
 };
 
 const TIME_SLOTS = Array.from({ length: 30 }, (_, i) => 
@@ -26,8 +40,10 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [selectedCourt, setSelectedCourt] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(60);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState('');
   const theme = useTheme();
   const { date } = route.params;
 
@@ -51,14 +67,38 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     setLoading(false);
   };
 
-  const isSlotAvailable = (courtId: number, time: string) => {
-    const endTime = format(addMinutes(parseISO(`2023-01-01T${time}`), selectedDuration), 'HH:mm');
-    return !bookings.some(booking => 
-      booking.court_number === courtId &&
-      ((time >= booking.start_time && time < booking.end_time) ||
-       (endTime > booking.start_time && endTime <= booking.end_time) ||
-       (time <= booking.start_time && endTime >= booking.end_time))
-    );
+  const getSlotStatus = (courtId: number, time: string) => {
+    const slotStart = parse(time, 'HH:mm', new Date());
+    const slotEnd = addMinutes(slotStart, selectedDuration);
+
+    const conflictingBooking = bookings.find(booking => {
+      const bookingStart = parse(booking.start_time, 'HH:mm:ss', new Date());
+      const bookingEnd = parse(booking.end_time, 'HH:mm:ss', new Date());
+
+      return (
+        booking.court_number === courtId &&
+        (
+          (slotStart >= bookingStart && slotStart < bookingEnd) ||
+          (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+          (slotStart <= bookingStart && slotEnd >= bookingEnd)
+        )
+      );
+    });
+
+    if (conflictingBooking) {
+      const bookingStart = parse(conflictingBooking.start_time, 'HH:mm:ss', new Date());
+      const bookingEnd = parse(conflictingBooking.end_time, 'HH:mm:ss', new Date());
+
+      if (isBefore(slotStart, bookingStart)) {
+        return 'interferes-next';
+      } else if (isAfter(slotEnd, bookingEnd)) {
+        return 'interferes-previous';
+      } else {
+        return 'ongoing-match';
+      }
+    }
+
+    return 'available';
   };
 
   const handleBooking = () => {
@@ -75,34 +115,58 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
   const renderTimeSlots = (courtId: number) => {
     return TIME_SLOTS.map((time) => {
-      const isAvailable = isSlotAvailable(courtId, time);
+      const slotStatus = getSlotStatus(courtId, time);
+      const isAvailable = slotStatus === 'available';
       const isSelected = selectedCourt === courtId && selectedTime === time;
+
+      let chipStyle: { margin: number; backgroundColor: string } = {
+        margin: 4,
+        backgroundColor: '#e0e0e0',
+      };
+      let chipTextStyle = styles.chipText;
+      let statusMessage = '';
+
+      switch (slotStatus) {
+        case 'ongoing-match':
+          chipStyle = { ...chipStyle, backgroundColor: '#ff5252' };
+          chipTextStyle = styles.unavailableChipText;
+          statusMessage = 'Ongoing match';
+          break;
+        case 'interferes-next':
+          chipStyle = { ...chipStyle, backgroundColor: '#ff9800' };
+          chipTextStyle = styles.unavailableChipText;
+          statusMessage = 'Interferes with next match';
+          break;
+        case 'interferes-previous':
+          chipStyle = { ...chipStyle, backgroundColor: '#ffc107' };
+          chipTextStyle = styles.unavailableChipText;
+          statusMessage = 'Interferes with previous match';
+          break;
+        case 'available':
+          if (isSelected) {
+            chipStyle = { ...chipStyle, backgroundColor: '#4caf50' };
+            chipTextStyle = styles.selectedChipText;
+          }
+          break;
+      }
+
       return (
-        <Chip
-          key={time}
-          selected={isSelected}
-          onPress={() => {
-            if (isAvailable) {
-              setSelectedCourt(courtId);
-              setSelectedTime(time);
-            } else {
-              Alert.alert('Not Available', 'This time slot is already booked.');
-            }
-          }}
-          style={[
-            styles.timeChip,
-            !isAvailable && styles.unavailableChip,
-            isSelected && styles.selectedChip
-          ]}
-          textStyle={[
-            styles.chipText,
-            !isAvailable && styles.unavailableChipText,
-            isSelected && styles.selectedChipText
-          ]}
-          disabled={!isAvailable}
-        >
-          {time}
-        </Chip>
+        <Tooltip key={time} title={isAvailable ? '' : statusMessage}>
+          <Chip
+            selected={isSelected}
+            onPress={() => {
+              if (isAvailable) {
+                setSelectedCourt(courtId);
+                setSelectedTime(time);
+              }
+            }}
+            style={[styles.timeChip, chipStyle]}
+            textStyle={chipTextStyle}
+            disabled={!isAvailable}
+          >
+            {time}
+          </Chip>
+        </Tooltip>
       );
     });
   };
@@ -175,14 +239,25 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
           <Text>Available</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: theme.colors.error }]} />
-          <Text>Booked</Text>
+          <View style={[styles.legendColor, { backgroundColor: '#ff5252' }]} />
+          <Text>Ongoing Match</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, styles.selectedChip]} />
+          <View style={[styles.legendColor, { backgroundColor: '#ff9800' }]} />
+          <Text>Interferes with Next</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#ffc107' }]} />
+          <Text>Interferes with Previous</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#4caf50' }]} />
           <Text>Selected</Text>
         </View>
       </View>
+      <HelperText type="info" style={styles.helperText}>
+        Tap on a time slot to select it. Unavailable slots will show a reason when tapped.
+      </HelperText>
     </ScrollView>
   );
 }
@@ -251,17 +326,11 @@ const styles = StyleSheet.create({
     margin: 4,
     backgroundColor: '#e0e0e0',
   },
-  unavailableChip: {
-    backgroundColor: '#ffcccb',
-  },
-  selectedChip: {
-    backgroundColor: '#4caf50',
-  },
   chipText: {
     color: '#000000',
   },
   unavailableChipText: {
-    color: '#d32f2f',
+    color: '#ffffff',
   },
   selectedChipText: {
     color: '#ffffff',
@@ -276,6 +345,7 @@ const styles = StyleSheet.create({
   },
   legend: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-around',
     marginTop: 16,
     padding: 8,
@@ -285,11 +355,17 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: 4,
+    marginHorizontal: 8,
   },
   legendColor: {
     width: 16,
     height: 16,
     borderRadius: 8,
     marginRight: 4,
+  },
+  helperText: {
+    textAlign: 'center',
+    marginTop: 16,
   },
 });

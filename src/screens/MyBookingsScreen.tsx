@@ -11,6 +11,7 @@ type Booking = {
   date: string;
   start_time: string;
   end_time: string;
+  user_id: string;
 };
 
 export default function MyBookingsScreen() {
@@ -61,17 +62,27 @@ export default function MyBookingsScreen() {
       [
         { text: "No", style: "cancel" },
         { text: "Yes", onPress: async () => {
-          const { error } = await supabase
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            Alert.alert('Error', 'User not found');
+            return;
+          }
+
+          const { data, error } = await supabase
             .from('bookings')
             .delete()
-            .eq('id', bookingId);
+            .eq('id', bookingId)
+            .eq('user_id', user.id)
+            .select();
 
           if (error) {
             Alert.alert('Error', 'Failed to cancel booking');
             console.error('Error cancelling booking:', error);
-          } else {
+          } else if (data && data.length > 0) {
             Alert.alert('Success', 'Booking cancelled successfully');
             fetchBookings();
+          } else {
+            Alert.alert('Error', 'Booking not found or you do not have permission to cancel it');
           }
         }}
       ]

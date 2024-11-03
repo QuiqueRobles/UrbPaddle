@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Avatar, Button, Card, TextInput, Title, Paragraph, ActivityIndicator, useTheme, Switch, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { Avatar, Button, Card, TextInput, Title, Paragraph, ActivityIndicator, useTheme, ProgressBar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,10 +10,10 @@ type UserProfile = {
   id: string;
   email: string;
   full_name: string;
+  username:string,
   apartment: string;
   phone_number: string;
   avatar_url: string;
-  level: number;
   matches_played: number;
   wins: number;
   losses: number;
@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const theme = useTheme();
+  const { colors } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, statistics(*)')
+        .select('*')
         .eq('id', user.id)
         .single();
 
@@ -54,10 +54,7 @@ export default function ProfileScreen() {
       }
 
       if (data) {
-        setProfile({
-          ...data,
-          ...data.statistics[0],
-        });
+        setProfile(data);
       }
     } catch (error) {
       Alert.alert('Error', 'Error fetching profile');
@@ -88,6 +85,7 @@ export default function ProfileScreen() {
 
       Alert.alert('Success', 'Profile updated successfully');
       setEditing(false);
+      fetchProfile(session);
     } catch (error) {
       Alert.alert('Error', 'Error updating profile');
       console.error('Error updating profile:', error);
@@ -99,7 +97,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -115,98 +113,100 @@ export default function ProfileScreen() {
   const winRate = profile.matches_played > 0 ? (profile.wins / profile.matches_played) * 100 : 0;
 
   return (
-    <ScrollView style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.accent]}
-        style={styles.header}
-      >
-        <Avatar.Image
-          size={120}
-          source={{ uri: profile.avatar_url || 'https://picsum.photos/seed/avatar/200' }}
-          style={styles.avatar}
-        />
-        <Title style={styles.name}>{profile.full_name || 'Name not set'}</Title>
-        <View style={styles.levelContainer}>
-          <MaterialCommunityIcons name="star" size={24} color={theme.colors.text} />
-          <Title style={styles.level}>Level {profile.level}</Title>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          style={styles.header}
+        >
+          <Avatar.Image
+            size={120}
+            source={{ uri: profile.avatar_url || 'https://robohash.org/70d4932145e1ed9a17bd36fa004ecd9e?set=set4&bgset=&size=400x400' }}
+            style={styles.avatar}
+          />
+          <Title style={[styles.name, { color: colors.onPrimary }]}>{profile.username || 'Name not set'}</Title>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Paddle Stats</Title>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <MaterialCommunityIcons name="tennis" size={32} color={colors.primary} />
+                  <Paragraph style={styles.statValue}>{profile.matches_played}</Paragraph>
+                  <Paragraph style={styles.statLabel}>Matches</Paragraph>
+                </View>
+                <View style={styles.statItem}>
+                  <MaterialCommunityIcons name="trophy" size={32} color={colors.primary} />
+                  <Paragraph style={styles.statValue}>{profile.wins}</Paragraph>
+                  <Paragraph style={styles.statLabel}>Wins</Paragraph>
+                </View>
+                <View style={styles.statItem}>
+                  <MaterialCommunityIcons name="close-circle" size={32} color={colors.primary} />
+                  <Paragraph style={styles.statValue}>{profile.losses}</Paragraph>
+                  <Paragraph style={styles.statLabel}>Losses</Paragraph>
+                </View>
+              </View>
+              <View style={styles.winRateContainer}>
+                <Paragraph style={styles.winRateLabel}>Win Rate</Paragraph>
+                <ProgressBar progress={winRate / 100} color={colors.primary} style={styles.winRateBar} />
+                <Paragraph style={styles.winRateValue}>{winRate.toFixed(1)}%</Paragraph>
+              </View>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Player Info</Title>
+              <TextInput
+                label="Full Name"
+                value={profile.full_name || ''}
+                onChangeText={(text) => setProfile({ ...profile, full_name: text })}
+                disabled={!editing}
+                style={styles.input}
+                mode="outlined"
+              />
+              <TextInput
+                label="Apartment"
+                value={profile.apartment || ''}
+                onChangeText={(text) => setProfile({ ...profile, apartment: text })}
+                disabled={!editing}
+                style={styles.input}
+                mode="outlined"
+              />
+              <TextInput
+                label="Phone Number"
+                value={profile.phone_number || ''}
+                onChangeText={(text) => setProfile({ ...profile, phone_number: text })}
+                disabled={!editing}
+                style={styles.input}
+                mode="outlined"
+              />
+            </Card.Content>
+          </Card>
+
+          {editing ? (
+            <Button mode="contained" onPress={updateProfile} style={styles.button}>
+              Save Changes
+            </Button>
+          ) : (
+            <Button mode="outlined" onPress={() => setEditing(true)} style={styles.button}>
+              Edit Profile
+            </Button>
+          )}
         </View>
-      </LinearGradient>
-
-      <View style={styles.content}>
-        <Card style={styles.statsCard}>
-          <Card.Content>
-            <Title style={styles.statsTitle}>Paddle Stats</Title>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.primary} />
-                <Paragraph style={styles.statValue}>{profile.matches_played}</Paragraph>
-                <Paragraph style={styles.statLabel}>Matches</Paragraph>
-              </View>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.primary} />
-                <Paragraph style={styles.statValue}>{profile.wins}</Paragraph>
-                <Paragraph style={styles.statLabel}>Wins</Paragraph>
-              </View>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="close-circle" size={24} color={theme.colors.primary} />
-                <Paragraph style={styles.statValue}>{profile.losses}</Paragraph>
-                <Paragraph style={styles.statLabel}>Losses</Paragraph>
-              </View>
-            </View>
-            <View style={styles.winRateContainer}>
-              <Paragraph style={styles.winRateLabel}>Win Rate</Paragraph>
-              <ProgressBar progress={winRate / 100} color={theme.colors.primary} style={styles.winRateBar} />
-              <Paragraph style={styles.winRateValue}>{winRate.toFixed(1)}%</Paragraph>
-            </View>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Title style={styles.infoTitle}>Player Info</Title>
-            <TextInput
-              label="Full Name"
-              value={profile.full_name || ''}
-              onChangeText={(text) => setProfile({ ...profile, full_name: text })}
-              disabled={!editing}
-              style={styles.input}
-            />
-            <TextInput
-              label="Apartment"
-              value={profile.apartment || ''}
-              onChangeText={(text) => setProfile({ ...profile, apartment: text })}
-              disabled={!editing}
-              style={styles.input}
-            />
-            <TextInput
-              label="Phone Number"
-              value={profile.phone_number || ''}
-              onChangeText={(text) => setProfile({ ...profile, phone_number: text })}
-              disabled={!editing}
-              style={styles.input}
-            />
-            
-          </Card.Content>
-        </Card>
-
-        {editing ? (
-          <Button mode="contained" onPress={updateProfile} style={styles.button}>
-            Save Changes
-          </Button>
-        ) : (
-          <Button mode="outlined" onPress={() => setEditing(true)} style={styles.button}>
-            Edit Profile
-          </Button>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   centered: {
     justifyContent: 'center',
@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     padding: 24,
+    paddingTop: 48,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
@@ -226,32 +227,18 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 8,
-  },
-  levelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  level: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    marginLeft: 8,
+    textAlign: 'center',
   },
   content: {
     padding: 16,
   },
-  statsCard: {
+  card: {
     marginBottom: 16,
     borderRadius: 16,
     elevation: 4,
   },
-  statsTitle: {
+  cardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
@@ -265,20 +252,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 4,
+    marginTop: 12,
   },
   statLabel: {
     fontSize: 14,
-    color: 'gray',
+    marginTop: 4,
   },
   winRateContainer: {
-    marginTop: 8,
+    marginTop: 16,
   },
   winRateLabel: {
     fontSize: 16,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   winRateBar: {
     height: 8,
@@ -287,29 +274,14 @@ const styles = StyleSheet.create({
   winRateValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 4,
+    marginTop: 8,
     textAlign: 'right',
   },
-  infoCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 4,
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
   input: {
-    marginBottom: 12,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   button: {
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 24,
   },
 });
