@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { Text, Card, Title, Avatar, Button, ActivityIndicator, useTheme, ProgressBar } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, TextInput } from 'react-native';
+import { Text, Card, Title, Avatar, Button, ActivityIndicator, useTheme, Searchbar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { VictoryPie, VictoryLabel } from 'victory-native';
@@ -38,7 +38,9 @@ export default function StatisticsScreen() {
   const [monthlyTopPlayers, setMonthlyTopPlayers] = useState<MonthlyPlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overall');
+  const [searchQuery, setSearchQuery] = useState('');
   const theme = useTheme();
+  const { colors } = useTheme();
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -145,7 +147,7 @@ const navigateToMyStats = () => {
     return (
       <Card key={player.id} style={styles.playerCard}>
         <LinearGradient
-          colors={[theme.colors.primary, theme.colors.accent]}
+          colors={[colors.primary, colors.secondary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}

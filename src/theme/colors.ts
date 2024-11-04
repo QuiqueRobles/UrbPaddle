@@ -5,9 +5,9 @@ export const colors = {
   primaryDark: '#008C59', // Darker shade of primary
 
   // Secondary colors
-  secondary: '#FF6B35', // Vibrant orange, accent color
-  secondaryLight: '#FF8F66', // Lighter shade of secondary
-  secondaryDark: '#E65525', // Darker shade of secondary
+  secondary: '#A0AEC0', // Vibrant orange, accent color
+  secondaryLight: '#CBD5E0', // Lighter shade of secondary
+  secondaryDark: '#718096', // Darker shade of secondary
 
   // Accent color
   accent: '#4A90E2', // Bright blue, for highlights and calls-to-action
@@ -58,5 +58,5 @@ export const colors = {
 
   // Gradient colors
   gradientStart: '#00A86B', // Start with primary color
-  gradientEnd: '#4A90E2', // End with accent color
+  gradientEnd: '#000000', // End with accent color
 };
