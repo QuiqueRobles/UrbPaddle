@@ -27,6 +27,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      
       <Title style={styles.title}>Select a Date</Title>
       <Calendar
         onDayPress={handleDateSelect}

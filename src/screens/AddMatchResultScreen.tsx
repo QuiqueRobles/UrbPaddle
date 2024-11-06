@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import SelectPlayers from '../components/SelectPlayers';
 
 
 type Booking = {
@@ -58,6 +59,10 @@ export default function AddMatchResultScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
   const [winningTeamAnim] = useState(new Animated.Value(0));
+  const handlePlayersChange = (newPlayers: Player[]) => {
+    setPlayers(newPlayers);
+  };
+
 
   const handleWinningTeamSelect = (team: '1' | '2') => {
     setWinningTeam(team);
@@ -290,70 +295,7 @@ export default function AddMatchResultScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={styles.sectionTitle}>Select Players</Title>
-            <TextInput
-              label="Search Player"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={styles.input}
-              left={<TextInput.Icon icon="magnify" />}
-            />
-            {searchResults.length > 0 && (
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => {
-                      const emptyPlayerIndex = players.findIndex(p => !p.profile_id);
-                      if (emptyPlayerIndex !== -1) {
-                        handlePlayerChange(emptyPlayerIndex, item);
-                      }
-                    }}
-                  >
-                    <List.Item
-                      title={item.full_name}
-                      left={props => <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />}
-                    />
-                  </TouchableOpacity>
-                )}
-                style={styles.searchResults}
-              />
-            )}
-            <View style={styles.teamsContainer}>
-              <View style={styles.team}>
-                <Paragraph style={styles.teamTitle}>Team 1</Paragraph>
-                {players.slice(0, 2).map((player, index) => (
-                  <Chip
-                    key={player.id}
-                    avatar={player.avatar_url ? <Avatar.Image size={24} source={{ uri: player.avatar_url }} /> : undefined}
-                    onClose={() => handlePlayerChange(index, null)}
-                    style={styles.playerChip}
-                    mode="outlined"
-                  >
-                    {player.name || `Player ${index + 1}`}
-                  </Chip>
-                ))}
-              </View>
-              <View style={styles.team}>
-                <Paragraph style={styles.teamTitle}>Team 2</Paragraph>
-                {players.slice(2, 4).map((player, index) => (
-                  <Chip
-                    key={player.id}
-                    avatar={player.avatar_url ? <Avatar.Image size={24} source={{ uri: player.avatar_url }} /> : undefined}
-                    onClose={() => handlePlayerChange(index + 2, null)}
-                    style={styles.playerChip}
-                    mode="outlined"
-                  >
-                    {player.name || `Player ${index + 3}`}
-                  </Chip>
-                ))}
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
+        <SelectPlayers onPlayersChange={handlePlayersChange} />
 
         <Card style={styles.card}>
           <Card.Content>
@@ -400,9 +342,7 @@ export default function AddMatchResultScreen() {
                 </View>
               ))}
             </View>
-            <HelperText type="info" style={styles.helperText}>
-              Enter the score for each set (e.g., 6-4). Leave empty if not played.
-            </HelperText>
+            
             
             <Card style={styles.card}>
       <Card.Content>
@@ -424,7 +364,7 @@ export default function AddMatchResultScreen() {
             <MaterialCommunityIcons
               name={winningTeam === '1' ? "trophy" : "trophy-outline"}
               size={32}
-              color={winningTeam === '1' ? theme.colors.primary : colors.text}
+              color={winningTeam === '1' ? colors.trophy : colors.text}
             />
             <Paragraph style={[
               styles.teamButtonText,
@@ -440,7 +380,7 @@ export default function AddMatchResultScreen() {
             <MaterialCommunityIcons
               name={winningTeam === '2' ? "trophy" : "trophy-outline"}
               size={32}
-              color={winningTeam === '2' ? colors.primary : colors.text}
+              color={winningTeam === '2' ? colors.trophy : colors.text}
             />
             <Paragraph style={[
               styles.teamButtonText,
@@ -543,7 +483,7 @@ const styles = StyleSheet.create({
   noBookingsText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     marginTop: 16,
   },
   picker: {
@@ -639,11 +579,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     color: '#333',
   },
-  helperText: {
-    textAlign: 'center',
-    fontSize: 14,
-    marginBottom: 16,
-  },
+
   
   winningTeamLabel: {
     fontWeight: 'bold',
@@ -690,8 +626,9 @@ const styles = StyleSheet.create({
   teamButtonTextSelected: {
   },
   submitButton: {
-    marginTop: 24,
-    paddingVertical: 12,
+    marginTop: 0,
+    paddingVertical: 6,
     borderRadius: 12,
+    marginBottom:100,
   },
 });

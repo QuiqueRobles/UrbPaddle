@@ -59,4 +59,6 @@ export const colors = {
   // Gradient colors
   gradientStart: '#00A86B', // Start with primary color
   gradientEnd: '#000000', // End with accent color
+
+  trophy:'#fcdb03'
 };

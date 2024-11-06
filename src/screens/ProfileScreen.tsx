@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, SafeAreaView, TouchableOpacity, Text } from 'react-native';
-import { Button, Card, TextInput, Title, Paragraph, ActivityIndicator, useTheme, ProgressBar, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Button, Card, TextInput, Title, Text, ActivityIndicator, useTheme, ProgressBar, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer'
-import ProfileImage from './ProfileImage';
+import ProfileImage from '../components/ProfileImage';
 
 type UserProfile = {
   id: string;
@@ -53,13 +53,8 @@ export default function ProfileScreen() {
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        setProfile(data);
-      }
+      if (error) throw error;
+      if (data) setProfile(data);
     } catch (error) {
       Alert.alert('Error', 'Error fetching profile');
       console.error('Error fetching profile:', error);
@@ -83,9 +78,7 @@ export default function ProfileScreen() {
 
       const { error } = await supabase.from('profiles').upsert(updates);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       Alert.alert('Success', 'Profile updated successfully');
       setEditing(false);
@@ -97,106 +90,81 @@ export default function ProfileScreen() {
       setLoading(false);
     }
   }
-async function changeProfilePicture() {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  
-  if (status !== 'granted') {
-    Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
-    return;
-  }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 1,
-    base64: true,
-  });
-
-  if (!result.canceled && result.assets && result.assets.length > 0) {
-    const asset = result.assets[0];
-    const userId = session?.user.id;
-    if (!userId) {
-      Alert.alert('Error', 'Usuario no autenticado');
+  async function changeProfilePicture() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
       return;
     }
 
-    const fileName = `${userId}/${Date.now()}.jpg`;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+      base64: true,
+    });
 
-    try {
-      setLoading(true);
-
-      console.log('User ID:', userId);
-      console.log('File name:', fileName);
-
-      const base64FileData = asset.base64;
-      if (!base64FileData) {
-        throw new Error('No se pudo obtener los datos base64 de la imagen');
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const userId = session?.user.id;
+      if (!userId) {
+        Alert.alert('Error', 'Usuario no autenticado');
+        return;
       }
 
-      console.log('Base64 data length:', base64FileData.length);
+      const fileName = `${userId}/${Date.now()}.jpg`;
 
-      // 1. Subir la imagen a Supabase Storage
-      const { data: fileData, error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(fileName, decode(base64FileData), {
-          contentType: 'image/jpeg',
-          upsert: true
-        });
+      try {
+        setLoading(true);
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
+        const base64FileData = asset.base64;
+        if (!base64FileData) {
+          throw new Error('No se pudo obtener los datos base64 de la imagen');
+        }
+
+        const { data: fileData, error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(fileName, decode(base64FileData), {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(fileName);
+
+        if (!urlData || !urlData.publicUrl) {
+          throw new Error('Failed to get public URL');
+        }
+
+        const { data: profileData, error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: urlData.publicUrl })
+          .eq('id', userId)
+          .select();
+
+        if (updateError) throw updateError;
+
+        if (profileData && profileData.length > 0) {
+          setProfile(profileData[0]);
+        }
+
+        setRefreshKey(oldKey => oldKey + 1);
+        Alert.alert('Éxito', 'Foto de perfil actualizada correctamente');
+      } catch (error) {
+        console.error('Error al actualizar la foto de perfil:', error);
+        Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+      } finally {
+        setLoading(false);
       }
-
-      console.log('File uploaded successfully:', fileData);
-
-      // 2. Obtener la URL pública de la imagen
-      const { data: urlData } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(fileName);
-
-      if (!urlData || !urlData.publicUrl) {
-        console.error('Failed to get public URL');
-        throw new Error('Failed to get public URL');
-      }
-
-      console.log('Public URL:', urlData.publicUrl);
-
-      // 3. Actualizar el campo avatar_url en la tabla de perfiles
-      const { data: profileData, error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: urlData.publicUrl })
-        .eq('id', userId)
-        .select();
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        throw updateError;
-      }
-
-      console.log('Profile updated successfully:', profileData);
-
-      // 4. Actualizar el estado local del perfil
-      setProfile(prevProfile => ({
-        ...prevProfile!,
-        avatar_url: urlData.publicUrl
-      }));
-      if (profileData && profileData.length > 0) {
-    setProfile(profileData[0]);
-  }
-
-  // Forzar una actualización del componente
-  setRefreshKey(oldKey => oldKey + 1);
-      Alert.alert('Éxito', 'Foto de perfil actualizada correctamente');
-    } catch (error) {
-      console.error('Error al actualizar la foto de perfil:', error);
-      Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
-    } finally {
-      setLoading(false);
     }
   }
-}
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -208,7 +176,7 @@ async function changeProfilePicture() {
   if (!profile) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Paragraph>No profile data found</Paragraph>
+        <Text>No profile data found</Text>
       </View>
     );
   }
@@ -219,19 +187,24 @@ async function changeProfilePicture() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <LinearGradient
-          colors={[colors.primary, colors.secondary]}
+          colors={[colors.primary, "#000"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          <TouchableOpacity onPress={changeProfilePicture}>
+          <View style={styles.profileImageContainer}>
             <ProfileImage key={refreshKey} avatarUrl={profile?.avatar_url} size={120} />
-            <IconButton
-              icon="camera"
-              size={24}
-              style={styles.cameraButton}
-              onPress={changeProfilePicture}
-            />
-          </TouchableOpacity>
-          <Title style={[styles.name, { color: colors.surface }]}>{profile.username || 'Name not set'}</Title>
+            <TouchableOpacity onPress={changeProfilePicture} style={styles.cameraButtonContainer}>
+              <IconButton
+                icon="camera"
+                size={20}
+                iconColor={colors.primary}
+                style={styles.cameraButton}
+              />
+            </TouchableOpacity>
+          </View>
+          <Title style={styles.name}>{profile.username || 'Name not set'}</Title>
+          <Text style={styles.email}>{profile.email}</Text>
         </LinearGradient>
 
         <View style={styles.content}>
@@ -241,24 +214,24 @@ async function changeProfilePicture() {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="tennis" size={32} color={colors.primary} />
-                  <Paragraph style={styles.statValue}>{profile.matches_played}</Paragraph>
-                  <Paragraph style={styles.statLabel}>Matches</Paragraph>
+                  <Text style={styles.statValue}>{profile.matches_played}</Text>
+                  <Text style={styles.statLabel}>Matches</Text>
                 </View>
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="trophy" size={32} color={colors.primary} />
-                  <Paragraph style={styles.statValue}>{profile.wins}</Paragraph>
-                  <Paragraph style={styles.statLabel}>Wins</Paragraph>
+                  <Text style={styles.statValue}>{profile.wins}</Text>
+                  <Text style={styles.statLabel}>Wins</Text>
                 </View>
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="close-circle" size={32} color={colors.primary} />
-                  <Paragraph style={styles.statValue}>{profile.losses}</Paragraph>
-                  <Paragraph style={styles.statLabel}>Losses</Paragraph>
+                  <Text style={styles.statValue}>{profile.losses}</Text>
+                  <Text style={styles.statLabel}>Losses</Text>
                 </View>
               </View>
               <View style={styles.winRateContainer}>
-                <Paragraph style={styles.winRateLabel}>Win Rate</Paragraph>
+                <Text style={styles.winRateLabel}>Win Rate</Text>
                 <ProgressBar progress={winRate / 100} color={colors.primary} style={styles.winRateBar} />
-                <Paragraph style={styles.winRateValue}>{winRate.toFixed(1)}%</Paragraph>
+                <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
               </View>
             </Card.Content>
           </Card>
@@ -293,15 +266,13 @@ async function changeProfilePicture() {
             </Card.Content>
           </Card>
 
-          {editing ? (
-            <Button mode="contained" onPress={updateProfile} style={styles.button}>
-              Save Changes
-            </Button>
-          ) : (
-            <Button mode="outlined" onPress={() => setEditing(true)} style={styles.button}>
-              Edit Profile
-            </Button>
-          )}
+          <Button 
+            mode={editing ? "contained" : "outlined"} 
+            onPress={editing ? updateProfile : () => setEditing(true)} 
+            style={styles.button}
+          >
+            {editing ? 'Save Changes' : 'Edit Profile'}
+          </Button>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -326,30 +297,37 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  avatar: {
+  profileImageContainer: {
+    position: 'relative',
     marginBottom: 16,
-    borderWidth: 4,
-    borderColor: 'white',
   },
-  cameraButton: {
+  cameraButtonContainer: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'white',
     borderRadius: 20,
+    elevation: 4,
+  },
+  cameraButton: {
+    margin: 0,
   },
   name: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
+    color: 'white',
+    marginBottom: 4,
+  },
+  email: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   content: {
     padding: 16,
   },
   card: {
     marginBottom: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     elevation: 4,
   },
   cardTitle: {
@@ -368,11 +346,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 12,
+    marginTop: 8,
   },
   statLabel: {
     fontSize: 14,
-    marginTop: 4,
+    color: 'rgba(0, 0, 0, 0.6)',
   },
   winRateContainer: {
     marginTop: 16,
@@ -397,5 +375,6 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 8,
     marginBottom: 24,
+    borderRadius: 8,
   },
 });

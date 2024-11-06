@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   profileButtonLabel: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     marginLeft: 12,
     flex: 1,

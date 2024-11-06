@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ProfileImage from './ProfileImage';
-
+import ProfileImage from '../components/ProfileImage';
+import {colors} from "../theme/colors"
 
 type PlayerStats = {
   id: string;
@@ -176,7 +176,7 @@ export default function StatisticsScreen() {
     return (
       <Card key={player.id} style={styles.playerCard}>
         <LinearGradient
-          colors={[theme.colors.primary, "#000"]}
+          colors={[colors.primary, "#000"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
@@ -186,7 +186,7 @@ export default function StatisticsScreen() {
               <View style={styles.rankBadge}>
                 <Text style={styles.rankText}>{index + 1}</Text>
               </View>
-              <Avatar.Image size={60} source={{ uri: player.avatar_url }} style={styles.avatar} />
+              <ProfileImage avatarUrl={player.avatar_url} size={60} />
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>{player.full_name}</Text>
                 <Text style={styles.playerUsername}>@{player.username}</Text>
@@ -194,17 +194,17 @@ export default function StatisticsScreen() {
             </View>
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.background} />
+                <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.surface} />
                 <Text style={styles.statValue}>{wins}</Text>
                 <Text style={styles.statLabel}>Wins</Text>
               </View>
               <View style={styles.statItem}>
-                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.background} />
+                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.surface} />
                 <Text style={styles.statValue}>{matches}</Text>
                 <Text style={styles.statLabel}>Matches</Text>
               </View>
               <View style={styles.statItem}>
-                <MaterialCommunityIcons name="percent" size={24} color={theme.colors.background} />
+                <MaterialCommunityIcons name="percent" size={24} color={theme.colors.surface} />
                 <Text style={styles.statValue}>{winRate}%</Text>
                 <Text style={styles.statLabel}>Win Rate</Text>
               </View>
@@ -233,7 +233,7 @@ export default function StatisticsScreen() {
   const renderHotStreakPlayer = (player: PlayerStats, index: number) => (
     <Card key={player.id} style={styles.hotStreakCard}>
       <Card.Content style={styles.hotStreakContent}>
-        <Avatar.Image size={48} source={{ uri: player.avatar_url }} style={styles.hotStreakAvatar} />
+        <ProfileImage avatarUrl={player.avatar_url} size={48} />
         <View style={styles.hotStreakInfo}>
           <Text style={styles.hotStreakName}>{player.full_name}</Text>
           <Text style={styles.hotStreakUsername}>@{player.username}</Text>
@@ -253,16 +253,14 @@ export default function StatisticsScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={styles.headerContainer}>
-        <LinearGradient
-          colors={[theme.colors.primary,"#000"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <Text style={styles.headerTitle}>Player Statistics</Text>
-        </LinearGradient>
-      </View>
+      <LinearGradient
+        colors={[theme.colors.primary,  "#000"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitle}>Player Statistics</Text>
+      </LinearGradient>
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -309,17 +307,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContainer: {
-    overflow: 'hidden',
-    paddingBottom: 16,
-  },
-  headerGradient: {
+  header: {
     padding: 24,
+    paddingTop: 48,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -332,9 +322,9 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    marginVertical: 16,
-    borderRadius: 25,
+    marginTop: 16,
     marginHorizontal: 16,
+    borderRadius: 25,
     elevation: 2,
     overflow: 'hidden',
   },
@@ -342,21 +332,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor:'#144a1e',
   },
   activeTab: {
     backgroundColor: '#33C18C',
   },
   tabText: {
     fontSize: 16,
-    color: '#a6aba7',
+    color: '#666',
   },
   activeTabText: {
     color: '#fff',
     fontWeight: 'bold',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   section: {
-    marginBottom: 24,
+    marginVertical: 16,
   },
   sectionTitle: {
     fontSize: 20,
@@ -397,13 +391,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  avatar: {
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
   playerInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   playerName: {
     fontSize: 18,
@@ -428,7 +418,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   statLabel: {
-    
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
   },
@@ -454,11 +443,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  hotStreakAvatar: {
-    marginRight: 12,
-  },
   hotStreakInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   hotStreakName: {
     fontSize: 16,
