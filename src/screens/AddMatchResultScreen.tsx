@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors } from '../theme/colors';
+
 
 type Booking = {
   id: string;
@@ -76,7 +78,7 @@ export default function AddMatchResultScreen() {
         <MaterialCommunityIcons
           name="tennis-ball"
           size={24}
-          color={selectedBooking === item.id ? theme.colors.primary : theme.colors.text}
+          color={selectedBooking === item.id ? colors.primary : colors.text}
         />
         <View style={styles.bookingItemText}>
           <Paragraph style={styles.bookingItemTitle}>Court {item.court_number}</Paragraph>
@@ -262,7 +264,7 @@ export default function AddMatchResultScreen() {
 
   return (
     <LinearGradient
-      colors={[theme.colors.primary, theme.colors.accent]}
+      colors={[theme.colors.primary, "#000"]}
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -361,7 +363,6 @@ export default function AddMatchResultScreen() {
                 <IconButton
                   icon="minus-circle"
                   size={24}
-                  color={theme.colors.primary}
                   onPress={handleRemoveSet}
                   disabled={setCount === 1}
                 />
@@ -369,7 +370,6 @@ export default function AddMatchResultScreen() {
                 <IconButton
                   icon="plus-circle"
                   size={24}
-                  color={theme.colors.primary}
                   onPress={handleAddSet}
                   disabled={setCount === 5}
                 />
@@ -424,7 +424,7 @@ export default function AddMatchResultScreen() {
             <MaterialCommunityIcons
               name={winningTeam === '1' ? "trophy" : "trophy-outline"}
               size={32}
-              color={winningTeam === '1' ? theme.colors.primary : theme.colors.text}
+              color={winningTeam === '1' ? theme.colors.primary : colors.text}
             />
             <Paragraph style={[
               styles.teamButtonText,
@@ -440,7 +440,7 @@ export default function AddMatchResultScreen() {
             <MaterialCommunityIcons
               name={winningTeam === '2' ? "trophy" : "trophy-outline"}
               size={32}
-              color={winningTeam === '2' ? theme.colors.primary : theme.colors.text}
+              color={winningTeam === '2' ? colors.primary : colors.text}
             />
             <Paragraph style={[
               styles.teamButtonText,
@@ -666,7 +666,6 @@ const styles = StyleSheet.create({
     top: 4,
     width: '50%',
     height: '100%',
-    backgroundColor: theme.colors.primary + '40',
     borderRadius: 12,
     zIndex: 0,
   },
@@ -687,10 +686,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
   },
   teamButtonTextSelected: {
-    color: theme.colors.primary,
   },
   submitButton: {
     marginTop: 24,

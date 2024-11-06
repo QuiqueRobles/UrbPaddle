@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, SafeAreaView } from 'react-native';
-import { Avatar, Button, Card, TextInput, Title, Paragraph, ActivityIndicator, useTheme, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import { Button, Card, TextInput, Title, Paragraph, ActivityIndicator, useTheme, ProgressBar, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer'
+import ProfileImage from './ProfileImage';
 
 type UserProfile = {
   id: string;
   email: string;
   full_name: string;
-  username:string,
+  username: string;
   apartment: string;
   phone_number: string;
   avatar_url: string;
@@ -24,6 +27,7 @@ export default function ProfileScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -93,7 +97,106 @@ export default function ProfileScreen() {
       setLoading(false);
     }
   }
+async function changeProfilePicture() {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  
+  if (status !== 'granted') {
+    Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
+    return;
+  }
 
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 1,
+    base64: true,
+  });
+
+  if (!result.canceled && result.assets && result.assets.length > 0) {
+    const asset = result.assets[0];
+    const userId = session?.user.id;
+    if (!userId) {
+      Alert.alert('Error', 'Usuario no autenticado');
+      return;
+    }
+
+    const fileName = `${userId}/${Date.now()}.jpg`;
+
+    try {
+      setLoading(true);
+
+      console.log('User ID:', userId);
+      console.log('File name:', fileName);
+
+      const base64FileData = asset.base64;
+      if (!base64FileData) {
+        throw new Error('No se pudo obtener los datos base64 de la imagen');
+      }
+
+      console.log('Base64 data length:', base64FileData.length);
+
+      // 1. Subir la imagen a Supabase Storage
+      const { data: fileData, error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, decode(base64FileData), {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully:', fileData);
+
+      // 2. Obtener la URL pública de la imagen
+      const { data: urlData } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+
+      if (!urlData || !urlData.publicUrl) {
+        console.error('Failed to get public URL');
+        throw new Error('Failed to get public URL');
+      }
+
+      console.log('Public URL:', urlData.publicUrl);
+
+      // 3. Actualizar el campo avatar_url en la tabla de perfiles
+      const { data: profileData, error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', userId)
+        .select();
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('Profile updated successfully:', profileData);
+
+      // 4. Actualizar el estado local del perfil
+      setProfile(prevProfile => ({
+        ...prevProfile!,
+        avatar_url: urlData.publicUrl
+      }));
+      if (profileData && profileData.length > 0) {
+    setProfile(profileData[0]);
+  }
+
+  // Forzar una actualización del componente
+  setRefreshKey(oldKey => oldKey + 1);
+      Alert.alert('Éxito', 'Foto de perfil actualizada correctamente');
+    } catch (error) {
+      console.error('Error al actualizar la foto de perfil:', error);
+      Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+    } finally {
+      setLoading(false);
+    }
+  }
+}
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -119,12 +222,16 @@ export default function ProfileScreen() {
           colors={[colors.primary, colors.secondary]}
           style={styles.header}
         >
-          <Avatar.Image
-            size={120}
-            source={{ uri: profile.avatar_url || 'https://robohash.org/70d4932145e1ed9a17bd36fa004ecd9e?set=set4&bgset=&size=400x400' }}
-            style={styles.avatar}
-          />
-          <Title style={[styles.name, { color: colors.onPrimary }]}>{profile.username || 'Name not set'}</Title>
+          <TouchableOpacity onPress={changeProfilePicture}>
+            <ProfileImage key={refreshKey} avatarUrl={profile?.avatar_url} size={120} />
+            <IconButton
+              icon="camera"
+              size={24}
+              style={styles.cameraButton}
+              onPress={changeProfilePicture}
+            />
+          </TouchableOpacity>
+          <Title style={[styles.name, { color: colors.surface }]}>{profile.username || 'Name not set'}</Title>
         </LinearGradient>
 
         <View style={styles.content}>
@@ -223,6 +330,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 4,
     borderColor: 'white',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
   },
   name: {
     fontSize: 28,

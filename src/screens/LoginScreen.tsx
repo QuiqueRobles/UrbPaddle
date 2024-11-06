@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, Alert } from 'react-native'
-import { TextInput, Button, Title } from 'react-native-paper'
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
+import { TextInput, Button, Title, Text, useTheme } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
-
+import { LinearGradient } from 'expo-linear-gradient'
+import { StatusBar } from 'expo-status-bar'
+import { Feather } from '@expo/vector-icons'
+import { colors } from '../theme/colors';
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -20,6 +23,8 @@ export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const theme = useTheme()
 
   async function handleLogin() {
     setLoading(true)
@@ -34,48 +39,123 @@ export default function LoginScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      <Title style={styles.title}>Paddle Court Booking</Title>
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        autoCapitalize="none"
-      />
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={styles.input}
-      />
-      <Button mode="contained" onPress={handleLogin} style={styles.button} loading={loading} disabled={loading}>
-        Login
-      </Button>
-      <Button onPress={() => navigation.navigate('Register')}>
-        Don't have an account? Register
-      </Button>
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        style={styles.gradient}
+      >
+        <View style={styles.loginContainer}>
+          <Feather name="radio" size={60} color={colors.gray100} style={styles.icon} />
+          <Title style={styles.title}>UrbPaddle</Title>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            autoCapitalize="none"
+            mode="flat"
+            underlineColor="transparent"
+            theme={{ colors: { primary: theme.colors.primary, text: '#fff' } }}
+            left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
+          />
+          <TextInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            style={styles.input}
+            mode="flat"
+            underlineColor="transparent"
+            theme={{ colors: { primary: theme.colors.primary, text: '#fff' } }}
+            left={<TextInput.Icon icon="lock" color={theme.colors.primary} />}
+            right={
+              <TextInput.Icon 
+                icon={showPassword ? "eye-off" : "eye"} 
+                color={theme.colors.primary}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
+          />
+          <Button 
+            mode="contained" 
+            onPress={handleLogin} 
+            style={styles.button} 
+            loading={loading} 
+            disabled={loading}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+          >
+            Login
+          </Button>
+          <Button 
+            onPress={() => navigation.navigate('Register')}
+            style={styles.registerButton}
+            labelStyle={styles.registerButtonText}
+          >
+            Don't have an account? Register
+          </Button>
+        </View>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  gradient: {
+    flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    alignItems: 'center',
+  },
+  loginContainer: {
+    width: '85%',
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  icon: {
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 24,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   input: {
-    marginBottom: 12,
+    marginBottom: 16,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   button: {
     marginTop: 24,
-    marginBottom: 12,
+    marginBottom: 16,
+    width: '100%',
+    borderRadius: 25,
+  },
+  buttonContent: {
+    height: 50,
+  },
+  buttonLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  registerButton: {
+    marginTop: 8,
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
   },
 })

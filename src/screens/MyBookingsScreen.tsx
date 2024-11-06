@@ -20,7 +20,7 @@ export default function MyBookingsScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const theme = useTheme();
+  const {colors} = useTheme();
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -119,16 +119,16 @@ export default function MyBookingsScreen() {
       <Card style={[styles.card, isPastBooking && styles.pastBooking]}>
         <Card.Content>
           <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="tennis" size={24} color={colors.primary} />
             <Title style={styles.courtTitle}>Court {item.court_number}</Title>
           </View>
           <View style={styles.cardContent}>
             <View style={styles.dateTimeContainer}>
-              <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+              <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
               <Paragraph style={styles.dateTime}>{getDateLabel(item.date)}</Paragraph>
             </View>
             <View style={styles.dateTimeContainer}>
-              <MaterialCommunityIcons name="clock-outline" size={20} color={theme.colors.primary} />
+              <MaterialCommunityIcons name="clock-outline" size={20} color={colors.primary} />
               <Paragraph style={styles.dateTime}>{item.start_time} - {item.end_time}</Paragraph>
             </View>
           </View>
@@ -149,21 +149,21 @@ export default function MyBookingsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[theme.colors.primary, theme.colors.gray300]} style={[styles.container, styles.centered]}>
+      <LinearGradient colors={[colors.primary, colors.gray300]} style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#ffffff" />
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={[theme.colors.primary, "#000"]} style={styles.container}>
+    <LinearGradient colors={[colors.primary, "#000"]} style={styles.container}>
       <Surface style={styles.header}>
         <Title style={styles.title}>My Bookings</Title>
         <IconButton
           icon="refresh"
           size={24}
           onPress={onRefresh}
-          color={theme.colors.primary}
+          color={colors.primary}
         />
       </Surface>
       {bookings.length === 0 ? (
@@ -184,7 +184,7 @@ export default function MyBookingsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[theme.colors.primary]}
+              colors={[colors.primary]}
               tintColor="#ffffff"
             />
           }

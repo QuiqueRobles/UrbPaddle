@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, TextInput } from 'react-native';
-import { Text, Card, Title, Avatar, Button, ActivityIndicator, useTheme, Searchbar } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, RefreshControl } from 'react-native';
+import { Text, Card, Avatar, Button, ActivityIndicator, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
-import { VictoryPie, VictoryLabel } from 'victory-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ProfileImage from './ProfileImage';
 
-const { width } = Dimensions.get('window');
 
 type PlayerStats = {
   id: string;
@@ -22,6 +21,7 @@ type PlayerStats = {
   sets_lost: number;
   games_won: number;
   games_lost: number;
+  win_streak: number;
 };
 
 type MonthlyPlayerStats = {
@@ -36,17 +36,32 @@ type MonthlyPlayerStats = {
 export default function StatisticsScreen() {
   const [topPlayers, setTopPlayers] = useState<PlayerStats[]>([]);
   const [monthlyTopPlayers, setMonthlyTopPlayers] = useState<MonthlyPlayerStats[]>([]);
+  const [hotStreakPlayers, setHotStreakPlayers] = useState<PlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overall');
-  const [searchQuery, setSearchQuery] = useState('');
   const theme = useTheme();
-  const { colors } = useTheme();
   const navigation = useNavigation();
 
   useEffect(() => {
-    fetchTopPlayers();
-    fetchMonthlyTopPlayers();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchTopPlayers(),
+      fetchMonthlyTopPlayers(),
+      fetchHotStreakPlayers(),
+    ]);
+    setLoading(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   async function fetchTopPlayers() {
     try {
@@ -123,11 +138,25 @@ export default function StatisticsScreen() {
       }
     } catch (error) {
       console.error('Error fetching monthly top players:', error);
-    } finally {
-      setLoading(false);
     }
   }
-const navigateToMyStats = () => {
+
+  async function fetchHotStreakPlayers() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('win_streak', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      if (data) setHotStreakPlayers(data as PlayerStats[]);
+    } catch (error) {
+      console.error('Error fetching hot streak players:', error);
+    }
+  }
+
+  const navigateToMyStats = () => {
     navigation.navigate('MyStatistics' as never);
   };
 
@@ -147,48 +176,92 @@ const navigateToMyStats = () => {
     return (
       <Card key={player.id} style={styles.playerCard}>
         <LinearGradient
-          colors={[colors.primary, colors.secondary]}
+          colors={[theme.colors.primary, "#000"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
         >
-          <View style={styles.rankBadge}>
-            <Text style={styles.rankText}>{index + 1}</Text>
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankText}>{index + 1}</Text>
+              </View>
+              <Avatar.Image size={60} source={{ uri: player.avatar_url }} style={styles.avatar} />
+              <View style={styles.playerInfo}>
+                <Text style={styles.playerName}>{player.full_name}</Text>
+                <Text style={styles.playerUsername}>@{player.username}</Text>
+              </View>
+            </View>
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.background} />
+                <Text style={styles.statValue}>{wins}</Text>
+                <Text style={styles.statLabel}>Wins</Text>
+              </View>
+              <View style={styles.statItem}>
+                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.background} />
+                <Text style={styles.statValue}>{matches}</Text>
+                <Text style={styles.statLabel}>Matches</Text>
+              </View>
+              <View style={styles.statItem}>
+                <MaterialCommunityIcons name="percent" size={24} color={theme.colors.background} />
+                <Text style={styles.statValue}>{winRate}%</Text>
+                <Text style={styles.statLabel}>Win Rate</Text>
+              </View>
+            </View>
+            {!isMonthly && (
+              <View style={styles.levelContainer}>
+                <Text style={styles.levelLabel}>Level {(player as PlayerStats).level}</Text>
+                <View style={styles.levelStars}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <MaterialCommunityIcons
+                      key={star}
+                      name={star <= Math.floor((player as PlayerStats).level / 20) ? "star" : "star-outline"}
+                      size={20}
+                      color={star <= Math.floor((player as PlayerStats).level / 20) ? "#FFD700" : "#E0E0E0"}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
-          <Avatar.Image size={80} source={{ uri: player.avatar_url }} style={styles.avatar} />
-          <Text style={styles.playerName}>{player.full_name}</Text>
-          <Text style={styles.playerUsername}>@{player.username}</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.background} />
-              <Text style={styles.statValue}>{wins}</Text>
-              <Text style={styles.statLabel}>Wins</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.background} />
-              <Text style={styles.statValue}>{matches}</Text>
-              <Text style={styles.statLabel}>Matches</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="percent" size={24} color={theme.colors.background} />
-              <Text style={styles.statValue}>{winRate}%</Text>
-              <Text style={styles.statLabel}>Win Rate</Text>
-            </View>
-          </View>
-          {!isMonthly && (
-            <View style={styles.levelContainer}>
-              <Text style={styles.levelText}>Level {(player as PlayerStats).level}</Text>
-            </View>
-          )}
         </LinearGradient>
       </Card>
     );
   };
 
+  const renderHotStreakPlayer = (player: PlayerStats, index: number) => (
+    <Card key={player.id} style={styles.hotStreakCard}>
+      <Card.Content style={styles.hotStreakContent}>
+        <Avatar.Image size={48} source={{ uri: player.avatar_url }} style={styles.hotStreakAvatar} />
+        <View style={styles.hotStreakInfo}>
+          <Text style={styles.hotStreakName}>{player.full_name}</Text>
+          <Text style={styles.hotStreakUsername}>@{player.username}</Text>
+        </View>
+        <View style={styles.hotStreakStreak}>
+          <MaterialCommunityIcons name="fire" size={24} color={theme.colors.error} />
+          <Text style={styles.hotStreakValue}>{player.win_streak}</Text>
+        </View>
+      </Card.Content>
+    </Card>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Player Statistics</Text>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.headerContainer}>
+        <LinearGradient
+          colors={[theme.colors.primary,"#000"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <Text style={styles.headerTitle}>Player Statistics</Text>
+        </LinearGradient>
       </View>
 
       <View style={styles.tabContainer}>
@@ -206,11 +279,18 @@ const navigateToMyStats = () => {
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'overall' ? (
-        topPlayers.map((player, index) => renderPlayerCard(player, index, false))
-      ) : (
-        monthlyTopPlayers.map((player, index) => renderPlayerCard(player, index, true))
-      )}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Top Players</Text>
+        {activeTab === 'overall'
+          ? topPlayers.map((player, index) => renderPlayerCard(player, index, false))
+          : monthlyTopPlayers.map((player, index) => renderPlayerCard(player, index, true))
+        }
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Hot Streak 🔥</Text>
+        {hotStreakPlayers.map((player, index) => renderHotStreakPlayer(player, index))}
+      </View>
 
       <Button
         mode="contained"
@@ -234,85 +314,110 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+  headerContainer: {
+    overflow: 'hidden',
+    paddingBottom: 16,
+  },
+  headerGradient: {
+    padding: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
+    textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    marginBottom: 16,
+    marginVertical: 16,
+    borderRadius: 25,
+    marginHorizontal: 16,
+    elevation: 2,
+    overflow: 'hidden',
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
+    backgroundColor:'#144a1e',
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#2196F3',
+    backgroundColor: '#33C18C',
   },
   tabText: {
     fontSize: 16,
-    color: '#757575',
+    color: '#a6aba7',
   },
   activeTabText: {
-    color: '#2196F3',
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 16,
+    marginBottom: 12,
+    color: '#333',
   },
   playerCard: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 12,
     overflow: 'hidden',
+    elevation: 4,
   },
   cardGradient: {
+    borderRadius: 12,
+  },
+  cardContent: {
     padding: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
   },
   rankBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
   rankText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   avatar: {
-    marginBottom: 8,
-    borderWidth: 3,
+    marginRight: 12,
+    borderWidth: 2,
     borderColor: '#fff',
+  },
+  playerInfo: {
+    flex: 1,
   },
   playerName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 4,
   },
   playerUsername: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 12,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 8,
+    marginBottom: 16,
   },
   statItem: {
     alignItems: 'center',
@@ -323,19 +428,59 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   statLabel: {
+    
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   levelContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-    marginTop: 12,
+    alignItems: 'center',
   },
-  levelText: {
+  levelLabel: {
+    fontSize: 14,
     color: '#fff',
+    marginBottom: 4,
+  },
+  levelStars: {
+    flexDirection: 'row',
+  },
+  hotStreakCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+  },
+  hotStreakContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hotStreakAvatar: {
+    marginRight: 12,
+  },
+  hotStreakInfo: {
+    flex: 1,
+  },
+  hotStreakName: {
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  hotStreakUsername: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  hotStreakStreak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 111, 0, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  hotStreakValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 4,
+    color: '#FF6F00',
   },
   button: {
     margin: 16,

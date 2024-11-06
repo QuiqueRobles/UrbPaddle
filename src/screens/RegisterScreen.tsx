@@ -1,9 +1,12 @@
-import React, { useState } from 'react'
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
-import { TextInput, Button, Title, HelperText, Checkbox, useTheme, Card } from 'react-native-paper'
+import React, { useState, useEffect } from 'react'
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Animated } from 'react-native'
+import { TextInput, Button, Title, HelperText, Checkbox, useTheme, Card, Text } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { RootStackParamList } from '../navigation'
+import { LinearGradient } from 'expo-linear-gradient'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -25,6 +28,15 @@ export default function RegisterScreen({ navigation }: Props) {
   const [passwordError, setPasswordError] = useState('')
 
   const theme = useTheme()
+  const fadeAnim = new Animated.Value(0)
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start()
+  }, [])
 
   const validateEmail = (email: string) => {
     const re = /\S+@\S+\.\S+/
@@ -96,94 +108,128 @@ export default function RegisterScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={styles.title}>Register for Paddle Court</Title>
-            <TextInput
-              label="Full Name"
-              value={fullName}
-              onChangeText={setFullName}
-              style={styles.input}
-              mode="outlined"
-            />
-            <TextInput
-              label="User Name"
-              value={userName}
-              onChangeText={setUserName}
-              style={styles.input}
-              mode="outlined"
-            />
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text)
-                setEmailError('')
-              }}
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              error={!!emailError}
-              mode="outlined"
-            />
-            <HelperText type="error" visible={!!emailError}>
-              {emailError}
-            </HelperText>
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text)
-                setPasswordError('')
-              }}
-              secureTextEntry
-              style={styles.input}
-              error={!!passwordError}
-              mode="outlined"
-            />
-            <HelperText type="error" visible={!!passwordError}>
-              {passwordError}
-            </HelperText>
-            <TextInput
-              label="Apartment Number"
-              value={apartment}
-              onChangeText={setApartment}
-              style={styles.input}
-              mode="outlined"
-            />
-            <TextInput
-              label="Phone Number"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              style={styles.input}
-              keyboardType="phone-pad"
-              mode="outlined"
-            />
-            <View style={styles.checkboxContainer}>
-              <Checkbox
-                status={isResident ? 'checked' : 'unchecked'}
-                onPress={() => setIsResident(!isResident)}
-              />
-              <HelperText type="info" visible={true} onPress={() => setIsResident(!isResident)}>
-                I am a resident
-              </HelperText>
-            </View>
-            <Button 
-              mode="contained" 
-              onPress={handleRegister} 
-              style={styles.button} 
-              loading={loading} 
-              disabled={loading}
-            >
-              Register
-            </Button>
-            <Button onPress={() => navigation.navigate('Login')} style={styles.loginButton}>
-              Already have an account? Login
-            </Button>
-          </Card.Content>
-        </Card>
-      </ScrollView>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={['#00A86B', '#0f3d0f', '#000000']}
+        style={styles.gradient}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
+            <Card style={styles.card}>
+              <Card.Content>
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons name="tennis" size={50} color="#00A86B" />
+                </View>
+                <Title style={styles.title}>Join Paddle Court</Title>
+                <Text style={styles.subtitle}>Create your account to start booking</Text>
+                <TextInput
+                  label="Full Name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  style={styles.input}
+                  mode="outlined"
+                  left={<TextInput.Icon icon="account" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <TextInput
+                  label="Username"
+                  value={userName}
+                  onChangeText={setUserName}
+                  style={styles.input}
+                  mode="outlined"
+                  left={<TextInput.Icon icon="at" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <TextInput
+                  label="Email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    setEmailError('')
+                  }}
+                  style={styles.input}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  error={!!emailError}
+                  mode="outlined"
+                  left={<TextInput.Icon icon="email" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <HelperText type="error" visible={!!emailError}>
+                  {emailError}
+                </HelperText>
+                <TextInput
+                  label="Password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text)
+                    setPasswordError('')
+                  }}
+                  secureTextEntry
+                  style={styles.input}
+                  error={!!passwordError}
+                  mode="outlined"
+                  left={<TextInput.Icon icon="lock" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <HelperText type="error" visible={!!passwordError}>
+                  {passwordError}
+                </HelperText>
+                <TextInput
+                  label="Apartment Number"
+                  value={apartment}
+                  onChangeText={setApartment}
+                  style={styles.input}
+                  mode="outlined"
+                  left={<TextInput.Icon icon="home" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <TextInput
+                  label="Phone Number"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  mode="outlined"
+                  left={<TextInput.Icon icon="phone" color="#00A86B" />}
+                  theme={{ colors: { primary: '#00A86B', text: '#333' } }}
+                />
+                <TouchableOpacity 
+                  style={styles.checkboxContainer} 
+                  onPress={() => setIsResident(!isResident)}
+                >
+                  <Checkbox
+                    status={isResident ? 'checked' : 'unchecked'}
+                    onPress={() => setIsResident(!isResident)}
+                    color="#00A86B"
+                  />
+                  <Text style={styles.checkboxLabel}>I am a resident</Text>
+                </TouchableOpacity>
+                <Button 
+                  mode="contained" 
+                  onPress={handleRegister} 
+                  style={styles.button} 
+                  loading={loading} 
+                  disabled={loading}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  color="#00A86B"
+                >
+                  Create Account
+                </Button>
+                <Button 
+                  onPress={() => navigation.navigate('Login')} 
+                  style={styles.loginButton}
+                  labelStyle={styles.loginButtonLabel}
+                  color="#00A86B"
+                >
+                  Already have an account? Log in
+                </Button>
+              </Card.Content>
+            </Card>
+          </Animated.View>
+        </ScrollView>
+      </LinearGradient>
     </KeyboardAvoidingView>
   )
 }
@@ -191,36 +237,82 @@ export default function RegisterScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  gradient: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 16,
   },
+  cardContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
   card: {
+    width: '100%',
+    maxWidth: 400,
     elevation: 4,
-    borderRadius: 8,
+    borderRadius: 20,
+    marginVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: 'rgba(26, 92, 26, 0.1)',
+    borderRadius: 50,
+    padding: 16,
+    alignSelf: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#00A86B',
+  },
+  subtitle: {
+    fontSize: 16,
     marginBottom: 24,
     textAlign: 'center',
+    color: '#0f3d0f',
   },
   input: {
-    marginBottom: 12,
+    marginBottom: 16,
+    backgroundColor: 'white',
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#0f3d0f',
   },
   button: {
     marginTop: 24,
-    marginBottom: 12,
-    paddingVertical: 8,
+    marginBottom: 16,
+    borderRadius: 25,
+    elevation: 2,
+  },
+  buttonContent: {
+    height: 50,
+  },
+  buttonLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
   },
   loginButton: {
     marginTop: 8,
+  },
+  loginButtonLabel: {
+    fontSize: 14,
+    color: '#1a5c1a',
   },
 })
