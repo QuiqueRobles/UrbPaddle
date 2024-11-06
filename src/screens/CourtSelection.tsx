@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator, HelperText, Tooltip } from 'react-native-paper';
+import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator, HelperText } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import { format, addMinutes, parseISO, parse, isBefore, isAfter } from 'date-fns';
+import { format, addMinutes, parseISO, parse, isBefore } from 'date-fns';
 import { Calendar } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type RootStackParamList = {
   CourtSelection: { date: string };
@@ -42,10 +43,11 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [selectedDuration, setSelectedDuration] = useState(60);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipMessage, setTooltipMessage] = useState('');
   const theme = useTheme();
   const { date } = route.params;
+
+  const gradientStart = '#00A86B';
+  const gradientEnd = '#000000';
 
   useEffect(() => {
     fetchBookings();
@@ -87,14 +89,11 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
     if (conflictingBooking) {
       const bookingStart = parse(conflictingBooking.start_time, 'HH:mm:ss', new Date());
-      const bookingEnd = parse(conflictingBooking.end_time, 'HH:mm:ss', new Date());
 
       if (isBefore(slotStart, bookingStart)) {
-        return 'interferes-next';
-      } else if (isAfter(slotEnd, bookingEnd)) {
-        return 'interferes-previous';
+        return 'interferes';
       } else {
-        return 'ongoing-match';
+        return 'unavailable';
       }
     }
 
@@ -119,54 +118,31 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
       const isAvailable = slotStatus === 'available';
       const isSelected = selectedCourt === courtId && selectedTime === time;
 
-      let chipStyle: { margin: number; backgroundColor: string } = {
-        margin: 4,
-        backgroundColor: '#e0e0e0',
+      let chipStyle = {
+        ...styles.timeChip,
+        backgroundColor: isAvailable ? (isSelected ? '#28A745' : 'rgba(255, 255, 255, 0.2)') : 'rgba(255, 0, 0, 0.5)',
       };
-      let chipTextStyle = styles.chipText;
-      let statusMessage = '';
-
-      switch (slotStatus) {
-        case 'ongoing-match':
-          chipStyle = { ...chipStyle, backgroundColor: '#ff5252' };
-          chipTextStyle = styles.unavailableChipText;
-          statusMessage = 'Ongoing match';
-          break;
-        case 'interferes-next':
-          chipStyle = { ...chipStyle, backgroundColor: '#ff9800' };
-          chipTextStyle = styles.unavailableChipText;
-          statusMessage = 'Interferes with next match';
-          break;
-        case 'interferes-previous':
-          chipStyle = { ...chipStyle, backgroundColor: '#ffc107' };
-          chipTextStyle = styles.unavailableChipText;
-          statusMessage = 'Interferes with previous match';
-          break;
-        case 'available':
-          if (isSelected) {
-            chipStyle = { ...chipStyle, backgroundColor: '#4caf50' };
-            chipTextStyle = styles.selectedChipText;
-          }
-          break;
-      }
+      let chipTextStyle = {
+        ...styles.chipText,
+        color: isAvailable ? (isSelected ? '#000' : '#fff') : '#fff',
+      };
 
       return (
-        <Tooltip key={time} title={isAvailable ? '' : statusMessage}>
-          <Chip
-            selected={isSelected}
-            onPress={() => {
-              if (isAvailable) {
-                setSelectedCourt(courtId);
-                setSelectedTime(time);
-              }
-            }}
-            style={[styles.timeChip, chipStyle]}
-            textStyle={chipTextStyle}
-            disabled={!isAvailable}
-          >
-            {time}
-          </Chip>
-        </Tooltip>
+        <Chip
+          key={time}
+          selected={isSelected}
+          onPress={() => {
+            if (isAvailable) {
+              setSelectedCourt(courtId);
+              setSelectedTime(time);
+            }
+          }}
+          style={chipStyle}
+          textStyle={chipTextStyle}
+          disabled={!isAvailable}
+        >
+          {time}
+        </Chip>
       );
     });
   };
@@ -175,7 +151,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     <Card key={courtId} style={styles.courtCard}>
       <Card.Content>
         <Title style={styles.courtTitle}>Court {courtId}</Title>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeSlotContainer}>
           {renderTimeSlots(courtId)}
         </ScrollView>
       </Card.Content>
@@ -184,87 +160,83 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#fff" />
+      </LinearGradient>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <Title style={styles.title}>Book a Court</Title>
-        <View style={styles.dateContainer}>
-          <Calendar size={24} color={theme.colors.primary} />
-          <Text style={styles.dateText}>{format(parseISO(date), 'MMMM d, yyyy')}</Text>
+    <LinearGradient colors={[gradientStart, gradientEnd]} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Title style={styles.title}>Book a Court</Title>
+          <View style={styles.dateContainer}>
+            <Calendar size={24} color="#fff" />
+            <Text style={styles.dateText}>{format(parseISO(date), 'MMMM d, yyyy')}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.durationContainer}>
-        <Text style={styles.durationLabel}>Duration:</Text>
-        <View style={styles.durationButtons}>
-          {DURATIONS.map((duration) => (
-            <Chip
-              key={duration.value}
-              selected={selectedDuration === duration.value}
-              onPress={() => setSelectedDuration(duration.value)}
-              style={[
-                styles.durationChip,
-                selectedDuration === duration.value && styles.selectedDurationChip
-              ]}
-              textStyle={[
-                styles.durationChipText,
-                selectedDuration === duration.value && styles.selectedDurationChipText
-              ]}
-            >
-              {duration.label}
-            </Chip>
-          ))}
+        <View style={styles.durationContainer}>
+          <Text style={styles.durationLabel}>Duration:</Text>
+          <View style={styles.durationButtons}>
+            {DURATIONS.map((duration) => (
+              <Chip
+                key={duration.value}
+                selected={selectedDuration === duration.value}
+                onPress={() => setSelectedDuration(duration.value)}
+                style={[
+                  styles.durationChip,
+                  selectedDuration === duration.value && { backgroundColor: '#28A745' }
+                ]}
+                textStyle={[
+                  styles.durationChipText,
+                  selectedDuration === duration.value && { color: '#000' }
+                ]}
+              >
+                {duration.label}
+              </Chip>
+            ))}
+          </View>
         </View>
-      </View>
-      {renderCourtCard(1)}
-      {renderCourtCard(2)}
-      <Button
-        mode="contained"
-        onPress={handleBooking}
-        disabled={!selectedCourt || !selectedTime}
-        style={styles.bookButton}
-        labelStyle={styles.buttonLabel}
-        icon="check"
-      >
-        Confirm Booking
-      </Button>
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: theme.colors.primary }]} />
-          <Text>Available</Text>
+        {renderCourtCard(1)}
+        {renderCourtCard(2)}
+        <Button
+          mode="contained"
+          onPress={handleBooking}
+          disabled={!selectedCourt || !selectedTime}
+          style={styles.bookButton}
+          labelStyle={styles.buttonLabel}
+          icon="check"
+        >
+          Confirm Booking
+        </Button>
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]} />
+            <Text style={styles.legendText}>Available</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
+            <Text style={styles.legendText}>Unavailable</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: gradientStart }]} />
+            <Text style={styles.legendText}>Selected</Text>
+          </View>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#ff5252' }]} />
-          <Text>Ongoing Match</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#ff9800' }]} />
-          <Text>Interferes with Next</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#ffc107' }]} />
-          <Text>Interferes with Previous</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#4caf50' }]} />
-          <Text>Selected</Text>
-        </View>
-      </View>
-      <HelperText type="info" style={styles.helperText}>
-        Tap on a time slot to select it. Unavailable slots will show a reason when tapped.
-      </HelperText>
-    </ScrollView>
+        <HelperText type="info" style={styles.helperText}>
+          Tap on an available time slot to select it. Unavailable slots cannot be selected.
+        </HelperText>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 16,
   },
   centered: {
@@ -279,6 +251,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
+    color: '#fff',
   },
   dateContainer: {
     flexDirection: 'row',
@@ -288,6 +261,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 18,
     marginLeft: 8,
+    color: '#fff',
   },
   durationContainer: {
     marginBottom: 24,
@@ -295,6 +269,7 @@ const styles = StyleSheet.create({
   durationLabel: {
     fontSize: 16,
     marginBottom: 8,
+    color: '#fff',
   },
   durationButtons: {
     flexDirection: 'row',
@@ -303,60 +278,53 @@ const styles = StyleSheet.create({
   durationChip: {
     flex: 1,
     marginHorizontal: 4,
-  },
-  selectedDurationChip: {
-    backgroundColor: '#4caf50',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   durationChipText: {
     textAlign: 'center',
-  },
-  selectedDurationChipText: {
-    color: '#ffffff',
+    color: '#fff',
   },
   courtCard: {
     marginBottom: 24,
     elevation: 4,
     borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   courtTitle: {
     fontSize: 22,
     marginBottom: 12,
+    color: '#fff',
+  },
+  timeSlotContainer: {
+    paddingVertical: 8,
   },
   timeChip: {
     margin: 4,
-    backgroundColor: '#e0e0e0',
   },
   chipText: {
-    color: '#000000',
-  },
-  unavailableChipText: {
-    color: '#ffffff',
-  },
-  selectedChipText: {
-    color: '#ffffff',
+    fontSize: 14,
   },
   bookButton: {
     marginTop: 24,
     paddingVertical: 8,
     borderRadius: 8,
+    backgroundColor: '#00A86B',
   },
   buttonLabel: {
     fontSize: 18,
+    color: '#000',
   },
   legend: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-around',
     marginTop: 16,
     padding: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
-    marginHorizontal: 8,
   },
   legendColor: {
     width: 16,
@@ -364,8 +332,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 4,
   },
+  legendText: {
+    color: '#fff',
+  },
   helperText: {
     textAlign: 'center',
     marginTop: 16,
+    color: '#fff',
   },
 });
