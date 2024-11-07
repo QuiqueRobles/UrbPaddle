@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert, RefreshControl, TouchableOpacity } from 'react-native';
-import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme, Text, IconButton, Surface } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
+import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { format, parseISO, isBefore, subDays, isToday, isTomorrow } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Booking = {
   id: string;
@@ -20,7 +21,7 @@ export default function MyBookingsScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const {colors} = useTheme();
+  const { colors } = useTheme();
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -111,7 +112,7 @@ export default function MyBookingsScreen() {
     return format(bookingDate, 'EEEE, MMMM d, yyyy');
   };
 
-  const renderBookingItem = ({ item }: { item: Booking }) => {
+ const renderBookingItem = ({ item }: { item: Booking }) => {
     const bookingDate = parseISO(`${item.date}T${item.start_time}`);
     const isPastBooking = isBefore(bookingDate, new Date());
 
@@ -149,7 +150,7 @@ export default function MyBookingsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[colors.primary, colors.gray300]} style={[styles.container, styles.centered]}>
+      <LinearGradient colors={[colors.primary, '#000']} style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#ffffff" />
       </LinearGradient>
     );
@@ -157,39 +158,38 @@ export default function MyBookingsScreen() {
 
   return (
     <LinearGradient colors={[colors.primary, "#000"]} style={styles.container}>
-      <Surface style={styles.header}>
-        <Title style={styles.title}>My Bookings</Title>
-        <IconButton
-          icon="refresh"
-          size={24}
-          onPress={onRefresh}
-          color={colors.primary}
-        />
-      </Surface>
-      {bookings.length === 0 ? (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
-          <Paragraph style={styles.noBookings}>You have no bookings in the last 3 days or upcoming.</Paragraph>
-          <Button mode="contained" onPress={onRefresh} style={styles.refreshButton}>
-            Refresh
-          </Button>
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <Title style={styles.title}>My Bookings</Title>
+          {loading && <ActivityIndicator size="small" color="#ffffff" />}
         </View>
-      ) : (
-        <FlatList
-          data={bookings}
-          renderItem={renderBookingItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[colors.primary]}
-              tintColor="#ffffff"
-            />
-          }
-        />
-      )}
+       
+        
+        {bookings.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
+            <Paragraph style={styles.noBookings}>You have no bookings in the last 3 days or upcoming.</Paragraph>
+            <Button mode="contained" onPress={onRefresh} style={styles.refreshButton}>
+              Refresh
+            </Button>
+          </View>
+        ) : (
+          <FlatList
+            data={bookings}
+            renderItem={renderBookingItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+                tintColor="#ffffff"
+              />
+            }
+          />
+        )}
+      </SafeAreaView>
     </LinearGradient>
   );
 }
@@ -198,24 +198,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  safeArea: {
+    flex: 1,
+    width: '100%',
+  },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff',
-    elevation: 4,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    padding:6,
+    paddingTop: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#fff',
+    textAlign: 'center',
+    marginRight: 8, // Espacio entre el título y el loader
   },
   card: {
     marginHorizontal: 16,
@@ -259,6 +263,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 16,
+    paddingBottom: 80, // Add extra padding at the bottom for the tab bar
   },
   emptyState: {
     flex: 1,

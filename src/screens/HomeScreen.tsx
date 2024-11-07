@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert } from 'react-native';
-import { Text, useTheme, Avatar, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView,Alert } from 'react-native';
+import { Text, useTheme, IconButton  } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
-import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/colors';
+import { supabase } from '../lib/supabase';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -22,7 +22,6 @@ type ActionButtonProps = {
 
 export default function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
-
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -53,61 +52,45 @@ export default function HomeScreen({ navigation }: Props) {
       style={styles.container}
     >
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animated.View style={styles.header} entering={FadeInDown.delay(200)}>
-          <Text style={[styles.title, { color: colors.onPrimary }]}>Paddle Court Booking</Text>
-          <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and start playing!</Text>
-        </Animated.View>
-        
-        <View style={styles.buttonContainer}>
-          <ActionButton
-            icon="calendar-plus"
-            label="Book a Court"
-            onPress={() => navigation.navigate('DateSelection')}
-            delay={400}
-            color={colors.surface}
-          />
-          <ActionButton
-            icon="calendar-check"
-            label="My Bookings"
-            onPress={() => navigation.navigate('MyBookings')}
-            delay={600}
-            color={colors.surface}
-          />
-          <ActionButton
-            icon="chart-bar"
-            label="View Statistics"
-            onPress={() => navigation.navigate('Statistics')}
-            delay={800}
-            color={colors.surface}
-          />
-          <ActionButton
-            icon="trophy"
-            label="Add Match Result"
-            onPress={() => navigation.navigate('AddMatchResult')}
-            delay={1000}
-            color={colors.surface}
-          />
-        </View>
-
-        <Animated.View style={styles.bottomContainer} entering={FadeInDown.delay(1200)}>
-          <TouchableOpacity
-            style={[styles.profileButton, { backgroundColor: colors.surface }]}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Avatar.Icon size={36} icon="account" color={colors.primary} style={styles.profileAvatar} />
-            <Text style={[styles.profileButtonLabel, { color: colors.text }]}>My Profile</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Animated.View style={styles.header} entering={FadeInDown.delay(200)}>
+            <Text style={[styles.title, { color: colors.onPrimary }]}>Paddle Court Booking</Text>
+            <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and start playing!</Text>
+          </Animated.View>
           
-          <IconButton
+          <View style={styles.buttonContainer}>
+            <ActionButton
+              icon="calendar-plus"
+              label="Book a Court"
+              onPress={() => navigation.navigate('DateSelection')}
+              delay={400}
+              color={colors.surface}
+            />
+            <ActionButton
+              icon="chart-bar"
+              label="View Statistics"
+              onPress={() => navigation.navigate('Statistics')}
+              delay={600}
+              color={colors.surface}
+            />
+            <ActionButton
+              icon="trophy"
+              label="Add Match Result"
+              onPress={() => navigation.navigate('AddMatchResult')}
+              delay={800}
+              color={colors.surface}
+            />
+          </View>
+           <IconButton
             icon="logout"
             iconColor={colors.error}
             size={28}
             onPress={handleLogout}
             style={[styles.logoutButton, { backgroundColor: colors.surface }]}
           />
-        </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 }
@@ -116,10 +99,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 24,
     paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 24 : 48,
+    paddingBottom: 80, // Add extra padding at the bottom to account for the tab bar
   },
   header: {
     alignItems: 'center',
@@ -165,35 +152,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  bottomContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  profileButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 12,
-    marginRight: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  profileButtonLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 12,
-    flex: 1,
-  },
-  profileAvatar: {
-    backgroundColor: 'transparent',
-  },
-  logoutButton: {
+   logoutButton: {
+    alignSelf:'flex-end',
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',

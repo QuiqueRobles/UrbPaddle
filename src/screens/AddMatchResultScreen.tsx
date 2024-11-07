@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, FlatList, TouchableOpacity, Animated } from 'react-native';
-import { Button, Title, TextInput, HelperText, ActivityIndicator, useTheme, Card, Paragraph, List, Chip, Avatar, IconButton } from 'react-native-paper';
+import { Button, Title, TextInput, ActivityIndicator, useTheme, Card, Paragraph, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -175,7 +175,7 @@ export default function AddMatchResultScreen() {
     }
   }
 
-  async function handleSubmit() {
+ async function handleSubmit() {
     if (!selectedBooking || !isValidScore() || !winningTeam || players.some(p => !p.name)) {
       Alert.alert('Error', 'Please fill in all fields correctly');
       return;
@@ -203,6 +203,9 @@ export default function AddMatchResultScreen() {
           player4_id: players[3].profile_id,
           score: formattedScore,
           winner_team: winningTeam,
+          match_date: selectedBookingData.date,
+          match_time: selectedBookingData.start_time,
+          court_number: selectedBookingData.court_number
         })
         .select()
         .single();
@@ -597,6 +600,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+ 
     winningTeamIndicator: {
     position: 'absolute',
     top: 4,
