@@ -173,9 +173,44 @@ export default function AddMatchResultScreen() {
       console.error('Error fetching profiles:', error);
       Alert.alert('Error', 'Failed to fetch profiles');
     }
-  }
+  }const calculateXP = (playerProfile: any, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
+    const XP_MATCH = 1000;
+    const XP_VICTORY = 500;
+    const XP_SETS = 50 * (setsWon / (1 + setsLost));
+    const XP_GAMES = 20 * (gamesWon / (1 + gamesLost));
+    
+    let totalXP = XP_MATCH + XP_SETS + XP_GAMES;
+    if (isWinner) totalXP += XP_VICTORY;
 
- async function handleSubmit() {
+    return Math.round(totalXP);
+  };
+
+  const updatePlayerXP = async (profileId: string, xpToAdd: number) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('xp, level')
+      .eq('id', profileId)
+      .single();
+
+    if (error) throw error;
+
+    let newXP = (data.xp || 0) + xpToAdd;
+    let newLevel = data.level || 1;
+
+    while (newXP >= 5000) {
+      newLevel++;
+      newXP -= 5000;
+    }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ xp: newXP, level: newLevel })
+      .eq('id', profileId);
+
+    if (updateError) throw updateError;
+  };
+
+  async function handleSubmit() {
     if (!selectedBooking || !isValidScore() || !winningTeam || players.some(p => !p.name)) {
       Alert.alert('Error', 'Please fill in all fields correctly');
       return;
@@ -212,6 +247,9 @@ export default function AddMatchResultScreen() {
 
       if (matchError) throw matchError;
 
+      // Update player profiles and XP
+      await updatePlayerProfilesAndXP(formattedScore, winningTeam);
+
       Alert.alert('Success', 'Match result added successfully');
       navigation.goBack();
     } catch (error) {
@@ -219,6 +257,85 @@ export default function AddMatchResultScreen() {
       Alert.alert('Error', 'Failed to add match result');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
+    const scoreArray = formattedScore.split(',');
+    const team1Players = [players[0].profile_id, players[1].profile_id];
+    const team2Players = [players[2].profile_id, players[3].profile_id];
+
+    let team1SetsWon = 0;
+    let team2SetsWon = 0;
+    let team1GamesWon = 0;
+    let team2GamesWon = 0;
+
+    scoreArray.forEach(set => {
+      const [team1Score, team2Score] = set.split('-').map(Number);
+      if (team1Score > team2Score) {
+        team1SetsWon++;
+      } else if (team2Score > team1Score) {
+        team2SetsWon++;
+      }
+      team1GamesWon += team1Score;
+      team2GamesWon += team2Score;
+    });
+
+    const updateProfile = async (profileId: string, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('matches_played, wins, losses, sets_won, sets_lost, games_won, games_lost')
+        .eq('id', profileId)
+        .single();
+
+      if (error) throw error;
+
+      const updatedData = {
+        matches_played: (data.matches_played || 0) + 1,
+        wins: (data.wins || 0) + (isWinner ? 1 : 0),
+        losses: (data.losses || 0) + (isWinner ? 0 : 1),
+        sets_won: (data.sets_won || 0) + setsWon,
+        sets_lost: (data.sets_lost || 0) + setsLost,
+        games_won: (data.games_won || 0) + gamesWon,
+        games_lost: (data.games_lost || 0) + gamesLost,
+      };
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updatedData)
+        .eq('id', profileId);
+
+      if (updateError) throw updateError;
+
+      // Calculate and update XP
+      const xpToAdd = calculateXP(data, isWinner, setsWon, setsLost, gamesWon, gamesLost);
+      await updatePlayerXP(profileId, xpToAdd);
+    };
+
+    for (const profileId of team1Players) {
+      if (profileId) {
+        await updateProfile(
+          profileId,
+          winningTeam === '1',
+          team1SetsWon,
+          team2SetsWon,
+          team1GamesWon,
+          team2GamesWon
+        );
+      }
+    }
+
+    for (const profileId of team2Players) {
+      if (profileId) {
+        await updateProfile(
+          profileId,
+          winningTeam === '2',
+          team2SetsWon,
+          team1SetsWon,
+          team2GamesWon,
+          team1GamesWon
+        );
+      }
     }
   }
 

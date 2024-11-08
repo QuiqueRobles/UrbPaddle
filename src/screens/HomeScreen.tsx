@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView,Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView,Alert,Image } from 'react-native';
 import { Text, useTheme, IconButton  } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -54,9 +54,16 @@ export default function HomeScreen({ navigation }: Props) {
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.logoContainer}>
+          <Image 
+              source={require('../../assets/images/logoUrbPaddle.png')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
           <Animated.View style={styles.header} entering={FadeInDown.delay(200)}>
-            <Text style={[styles.title, { color: colors.onPrimary }]}>Paddle Court Booking</Text>
-            <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and start playing!</Text>
+            <Text style={[styles.title, { color: colors.onPrimary }]}>U R your Best with paddle</Text>
+            <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
           </Animated.View>
           
           <View style={styles.buttonContainer}>
@@ -113,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
@@ -160,5 +167,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logo: {
+    width: 200,
+    height: 200,
   },
 });

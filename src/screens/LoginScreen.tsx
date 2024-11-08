@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { TextInput, Button, Title, Text, useTheme } from 'react-native-paper'
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { TextInput, Button, useTheme } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { LinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
-import { Feather } from '@expo/vector-icons'
-import { colors } from '../theme/colors';
+import { colors } from '../theme/colors'
+
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -48,9 +48,15 @@ export default function LoginScreen({ navigation }: Props) {
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.gradient}
       >
+        <View style={styles.logoContainer}>
+            <Image 
+              source={require('../../assets/images/logoUrbPaddle.png')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
         <View style={styles.loginContainer}>
-          <Feather name="radio" size={60} color={colors.gray100} style={styles.icon} />
-          <Title style={styles.title}>UrbPaddle</Title>
+          
           <TextInput
             label="Email"
             value={email}
@@ -59,7 +65,7 @@ export default function LoginScreen({ navigation }: Props) {
             autoCapitalize="none"
             mode="flat"
             underlineColor="transparent"
-            theme={{ colors: { primary: theme.colors.primary, text: '#fff' } }}
+            textColor='#fff'
             left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
           />
           <TextInput
@@ -119,16 +125,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
+    marginBottom: 140,
   },
-  icon: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  logoContainer: {
     marginBottom: 30,
-    color: '#FFFFFF',
-    textAlign: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 200,
+    height: 200,
   },
   input: {
     marginBottom: 16,

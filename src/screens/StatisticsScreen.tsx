@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, Avatar, Button, ActivityIndicator, useTheme } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { Text, Button, ActivityIndicator, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ProfileImage from '../components/ProfileImage';
-import {colors} from "../theme/colors"
+import TopPlayers from '../components/TopPlayers';
+import HotStreaks from '../components/HotStreaks';
 
 type PlayerStats = {
   id: string;
@@ -21,7 +20,8 @@ type PlayerStats = {
   sets_lost: number;
   games_won: number;
   games_lost: number;
-  win_streak: number;
+  hot_streak: number;
+  max_hot_streak: number;
 };
 
 type MonthlyPlayerStats = {
@@ -36,7 +36,8 @@ type MonthlyPlayerStats = {
 export default function StatisticsScreen() {
   const [topPlayers, setTopPlayers] = useState<PlayerStats[]>([]);
   const [monthlyTopPlayers, setMonthlyTopPlayers] = useState<MonthlyPlayerStats[]>([]);
-  const [hotStreakPlayers, setHotStreakPlayers] = useState<PlayerStats[]>([]);
+  const [currentHotStreakPlayers, setCurrentHotStreakPlayers] = useState<PlayerStats[]>([]);
+  const [maxHotStreakPlayers, setMaxHotStreakPlayers] = useState<PlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overall');
@@ -52,7 +53,8 @@ export default function StatisticsScreen() {
     await Promise.all([
       fetchTopPlayers(),
       fetchMonthlyTopPlayers(),
-      fetchHotStreakPlayers(),
+      fetchCurrentHotStreakPlayers(),
+      fetchMaxHotStreakPlayers(),
     ]);
     setLoading(false);
   };
@@ -141,18 +143,33 @@ export default function StatisticsScreen() {
     }
   }
 
-  async function fetchHotStreakPlayers() {
+  async function fetchCurrentHotStreakPlayers() {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('win_streak', { ascending: false })
+        .order('hot_streak', { ascending: false })
         .limit(3);
 
       if (error) throw error;
-      if (data) setHotStreakPlayers(data as PlayerStats[]);
+      if (data) setCurrentHotStreakPlayers(data as PlayerStats[]);
     } catch (error) {
-      console.error('Error fetching hot streak players:', error);
+      console.error('Error fetching current hot streak players:', error);
+    }
+  }
+
+  async function fetchMaxHotStreakPlayers() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('max_hot_streak', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      if (data) setMaxHotStreakPlayers(data as PlayerStats[]);
+    } catch (error) {
+      console.error('Error fetching max hot streak players:', error);
     }
   }
 
@@ -168,84 +185,6 @@ export default function StatisticsScreen() {
     );
   }
 
-  const renderPlayerCard = (player: PlayerStats | MonthlyPlayerStats, index: number, isMonthly: boolean) => {
-    const wins = isMonthly ? (player as MonthlyPlayerStats).monthly_wins : (player as PlayerStats).wins;
-    const matches = isMonthly ? (player as MonthlyPlayerStats).monthly_matches : (player as PlayerStats).matches_played;
-    const winRate = ((wins / (matches || 1)) * 100).toFixed(1);
-
-    return (
-      <Card key={player.id} style={styles.playerCard}>
-        <LinearGradient
-          colors={[colors.primary, "#000"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cardGradient}
-        >
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>{index + 1}</Text>
-              </View>
-              <ProfileImage avatarUrl={player.avatar_url} size={60} />
-              <View style={styles.playerInfo}>
-                <Text style={styles.playerName}>{player.full_name}</Text>
-                <Text style={styles.playerUsername}>@{player.username}</Text>
-              </View>
-            </View>
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.surface} />
-                <Text style={styles.statValue}>{wins}</Text>
-                <Text style={styles.statLabel}>Wins</Text>
-              </View>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.surface} />
-                <Text style={styles.statValue}>{matches}</Text>
-                <Text style={styles.statLabel}>Matches</Text>
-              </View>
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="percent" size={24} color={theme.colors.surface} />
-                <Text style={styles.statValue}>{winRate}%</Text>
-                <Text style={styles.statLabel}>Win Rate</Text>
-              </View>
-            </View>
-            {!isMonthly && (
-              <View style={styles.levelContainer}>
-                <Text style={styles.levelLabel}>Level {(player as PlayerStats).level}</Text>
-                <View style={styles.levelStars}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <MaterialCommunityIcons
-                      key={star}
-                      name={star <= Math.floor((player as PlayerStats).level / 20) ? "star" : "star-outline"}
-                      size={20}
-                      color={star <= Math.floor((player as PlayerStats).level / 20) ? "#FFD700" : "#E0E0E0"}
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        </LinearGradient>
-      </Card>
-    );
-  };
-
-  const renderHotStreakPlayer = (player: PlayerStats, index: number) => (
-    <Card key={player.id} style={styles.hotStreakCard}>
-      <Card.Content style={styles.hotStreakContent}>
-        <ProfileImage avatarUrl={player.avatar_url} size={48} />
-        <View style={styles.hotStreakInfo}>
-          <Text style={styles.hotStreakName}>{player.full_name}</Text>
-          <Text style={styles.hotStreakUsername}>@{player.username}</Text>
-        </View>
-        <View style={styles.hotStreakStreak}>
-          <MaterialCommunityIcons name="fire" size={24} color={theme.colors.error} />
-          <Text style={styles.hotStreakValue}>{player.win_streak}</Text>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
   return (
     <ScrollView 
       style={styles.container}
@@ -254,7 +193,7 @@ export default function StatisticsScreen() {
       }
     >
       <LinearGradient
-        colors={[theme.colors.primary,  "#000"]}
+        colors={[theme.colors.primary, "#000"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.header}
@@ -277,18 +216,17 @@ export default function StatisticsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Top Players</Text>
-        {activeTab === 'overall'
-          ? topPlayers.map((player, index) => renderPlayerCard(player, index, false))
-          : monthlyTopPlayers.map((player, index) => renderPlayerCard(player, index, true))
-        }
-      </View>
+      <TopPlayers
+        topPlayers={activeTab === 'overall' ? topPlayers : monthlyTopPlayers}
+        isMonthly={activeTab === 'monthly'}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Hot Streak 🔥</Text>
-        {hotStreakPlayers.map((player, index) => renderHotStreakPlayer(player, index))}
-      </View>
+      {activeTab === 'overall' && (
+        <HotStreaks
+          currentHotStreakPlayers={currentHotStreakPlayers}
+          maxHotStreakPlayers={maxHotStreakPlayers}
+        />
+      )}
 
       <Button
         mode="contained"
@@ -334,7 +272,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#33C18C',
+    backgroundColor: '#00A86B',
   },
   tabText: {
     fontSize: 16,
@@ -348,126 +286,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  section: {
-    marginVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 16,
-    marginBottom: 12,
-    color: '#333',
-  },
-  playerCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 4,
-  },
-  cardGradient: {
-    borderRadius: 12,
-  },
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rankBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rankText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  playerInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  playerName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  playerUsername: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  levelContainer: {
-    alignItems: 'center',
-  },
-  levelLabel: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 4,
-  },
-  levelStars: {
-    flexDirection: 'row',
-  },
-  hotStreakCard: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 2,
-  },
-  hotStreakContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  hotStreakInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  hotStreakName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  hotStreakUsername: {
-    fontSize: 14,
-    color: '#757575',
-  },
-  hotStreakStreak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 111, 0, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  hotStreakValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 4,
-    color: '#FF6F00',
   },
   button: {
     margin: 16,

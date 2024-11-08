@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
-import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme } from 'react-native-paper';
+import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme, Chip } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { format, parseISO, isBefore, subDays, isToday, isTomorrow } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,6 +15,7 @@ type Booking = {
   start_time: string;
   end_time: string;
   user_id: string;
+  has_match: boolean;
 };
 
 export default function MyBookingsScreen() {
@@ -34,21 +35,43 @@ export default function MyBookingsScreen() {
 
     const threeDaysAgo = subDays(new Date(), 3).toISOString().split('T')[0];
 
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('date', threeDaysAgo)
-      .order('date', { ascending: false })
-      .order('start_time', { ascending: false });
+    try {
+      // First, fetch all bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', threeDaysAgo)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false });
 
-    if (error) {
-      Alert.alert('Error', 'Failed to fetch bookings');
+      if (bookingsError) throw bookingsError;
+
+      // Then, fetch all matches for these bookings
+      const bookingIds = bookingsData?.map(booking => booking.id) || [];
+      const { data: matchesData, error: matchesError } = await supabase
+        .from('matches')
+        .select('booking_id')
+        .in('booking_id', bookingIds);
+
+      if (matchesError) throw matchesError;
+
+      // Create a Set of booking IDs that have matches for efficient lookup
+      const bookingsWithMatches = new Set(matchesData?.map(match => match.booking_id));
+
+      // Combine the data
+      const bookingsWithMatchStatus = bookingsData?.map(booking => ({
+        ...booking,
+        has_match: bookingsWithMatches.has(booking.id)
+      })) || [];
+
+      setBookings(bookingsWithMatchStatus);
+    } catch (error) {
       console.error('Error fetching bookings:', error);
-    } else {
-      setBookings(data || []);
+      Alert.alert('Error', 'Failed to fetch bookings');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -112,7 +135,7 @@ export default function MyBookingsScreen() {
     return format(bookingDate, 'EEEE, MMMM d, yyyy');
   };
 
- const renderBookingItem = ({ item }: { item: Booking }) => {
+  const renderBookingItem = ({ item }: { item: Booking }) => {
     const bookingDate = parseISO(`${item.date}T${item.start_time}`);
     const isPastBooking = isBefore(bookingDate, new Date());
 
@@ -122,6 +145,16 @@ export default function MyBookingsScreen() {
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="tennis" size={24} color={colors.primary} />
             <Title style={styles.courtTitle}>Court {item.court_number}</Title>
+            {isPastBooking && (
+              <Chip 
+                style={[
+                  styles.statusChip, 
+                  item.has_match ? styles.matchAddedChip : styles.pendingResultChip
+                ]}
+              >
+                {item.has_match ? 'Match Added' : 'Pending Result'}
+              </Chip>
+            )}
           </View>
           <View style={styles.cardContent}>
             <View style={styles.dateTimeContainer}>
@@ -164,7 +197,6 @@ export default function MyBookingsScreen() {
           {loading && <ActivityIndicator size="small" color="#ffffff" />}
         </View>
        
-        
         {bookings.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
@@ -211,7 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding:6,
+    padding: 6,
     paddingTop: 16,
   },
   title: {
@@ -219,7 +251,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginRight: 8, // Espacio entre el título y el loader
+    marginRight: 8,
   },
   card: {
     marginHorizontal: 16,
@@ -238,6 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333333',
+    flex: 1,
   },
   cardContent: {
     marginBottom: 16,
@@ -263,7 +296,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 16,
-    paddingBottom: 80, // Add extra padding at the bottom for the tab bar
+    paddingBottom: 80,
   },
   emptyState: {
     flex: 1,
@@ -283,6 +316,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   pastBooking: {
-    opacity: 0.6,
+    opacity: 0.8,
+  },
+  statusChip: {
+    marginLeft: 'auto',
+  },
+  matchAddedChip: {
+    backgroundColor: '#4CAF50',
+  },
+  pendingResultChip: {
+    backgroundColor: '#FFA000',
   },
 });

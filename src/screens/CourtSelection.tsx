@@ -308,11 +308,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#00A86B',
+    backgroundColor: '#fff',
   },
   buttonLabel: {
     fontSize: 18,
-    color: '#000',
+    color: '#008C59',
   },
   legend: {
     flexDirection: 'row',

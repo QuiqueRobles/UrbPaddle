@@ -29,6 +29,8 @@ type UserProfile = {
   games_won: number;
   games_lost: number;
   level: number;
+  xp: number;
+  
 };
 
 export default function ProfileScreen() {
@@ -39,7 +41,7 @@ export default function ProfileScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
-
+  const xp_to_next_level=5000;
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -236,6 +238,27 @@ export default function ProfileScreen() {
               </View>
               <Title style={styles.name}>@{profile.username || 'Name not set'}</Title>
               <Text style={styles.fullName}>{profile.full_name}</Text>
+              <View style={styles.levelContainer}>
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={styles.levelBadge}
+                >
+                  <Text style={styles.levelText}>Nivel {profile.level}</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.xpContainer}>
+                <Text style={styles.xpText}>XP: {profile.xp} / {xp_to_next_level}</Text>
+                <View style={styles.xpBarContainer}>
+                  <LinearGradient
+                    colors={['#4CAF50', '#8BC34A']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={[styles.xpBar, { width: `${(profile.xp / xp_to_next_level) * 100}%` }]}
+                  />
+                </View>
+              </View>
             </View>
 
             <View style={styles.content}>
@@ -415,6 +438,51 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  level: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
+  },
+  levelContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  levelBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    elevation: 3,
+  },
+  levelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  xpContainer: {
+    width: '80%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  xpText: {
+    fontSize: 14,
+    color: 'white',
+    marginBottom: 4,
+  },
+  xpBarContainer: {
+    width: '100%',
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  xpBar: {
+    height: '100%',
+    borderRadius: 5,
   },
   card: {
     marginBottom: 20,
