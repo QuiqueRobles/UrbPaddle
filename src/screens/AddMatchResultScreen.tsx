@@ -173,7 +173,8 @@ export default function AddMatchResultScreen() {
       console.error('Error fetching profiles:', error);
       Alert.alert('Error', 'Failed to fetch profiles');
     }
-  }const calculateXP = (playerProfile: any, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
+  }
+  const calculateXP = (playerProfile: any, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
     const XP_MATCH = 1000;
     const XP_VICTORY = 500;
     const XP_SETS = 50 * (setsWon / (1 + setsLost));
@@ -228,6 +229,7 @@ export default function AddMatchResultScreen() {
 
       const formattedScore = formatScore();
 
+      // Insert match data
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .insert({
@@ -260,10 +262,11 @@ export default function AddMatchResultScreen() {
     }
   }
 
-  async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
+ async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
     const scoreArray = formattedScore.split(',');
-    const team1Players = [players[0].profile_id, players[1].profile_id];
-    const team2Players = [players[2].profile_id, players[3].profile_id];
+    const team1Players = [players[0].profile_id, players[1].profile_id].filter(Boolean) as string[];
+    const team2Players = [players[2].profile_id, players[3].profile_id].filter(Boolean) as string[];
+    const allPlayers = [...team1Players, ...team2Players];
 
     let team1SetsWon = 0;
     let team2SetsWon = 0;
@@ -284,7 +287,7 @@ export default function AddMatchResultScreen() {
     const updateProfile = async (profileId: string, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('matches_played, wins, losses, sets_won, sets_lost, games_won, games_lost')
+        .select('matches_played, wins, losses, sets_won, sets_lost, games_won, games_lost, xp, level')
         .eq('id', profileId)
         .single();
 
@@ -300,44 +303,43 @@ export default function AddMatchResultScreen() {
         games_lost: (data.games_lost || 0) + gamesLost,
       };
 
+      // Calculate XP
+      const xpToAdd = calculateXP(data, isWinner, setsWon, setsLost, gamesWon, gamesLost);
+      let newXP = (data.xp || 0) + xpToAdd;
+      let newLevel = data.level || 1;
+
+      while (newXP >= 5000) {
+        newLevel++;
+        newXP -= 5000;
+      }
+
+      updatedData.xp = newXP;
+      updatedData.level = newLevel;
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update(updatedData)
         .eq('id', profileId);
 
       if (updateError) throw updateError;
-
-      // Calculate and update XP
-      const xpToAdd = calculateXP(data, isWinner, setsWon, setsLost, gamesWon, gamesLost);
-      await updatePlayerXP(profileId, xpToAdd);
     };
 
-    for (const profileId of team1Players) {
-      if (profileId) {
-        await updateProfile(
-          profileId,
-          winningTeam === '1',
-          team1SetsWon,
-          team2SetsWon,
-          team1GamesWon,
-          team2GamesWon
-        );
-      }
-    }
+    // Update profiles for all players
+    const updatePromises = allPlayers.map((profileId, index) => {
+      const isTeam1 = index < 2;
+      return updateProfile(
+        profileId,
+        (isTeam1 && winningTeam === '1') || (!isTeam1 && winningTeam === '2'),
+        isTeam1 ? team1SetsWon : team2SetsWon,
+        isTeam1 ? team2SetsWon : team1SetsWon,
+        isTeam1 ? team1GamesWon : team2GamesWon,
+        isTeam1 ? team2GamesWon : team1GamesWon
+      );
+    });
 
-    for (const profileId of team2Players) {
-      if (profileId) {
-        await updateProfile(
-          profileId,
-          winningTeam === '2',
-          team2SetsWon,
-          team1SetsWon,
-          team2GamesWon,
-          team1GamesWon
-        );
-      }
-    }
+    await Promise.all(updatePromises);
   }
+
 
   function handlePlayerChange(index: number, profile: Profile | null) {
     const newPlayers = [...players];
