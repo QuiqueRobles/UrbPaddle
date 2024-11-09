@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer'
 import ProfileImage from '../components/ProfileImage';
+import PlayerInfoForm from '../components/PlayerInfoForm';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type UserProfile = {
@@ -41,6 +42,49 @@ export default function ProfileScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+    const [errors, setErrors] = useState({
+    full_name: '',
+    apartment: '',
+    phone_number: '',
+    motivational_speech: '',
+  });
+   const validateField = (field: string, value: string) => {
+    let error = '';
+    switch (field) {
+      case 'full_name':
+        if (value.trim().length < 2) {
+          error = 'Full name must be at least 2 characters long';
+        }
+        break;
+      case 'apartment':
+        if (value.trim().length === 0) {
+          error = 'Apartment number is required';
+        }
+        break;
+      case 'phone_number':
+        if (!/^\+?[0-9]{10,14}$/.test(value)) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+      case 'motivational_speech':
+        if (value.trim().length > 200) {
+          error = 'Motivational speech must be 200 characters or less';
+        }
+        break;
+    }
+    setErrors(prev => ({ ...prev, [field]: error }));
+    return error === '';
+  };
+
+   const handleFieldChange = (field: string, value: string) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
+  };
+
+  const canSave = () => {
+    return Object.values(errors).every(error => error === '') &&
+           Object.entries(profile).some(([key, value]) => ['full_name', 'apartment', 'phone_number', 'motivational_speech'].includes(key) && value !== '');
+  };
   const xp_to_next_level=5000;
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -209,7 +253,7 @@ export default function ProfileScreen() {
   const setWinRate = profile.sets_won + profile.sets_lost > 0 ? (profile.sets_won / (profile.sets_won + profile.sets_lost)) * 100 : 0;
   const gameWinRate = profile.games_won + profile.games_lost > 0 ? (profile.games_won / (profile.games_won + profile.games_lost)) * 100 : 0;
 
-  return (
+   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
@@ -308,56 +352,11 @@ export default function ProfileScreen() {
               <Card style={[styles.card, editing && styles.editingCard]}>
                 <Card.Content>
                   <Title style={styles.cardTitle}>Player Info</Title>
-                  <TextInput
-                    label="Full Name"
-                    value={profile.full_name || ''}
-                    onChangeText={(text) => setProfile({ ...profile, full_name: text })}
-                    disabled={!editing}
-                    style={styles.input}
-                    mode="flat"
-                    textColor='white'
-                    underlineColor="rgba(255, 255, 255, 0.3)"
-                    outlineColor="white"
-                    activeUnderlineColor="white"
-                    theme={{ colors: { placeholder: 'white' } }}
-                  />
-                  <TextInput
-                    label="Apartment"
-                    value={profile.apartment || ''}
-                    onChangeText={(text) => setProfile({ ...profile, apartment: text })}
-                    disabled={!editing}
-                    style={styles.input}
-                    mode="flat"
-                    textColor='white'
-                    underlineColor="rgba(255, 255, 255, 0.3)"
-                    activeUnderlineColor="white"
-                    theme={{ colors: { placeholder: 'white' } }}
-                  />
-                  <TextInput
-                    label="Phone Number"
-                    value={profile.phone_number || ''}
-                    onChangeText={(text) => setProfile({ ...profile, phone_number: text })}
-                    disabled={!editing}
-                    style={styles.input}
-                    mode="flat"
-                    textColor='white'
-                    underlineColor="rgba(255, 255, 255, 0.3)"
-                    activeUnderlineColor="white"
-                    theme={{ colors: { placeholder: 'white' } }}
-                  />
-                  <TextInput
-                    label="Motivational Speech"
-                    value={profile.motivational_speech || ''}
-                    onChangeText={(text) => setProfile({ ...profile, motivational_speech: text })}
-                    disabled={!editing}
-                    style={styles.input}
-                    mode="flat"
-                    textColor='white'
-                    underlineColor="rgba(255, 255, 255, 0.3)"
-                    activeUnderlineColor="white"
-                    theme={{ colors: { placeholder: 'white' } }}
-                    multiline
-                    numberOfLines={4}
+                  <PlayerInfoForm
+                    profile={profile}
+                    errors={errors}
+                    handleFieldChange={handleFieldChange}
+                    editing={editing}
                   />
                 </Card.Content>
               </Card>
@@ -368,6 +367,7 @@ export default function ProfileScreen() {
                 style={[styles.button, editing ? styles.saveButton : styles.editButton]}
                 contentStyle={styles.buttonContent}
                 labelStyle={styles.buttonLabel}
+                disabled={editing && !canSave()}
               >
                 {editing ? 'Save Changes' : 'Edit Profile'}
               </Button>

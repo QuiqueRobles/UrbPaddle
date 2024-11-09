@@ -40,6 +40,20 @@ type Score = {
   [key: string]: SetScore;
 };
 
+type ProfileData = {
+  matches_played: number;
+  wins: number;
+  losses: number;
+  sets_won: number;
+  sets_lost: number;
+  games_won: number;
+  games_lost: number;
+  xp: number;
+  level: number;
+  hot_streak: number;
+  max_hot_streak: number;
+};
+
 export default function AddMatchResultScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
@@ -186,30 +200,7 @@ export default function AddMatchResultScreen() {
     return Math.round(totalXP);
   };
 
-  const updatePlayerXP = async (profileId: string, xpToAdd: number) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('xp, level')
-      .eq('id', profileId)
-      .single();
-
-    if (error) throw error;
-
-    let newXP = (data.xp || 0) + xpToAdd;
-    let newLevel = data.level || 1;
-
-    while (newXP >= 5000) {
-      newLevel++;
-      newXP -= 5000;
-    }
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ xp: newXP, level: newLevel })
-      .eq('id', profileId);
-
-    if (updateError) throw updateError;
-  };
+  
 
   async function handleSubmit() {
     if (!selectedBooking || !isValidScore() || !winningTeam || players.some(p => !p.name)) {
@@ -262,7 +253,7 @@ export default function AddMatchResultScreen() {
     }
   }
 
- async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
+  async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
     const scoreArray = formattedScore.split(',');
     const team1Players = [players[0].profile_id, players[1].profile_id].filter(Boolean) as string[];
     const team2Players = [players[2].profile_id, players[3].profile_id].filter(Boolean) as string[];
@@ -287,9 +278,11 @@ export default function AddMatchResultScreen() {
     const updateProfile = async (profileId: string, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('matches_played, wins, losses, sets_won, sets_lost, games_won, games_lost, xp, level')
+        .select('matches_played, wins, losses, sets_won, sets_lost, games_won, games_lost, xp, level, hot_streak, max_hot_streak')
         .eq('id', profileId)
         .single();
+      
+      const profileData = data as ProfileData;
 
       if (error) throw error;
 
@@ -301,6 +294,10 @@ export default function AddMatchResultScreen() {
         sets_lost: (data.sets_lost || 0) + setsLost,
         games_won: (data.games_won || 0) + gamesWon,
         games_lost: (data.games_lost || 0) + gamesLost,
+        xp: 0, // We'll calculate this below
+        level: profileData.level || 1,
+        hot_streak: 0, // We'll calculate this below
+        max_hot_streak: profileData.max_hot_streak || 0,
       };
 
       // Calculate XP
@@ -316,12 +313,22 @@ export default function AddMatchResultScreen() {
       updatedData.xp = newXP;
       updatedData.level = newLevel;
 
+      // Update hot streak
+      let newHotStreak = isWinner ? (data.hot_streak || 0) + 1 : 0;
+      updatedData.hot_streak = newHotStreak;
+
+      // Update max hot streak if necessary
+      updatedData.max_hot_streak = Math.max(newHotStreak, data.max_hot_streak || 0);
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update(updatedData)
         .eq('id', profileId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        throw updateError;
+      }
     };
 
     // Update profiles for all players
@@ -337,20 +344,13 @@ export default function AddMatchResultScreen() {
       );
     });
 
-    await Promise.all(updatePromises);
-  }
-
-
-  function handlePlayerChange(index: number, profile: Profile | null) {
-    const newPlayers = [...players];
-    newPlayers[index] = { 
-      ...newPlayers[index], 
-      name: profile ? profile.full_name : '', 
-      profile_id: profile ? profile.id : null,
-      avatar_url: profile ? profile.avatar_url : undefined
-    };
-    setPlayers(newPlayers);
-    setSearchQuery('');
+    try {
+      await Promise.all(updatePromises);
+      console.log('All profiles updated successfully');
+    } catch (error) {
+      console.error('Error updating profiles:', error);
+      Alert.alert('Error', 'Failed to update player profiles');
+    }
   }
 
   function isValidScore() {
