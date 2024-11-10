@@ -22,6 +22,7 @@ import CourtSelectionScreen from './screens/CourtSelection'
 import MyBookingsScreen from './screens/MyBookingsScreen'
 import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
+import CommunityManagementScreen from './screens/CommunityManagementScreen'
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createMaterialBottomTabNavigator()
@@ -32,6 +33,35 @@ const theme = {
 }
 
 function MainTabs() {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    checkAdminStatus()
+  }, [])
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('resident_community_id')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData?.resident_community_id) {
+        const { data: communityData } = await supabase
+          .from('community')
+          .select('admin')
+          .eq('id', profileData.resident_community_id)
+          .single()
+
+        if (communityData?.admin === user.id) {
+          setIsAdmin(true)
+        }
+      }
+    }
+  }
+
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
@@ -75,6 +105,18 @@ function MainTabs() {
           ),
         }}
       />
+      {isAdmin && (
+        <Tab.Screen 
+          name="CommunityManagementTab" 
+          component={CommunityManagementScreen} 
+          options={{
+            tabBarLabel: 'Community',
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="office-building" color={color} size={26} />
+            ),
+          }}
+        />
+      )}
     </Tab.Navigator>
   )
 }

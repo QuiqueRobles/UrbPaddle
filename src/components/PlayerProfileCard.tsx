@@ -67,9 +67,9 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
           
           {player.motivational_speech && (
             <View style={styles.quoteContainer}>
-              <MaterialCommunityIcons name="format-quote-open" size={20} color="rgba(255, 255, 255, 0.6)" />
-              <Text style={styles.motivationalSpeech}>{player.motivational_speech}</Text>
-              <MaterialCommunityIcons name="format-quote-close" size={20} color="rgba(255, 255, 255, 0.6)" style={styles.quoteClose} />
+              <Text style={styles.motivationalSpeech}><MaterialCommunityIcons name="format-quote-open" size={15} color="rgba(255, 255, 255, 0.6)" />
+              {player.motivational_speech}
+              <MaterialCommunityIcons name="format-quote-close" size={15} color="rgba(255, 255, 255, 0.6)" style={styles.quoteClose} /></Text>
             </View>
           )}
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   quoteContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,

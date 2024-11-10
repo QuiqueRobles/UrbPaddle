@@ -10,6 +10,7 @@ import { decode } from 'base64-arraybuffer'
 import ProfileImage from '../components/ProfileImage';
 import PlayerInfoForm from '../components/PlayerInfoForm';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CommunitiesSection from '../components/CommunitiesSection';
 
 type UserProfile = {
   id: string;
@@ -304,7 +305,7 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
-
+            <CommunitiesSection />
             <View style={styles.content}>
               {profile.motivational_speech && (
                 <Card style={styles.quoteCard}>
