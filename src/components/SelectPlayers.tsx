@@ -10,6 +10,8 @@ type Profile = {
   username: string;
   avatar_url?: string;
   level?: number;
+  resident_community_id?: string;
+  guest_communities?: string[];
 };
 
 type Player = {
@@ -18,6 +20,7 @@ type Player = {
   profile_id: string | null;
   avatar_url?: string;
   level?: number;
+  isResident: boolean;
 };
 
 interface SelectPlayersProps {
@@ -27,42 +30,73 @@ interface SelectPlayersProps {
 export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: '', profile_id: null },
-    { id: '2', name: '', profile_id: null },
-    { id: '3', name: '', profile_id: null },
-    { id: '4', name: '', profile_id: null },
+    { id: '1', name: '', profile_id: null, isResident: false },
+    { id: '2', name: '', profile_id: null, isResident: false },
+    { id: '3', name: '', profile_id: null, isResident: false },
+    { id: '4', name: '', profile_id: null, isResident: false },
   ]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [userCommunityId, setUserCommunityId] = useState<string | null>(null);
   const theme = useTheme();
 
   useEffect(() => {
-    fetchProfiles();
+    fetchUserCommunity();
   }, []);
 
   useEffect(() => {
-    if (searchQuery.length > 1 && activeSlot !== null) {
+    if (userCommunityId) {
+      fetchProfiles();
+    }
+  }, [userCommunityId]);
+
+  useEffect(() => {
+    if (searchQuery.length > 1 && activeSlot !== null && userCommunityId) {
       const filteredProfiles = profiles.filter(profile => 
         (profile.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         profile.username.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        !players.some(player => player.profile_id === profile.id)
+        !players.some(player => player.profile_id === profile.id) &&
+        (profile.resident_community_id === userCommunityId || 
+         (profile.guest_communities && profile.guest_communities.includes(userCommunityId)))
       );
       setSearchResults(filteredProfiles);
     } else {
       setSearchResults([]);
     }
-  }, [searchQuery, profiles, players, activeSlot]);
+  }, [searchQuery, profiles, players, activeSlot, userCommunityId]);
 
   useEffect(() => {
     onPlayersChange(players);
   }, [players, onPlayersChange]);
 
+  const fetchUserCommunity = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('resident_community_id')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        setUserCommunityId(data?.resident_community_id || null);
+      }
+    } catch (error) {
+      console.error('Error fetching user community:', error);
+      Alert.alert('Error', 'Failed to fetch user community. Please try again.');
+    }
+  }, []);
+
   const fetchProfiles = useCallback(async () => {
+    if (!userCommunityId) return;
+
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, level')
+        .select('id, full_name, username, avatar_url, level, resident_community_id, guest_communities')
+        .or(`resident_community_id.eq.${userCommunityId},guest_communities.cs.{${userCommunityId}}`)
         .order('full_name', { ascending: true });
 
       if (error) throw error;
@@ -71,7 +105,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
       console.error('Error fetching profiles:', error);
       Alert.alert('Error', 'Failed to fetch profiles. Please try again.');
     }
-  }, []);
+  }, [userCommunityId]);
 
   const handlePlayerChange = useCallback((index: number, profile: Profile | null) => {
     setPlayers(prevPlayers => {
@@ -81,13 +115,14 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
         name: profile ? profile.full_name : '', 
         profile_id: profile ? profile.id : null,
         avatar_url: profile ? profile.avatar_url : undefined,
-        level: profile ? profile.level : undefined
+        level: profile ? profile.level : undefined,
+        isResident: profile ? profile.resident_community_id === userCommunityId : false
       };
       return newPlayers;
     });
     setSearchQuery('');
     setActiveSlot(null);
-  }, []);
+  }, [userCommunityId]);
 
   const renderSearchResult = useCallback(({ item }: { item: Profile }) => (
     <TouchableOpacity
@@ -99,7 +134,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     >
       <List.Item
         title={item.full_name}
-        description={`@${item.username} • Level: ${item.level || 'N/A'}`}
+        description={`@${item.username} • Level: ${item.level || 'N/A'} • ${item.resident_community_id === userCommunityId ? 'Resident' : 'Guest'}`}
         left={props => 
           item.avatar_url ? (
             <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />
@@ -111,7 +146,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
         style={styles.searchResultItem}
       />
     </TouchableOpacity>
-  ), [activeSlot, handlePlayerChange]);
+  ), [activeSlot, handlePlayerChange, userCommunityId]);
 
   const renderTeam = useCallback((teamName: string, teamIndex: number) => (
     <View key={teamName} style={styles.team}>
@@ -140,10 +175,11 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                   )
                 }
                 onClose={() => handlePlayerChange(teamIndex * 2 + index, null)}
-                style={styles.playerChip}
+                style={[styles.playerChip, player.isResident ? styles.residentChip : styles.guestChip]}
               >
                 <Text style={styles.playerNameInSlot}>{player.name}</Text>
                 <Text style={styles.playerLevelInSlot}> Lvl {player.level || 'N/A'}</Text>
+                <Text style={styles.playerTypeInSlot}> {player.isResident ? 'R' : 'G'}</Text>
               </Chip>
             ) : (
               <View style={[
@@ -270,9 +306,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 8,
     paddingHorizontal: 12,
+  },
+  residentChip: {
+    backgroundColor: 'rgba(255, 0, 255, 0.1)',
+  },
+  guestChip: {
+    backgroundColor: 'rgba(100, 255, 100, 0.1)',
   },
   playerNameInSlot: {
     color: "#fff",
@@ -282,6 +323,11 @@ const styles = StyleSheet.create({
   playerLevelInSlot: {
     color: "rgba(255, 255, 255, 0.7)",
     fontSize: 12,
+  },
+  playerTypeInSlot: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   emptySlot: {
     flexDirection: 'row',

@@ -38,7 +38,7 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
     return (
       <Animated.View style={[styles.inputContainer, { transform: [{ translateX: shakeAnimation }] }]}>
         <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name={icon} size={24} color={colors.primary} />
+          <MaterialCommunityIcons name={icon} size={24} color={'white'} />
         </View>
         <View style={styles.inputWrapper}>
           <TextInput
@@ -49,9 +49,7 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
             style={styles.input}
             mode="flat"
             error={!!errors[field]}
-            underlineColor={colors.primary}
-            activeUnderlineColor={colors.accent}
-            textColor={colors.text}
+            textColor={'white'}
             multiline={multiline}
             numberOfLines={multiline ? 4 : 1}
             theme={{ colors: { placeholder: colors.primary } }}
@@ -71,7 +69,7 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
       {renderInput('full_name', 'Full Name', 'account')}
       {renderInput('apartment', 'Apartment', 'home')}
       {renderInput('phone_number', 'Phone Number', 'phone')}
-      {renderInput('motivational_speech', 'Motivational Speech', 'format-quote', true)}
+      {renderInput('motivational_speech', 'Motivational Speech', 'format-quote-open', true)}
     </View>
   );
 };

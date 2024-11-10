@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 16,
-    overflow: 'hidden',
     elevation: 8,
   },
   cardGradient: {

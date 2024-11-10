@@ -163,7 +163,6 @@ const styles = StyleSheet.create({
   },
   hotStreakCard: {
     borderRadius: 16,
-    overflow: 'hidden',
     elevation: 5,
   },
   cardGradient: {

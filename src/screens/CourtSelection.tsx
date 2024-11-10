@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator, HelperText } from 'react-native-paper';
-import { NavigationProp } from '@react-navigation/native';
-import { RouteProp } from '@react-navigation/native';
+import { NavigationProp, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { supabase } from '../lib/supabase';
 import { format, addMinutes, parseISO, parse, isBefore } from 'date-fns';
 import { Calendar } from 'lucide-react-native';
@@ -13,8 +14,20 @@ type RootStackParamList = {
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string };
 };
 
+type BottomTabParamList = {
+  HomeTab: undefined;
+  MyBookingsTab: undefined;
+  ProfileTab: undefined;
+  CommunityManagementTab: undefined;
+};
+
+type CourtSelectionScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<RootStackParamList, 'CourtSelection'>,
+  BottomTabNavigationProp<BottomTabParamList>
+>;
+
 type Props = {
-  navigation: NavigationProp<RootStackParamList, 'CourtSelection'>;
+  navigation: CourtSelectionScreenNavigationProp;
   route: RouteProp<RootStackParamList, 'CourtSelection'>;
 };
 
@@ -24,6 +37,11 @@ type Booking = {
   date: string;
   start_time: string;
   end_time: string;
+};
+
+type CommunityData = {
+  id: string;
+  court_number: number;
 };
 
 const TIME_SLOTS = Array.from({ length: 30 }, (_, i) => 
@@ -42,7 +60,9 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(60);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const { date } = route.params;
 
@@ -50,23 +70,66 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const gradientEnd = '#000000';
 
   useEffect(() => {
-    fetchBookings();
+    fetchCommunityDataAndBookings();
   }, []);
 
-  const fetchBookings = async () => {
+  const fetchCommunityDataAndBookings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('date', date);
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
-    if (error) {
-      console.error('Error fetching bookings:', error);
-      Alert.alert('Error', 'Unable to load bookings. Please try again.');
-    } else {
-      setBookings(data || []);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('resident_community_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      if (!profileData.resident_community_id) {
+        setError('no_community');
+        setLoading(false);
+        return;
+      }
+
+      const { data: communityData, error: communityError } = await supabase
+        .from('community')
+        .select('id, court_number')
+        .eq('id', profileData.resident_community_id)
+        .single();
+
+      if (communityError) throw communityError;
+
+      setCommunityData(communityData);
+
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('date', date)
+        .eq('community_id', communityData.id);
+
+      if (bookingsError) throw bookingsError;
+
+      setBookings(bookingsData || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('fetch_error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleNoCommunity = () => {
+    Alert.alert(
+      'No Community Found',
+      'You need to add a community to your profile before booking a court.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Go to Profile', onPress: () => navigation.navigate('ProfileTab') }
+      ]
+    );
   };
 
   const getSlotStatus = (courtId: number, time: string) => {
@@ -166,6 +229,28 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     );
   }
 
+  if (error === 'no_community') {
+    return (
+      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>You haven't joined a community yet.</Text>
+        <Button mode="contained" onPress={handleNoCommunity} style={styles.errorButton}>
+          Add Community to Profile
+        </Button>
+      </LinearGradient>
+    );
+  }
+
+  if (error === 'fetch_error') {
+    return (
+      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>Failed to load community data.</Text>
+        <Button mode="contained" onPress={fetchCommunityDataAndBookings} style={styles.errorButton}>
+          Retry
+        </Button>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient colors={[gradientStart, gradientEnd]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -198,8 +283,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
             ))}
           </View>
         </View>
-        {renderCourtCard(1)}
-        {renderCourtCard(2)}
+        {communityData && Array.from({ length: communityData.court_number }, (_, i) => i + 1).map(courtId => renderCourtCard(courtId))}
         <Button
           mode="contained"
           onPress={handleBooking}
@@ -237,6 +321,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     padding: 16,
   },
   centered: {
@@ -339,5 +424,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     color: '#fff',
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  errorButton: {
+    marginTop: 16,
   },
 });

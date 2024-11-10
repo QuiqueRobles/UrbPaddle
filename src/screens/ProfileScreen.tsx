@@ -359,11 +359,9 @@ export default function ProfileScreen() {
                     handleFieldChange={handleFieldChange}
                     editing={editing}
                   />
-                </Card.Content>
-              </Card>
-
-              <Button 
+                  <Button 
                 mode={editing ? "contained" : "outlined"} 
+                textColor='rgba(0,0,0,0.75)'
                 onPress={editing ? updateProfile : () => setEditing(true)} 
                 style={[styles.button, editing ? styles.saveButton : styles.editButton]}
                 contentStyle={styles.buttonContent}
@@ -372,6 +370,11 @@ export default function ProfileScreen() {
               >
                 {editing ? 'Save Changes' : 'Edit Profile'}
               </Button>
+                </Card.Content>
+                
+              </Card>
+
+              
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -486,7 +489,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   card: {
-    marginBottom: 20,
+    marginBottom: 40,
     borderRadius: 16,
     elevation: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -559,7 +562,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 16,
-    marginBottom: 48,
+    marginBottom: 16,
     borderRadius: 8,
     elevation: 4,
   },
