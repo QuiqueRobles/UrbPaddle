@@ -4,6 +4,7 @@ import { Card, Text, useTheme, ProgressBar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ProfileImage from './ProfileImage';
+import LevelIndicator from './LevelIndicator';
 
 type PlayerProfile = {
   id: string;
@@ -49,27 +50,20 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{player.full_name}</Text>
               <Text style={styles.playerUsername}>@{player.username}</Text>
-              <View style={styles.levelContainer}>
-                <Text style={styles.levelLabel}>Level {player.level}</Text>
-                <View style={styles.levelStars}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <MaterialCommunityIcons
-                      key={star}
-                      name={star <= Math.floor(player.level / 20) ? "star" : "star-outline"}
-                      size={16}
-                      color={star <= Math.floor(player.level / 20) ? "#FFD700" : "#E0E0E0"}
-                    />
-                  ))}
-                </View>
-              </View>
             </View>
           </View>
           
+          <View style={styles.levelIndicatorContainer}>
+            <LevelIndicator level={player.level} />
+          </View>
+
           {player.motivational_speech && (
             <View style={styles.quoteContainer}>
-              <Text style={styles.motivationalSpeech}><MaterialCommunityIcons name="format-quote-open" size={15} color="rgba(255, 255, 255, 0.6)" />
-              {player.motivational_speech}
-              <MaterialCommunityIcons name="format-quote-close" size={15} color="rgba(255, 255, 255, 0.6)" style={styles.quoteClose} /></Text>
+              <Text style={styles.motivationalSpeech}>
+                <MaterialCommunityIcons name="format-quote-open" size={15} color="rgba(255, 255, 255, 0.6)" />
+                {player.motivational_speech}
+                <MaterialCommunityIcons name="format-quote-close" size={15} color="rgba(255, 255, 255, 0.6)" style={styles.quoteClose} />
+              </Text>
             </View>
           )}
 
@@ -159,20 +153,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
   },
-  levelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  levelLabel: {
-    fontSize: 14,
-    color: '#fff',
-    marginRight: 8,
-  },
-  levelStars: {
-    flexDirection: 'row',
+  levelIndicatorContainer: {
+    marginBottom: 16,
   },
   quoteContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -182,7 +167,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    marginHorizontal: 20,
   },
   quoteClose: {
     alignSelf: 'flex-end',

@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView, Alert, Image } from 'react-native';
-import { Text, useTheme, IconButton } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView, Image, Dimensions } from 'react-native';
+import { Text, useTheme, ActivityIndicator, Modal, Portal } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  FadeInRight, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring,
+  runOnJS
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/colors';
 import { supabase } from '../lib/supabase';
+import CommunityInfoCard from '../components/CommunityInfoCard';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -25,12 +34,19 @@ type ProfileData = {
 };
 
 type CommunityData = {
+  id: string;
   name: string | null;
 };
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export default function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
-  const [communityName, setCommunityName] = useState<string | null>(null);
+  const [communityData, setCommunityData] = useState<CommunityData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCommunityInfo, setShowCommunityInfo] = useState(false);
+
+  const modalY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     fetchUserCommunity();
@@ -52,33 +68,19 @@ export default function HomeScreen({ navigation }: Props) {
         if (profile && profile.resident_community_id) {
           const { data: communityData, error: communityError } = await supabase
             .from('community')
-            .select('name')
+            .select('id, name')
             .eq('id', profile.resident_community_id)
             .single();
 
           if (communityError) throw communityError;
           
-          const community = communityData as CommunityData;
-          
-          if (community && community.name) {
-            setCommunityName(community.name);
-          }
+          setCommunityData(communityData as CommunityData);
         }
       }
     } catch (error) {
       console.error('Error fetching user community:', error);
-    }
-  };
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert('Error', 'Failed to log out. Please try again.');
-    } else {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,6 +96,34 @@ export default function HomeScreen({ navigation }: Props) {
     </Animated.View>
   );
 
+  const animatedModalStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: modalY.value }],
+    };
+  });
+
+  const openCommunityInfo = useCallback(() => {
+    setShowCommunityInfo(true);
+    modalY.value = withSpring(0, { damping: 15, stiffness: 90 });
+  }, []);
+
+  const closeCommunityInfo = useCallback(() => {
+    modalY.value = withSpring(SCREEN_HEIGHT, { damping: 15, stiffness: 90 }, () => {
+      runOnJS(setShowCommunityInfo)(false);
+    });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        style={[styles.container, styles.loadingContainer]}
+      >
+        <ActivityIndicator size="large" color={colors.onPrimary} />
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
@@ -102,7 +132,7 @@ export default function HomeScreen({ navigation }: Props) {
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.logoContainer}>
+          <Animated.View entering={FadeIn.duration(600)} style={styles.logoContainer}>
             <Image 
               source={require('../../assets/images/logoUrbPaddle.png')} 
               style={styles.logo}
@@ -114,10 +144,12 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
           </Animated.View>
           
-          {communityName && (
-            <Animated.View entering={FadeInDown.delay(600).duration(400)} style={styles.communityContainer}>
-              <MaterialCommunityIcons name="home-group" size={24} color={colors.onPrimary} />
-              <Text style={styles.communityName}>{communityName}</Text>
+          {communityData && (
+            <Animated.View entering={FadeIn.delay(600).duration(400)} style={styles.communityContainer}>
+              <TouchableOpacity onPress={openCommunityInfo} style={styles.communityButton}>
+                <MaterialCommunityIcons name="home-group" size={24} color={colors.onPrimary} />
+                <Text style={styles.communityName}>{communityData.name}</Text>
+              </TouchableOpacity>
             </Animated.View>
           )}
           
@@ -144,17 +176,21 @@ export default function HomeScreen({ navigation }: Props) {
               color={colors.surface}
             />
           </View>
-          <Animated.View entering={FadeInDown.delay(1200).duration(400)}>
-            <IconButton
-              icon="logout"
-              iconColor={colors.error}
-              size={28}
-              onPress={handleLogout}
-              style={[styles.logoutButton, { backgroundColor: colors.surface }]}
-            />
-          </Animated.View>
         </ScrollView>
       </SafeAreaView>
+      <Portal>
+        <Animated.View 
+          style={[styles.modalContainer, animatedModalStyle]}
+          pointerEvents={showCommunityInfo ? 'auto' : 'none'}
+        >
+          {communityData && (
+            <CommunityInfoCard
+              communityId={communityData.id}
+              onClose={closeCommunityInfo}
+            />
+          )}
+        </Animated.View>
+      </Portal>
     </LinearGradient>
   );
 }
@@ -162,6 +198,10 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   safeArea: {
     flex: 1,
@@ -188,15 +228,17 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   communityContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 24,
+  },
+  communityButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 24,
-    alignSelf: 'center',
   },
   communityName: {
     fontSize: 16,
@@ -234,15 +276,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  logoutButton: {
-    alignSelf: 'flex-end',
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 24,
@@ -250,5 +283,16 @@ const styles = StyleSheet.create({
   logo: {
     width: 200,
     height: 200,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: SCREEN_HEIGHT * 0.8,
   },
 });

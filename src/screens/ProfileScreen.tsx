@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import { Button, Card, TextInput, Title, Text, ActivityIndicator, useTheme, ProgressBar, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -11,6 +11,8 @@ import ProfileImage from '../components/ProfileImage';
 import PlayerInfoForm from '../components/PlayerInfoForm';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommunitiesSection from '../components/CommunitiesSection';
+import LevelIndicator from '../components/LevelIndicator';
+import {colors} from "../theme/colors"
 
 type UserProfile = {
   id: string;
@@ -32,24 +34,24 @@ type UserProfile = {
   games_lost: number;
   level: number;
   xp: number;
-  
 };
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const { colors } = useTheme();
-  const scrollViewRef = useRef<ScrollView>(null);
-    const [errors, setErrors] = useState({
+  const theme = useTheme();
+  const [errors, setErrors] = useState({
     full_name: '',
     apartment: '',
     phone_number: '',
     motivational_speech: '',
   });
-   const validateField = (field: string, value: string) => {
+
+  const validateField = (field: string, value: string) => {
     let error = '';
     switch (field) {
       case 'full_name':
@@ -76,8 +78,18 @@ export default function ProfileScreen() {
     setErrors(prev => ({ ...prev, [field]: error }));
     return error === '';
   };
-
-   const handleFieldChange = (field: string, value: string) => {
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert('Error', 'Failed to log out. Please try again.');
+    } else {
+      Navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
+  };
+  const handleFieldChange = (field: string, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
   };
@@ -86,7 +98,9 @@ export default function ProfileScreen() {
     return Object.values(errors).every(error => error === '') &&
            Object.entries(profile).some(([key, value]) => ['full_name', 'apartment', 'phone_number', 'motivational_speech'].includes(key) && value !== '');
   };
-  const xp_to_next_level=5000;
+
+  const xp_to_next_level = 5000;
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -97,20 +111,9 @@ export default function ProfileScreen() {
       setSession(session);
       if (session) fetchProfile(session);
     });
-
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-    };
   }, []);
 
-  async function fetchProfile(session: Session) {
+  const fetchProfile = async (session: Session) => {
     try {
       setLoading(true);
       const { user } = session;
@@ -129,8 +132,16 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    if (session) {
+      await fetchProfile(session);
+    }
+    setRefreshing(false);
+  }, [session]);
+  
   async function updateProfile() {
     try {
       setLoading(true);
@@ -254,21 +265,23 @@ export default function ProfileScreen() {
   const setWinRate = profile.sets_won + profile.sets_lost > 0 ? (profile.sets_won / (profile.sets_won + profile.sets_lost)) * 100 : 0;
   const gameWinRate = profile.games_won + profile.games_lost > 0 ? (profile.games_won / (profile.games_won + profile.games_lost)) * 100 : 0;
 
-   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+  return (
+    <LinearGradient
+      colors={[colors.gradientStart, colors.gradientEnd]}
       style={styles.container}
     >
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientEnd]}
-        style={styles.container}
-      >
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-          <ScrollView 
-            ref={scrollViewRef}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['white']}
+              tintColor={'white'}
+            />
+          }
+        >
             <View style={styles.header}>
               <View style={styles.profileImageContainer}>
                 <ProfileImage key={refreshKey} avatarUrl={profile?.avatar_url} size={140} />
@@ -283,16 +296,7 @@ export default function ProfileScreen() {
               </View>
               <Title style={styles.name}>@{profile.username || 'Name not set'}</Title>
               <Text style={styles.fullName}>{profile.full_name}</Text>
-              <View style={styles.levelContainer}>
-                <LinearGradient
-                  colors={['#FFD700', '#FFA500']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 0}}
-                  style={styles.levelBadge}
-                >
-                  <Text style={styles.levelText}>Nivel {profile.level}</Text>
-                </LinearGradient>
-              </View>
+              <LevelIndicator level={profile.level} />
               <View style={styles.xpContainer}>
                 <Text style={styles.xpText}>XP: {profile.xp} / {xp_to_next_level}</Text>
                 <View style={styles.xpBarContainer}>
@@ -373,13 +377,25 @@ export default function ProfileScreen() {
                 </Card.Content>
                 
               </Card>
-
+              <Card style={styles.card}>
+            <Card.Content>
+              <Button 
+                mode="contained" 
+                onPress={handleLogout}
+                style={styles.logoutButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="logout"
+              >
+                Log Out
+              </Button>
+            </Card.Content>
+          </Card>
               
             </View>
           </ScrollView>
         </SafeAreaView>
       </LinearGradient>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -439,6 +455,7 @@ const styles = StyleSheet.create({
   fullName: {
     fontSize: 18,
     color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom:14,
   },
   content: {
     padding: 16,
@@ -450,7 +467,7 @@ const styles = StyleSheet.create({
   },
   levelContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
   },
   levelBadge: {
@@ -476,6 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
     marginBottom: 4,
+    marginTop:10,
   },
   xpBarContainer: {
     width: '100%',
@@ -572,5 +590,9 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.8)', // A semi-transparent red color
+    marginTop: 20,
   },
 });

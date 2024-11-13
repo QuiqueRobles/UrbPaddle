@@ -28,7 +28,7 @@ export default function CommunityManagementScreen() {
   const [newCourtCount, setNewCourtCount] = useState('1')
   const [showRulesModal, setShowRulesModal] = useState(false)
   const [newRules, setNewRules] = useState('')
-  const { colors } = useTheme()
+  const theme = useTheme()
 
   useEffect(() => {
     fetchCommunityData()

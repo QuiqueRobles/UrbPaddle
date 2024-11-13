@@ -24,6 +24,7 @@ import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 
+
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createMaterialBottomTabNavigator()
 
@@ -163,6 +164,7 @@ export default function App() {
                 <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} />
                 <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
                 <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
+              
               </>
             ) : (
               <>

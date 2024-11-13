@@ -76,7 +76,15 @@ export default function CommunitiesSection() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // First, check if the code matches a resident_code
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('resident_community_id, guest_communities')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Check if the code matches a resident_code
       const { data: residentCommunityData, error: residentError } = await supabase
         .from('community')
         .select('id, name')
@@ -85,6 +93,45 @@ export default function CommunitiesSection() {
 
       if (!residentError && residentCommunityData) {
         // Code matches a resident_code
+        if (profileData.resident_community_id) {
+          Alert.alert('Error', 'You are already a resident of a community. You cannot be a resident of multiple communities.');
+          return;
+        }
+
+        if (profileData.guest_communities && profileData.guest_communities.includes(residentCommunityData.id)) {
+          Alert.alert(
+            'Confirmation',
+            'You are currently a guest in this community. Do you want to become a resident? This will remove your guest status.',
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel'
+              },
+              {
+                text: 'Confirm',
+                onPress: async () => {
+                  const updatedGuestCommunities = profileData.guest_communities.filter(id => id !== residentCommunityData.id);
+                  const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                      resident_community_id: residentCommunityData.id,
+                      guest_communities: updatedGuestCommunities
+                    })
+                    .eq('id', user.id);
+
+                  if (updateError) throw updateError;
+
+                  Alert.alert('Success', `You are now a resident of ${residentCommunityData.name}`);
+                  setJoinCode('');
+                  setIsJoinModalVisible(false);
+                  fetchCommunities();
+                }
+              }
+            ]
+          );
+          return;
+        }
+
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ resident_community_id: residentCommunityData.id })
@@ -112,13 +159,15 @@ export default function CommunitiesSection() {
       }
 
       // Code matches a guest_code
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('guest_communities')
-        .eq('id', user.id)
-        .single();
+      if (profileData.resident_community_id === guestCommunityData.id) {
+        Alert.alert('Error', 'You are already a resident of this community. You cannot be a guest in your resident community.');
+        return;
+      }
 
-      if (profileError) throw profileError;
+      if (profileData.guest_communities && profileData.guest_communities.includes(guestCommunityData.id)) {
+        Alert.alert('Error', 'You are already a guest in this community');
+        return;
+      }
 
       const updatedGuestCommunities = [
         ...(profileData.guest_communities || []),
@@ -184,6 +233,10 @@ export default function CommunitiesSection() {
             <Card>
               <Card.Content>
                 <Title style={styles.joinTitle}>Join a Community</Title>
+                <Paragraph style={styles.warningText}>
+                  WARNING: It is strictly prohibited to join as a resident if you are not an actual resident of the community. 
+                  Misuse may result in account suspension.
+                </Paragraph>
                 <TextInput
                   label="Community Join Code"
                   value={joinCode}
@@ -254,5 +307,10 @@ const styles = StyleSheet.create({
   },
   modalJoinButton: {
     marginTop: 8,
+  },
+  warningText: {
+    color: 'red',
+    fontStyle: 'italic',
+    marginBottom: 16,
   },
 });

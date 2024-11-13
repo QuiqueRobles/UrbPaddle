@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal } from 'react-native';
-import { Text, Card, useTheme, Button, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { Text, Card, useTheme, Button, ActivityIndicator, IconButton } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
 import ProfileImage from './ProfileImage';
 import PlayerProfileCard from './PlayerProfileCard';
+import LevelIndicator from './LevelIndicator';
 import { colors } from "../theme/colors";
 
 type PlayerStats = {
@@ -23,20 +23,10 @@ type PlayerStats = {
   games_lost: number;
   hot_streak: number;
   max_hot_streak: number;
-  motivational_speech?: string;
-};
-
-type MonthlyPlayerStats = {
-  id: string;
-  full_name: string;
-  username: string;
-  avatar_url: string;
-  monthly_matches: number;
-  monthly_wins: number;
 };
 
 type TopPlayersProps = {
-  topPlayers: (PlayerStats | MonthlyPlayerStats)[];
+  topPlayers: PlayerStats[];
   isMonthly: boolean;
 };
 
@@ -44,49 +34,21 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
   const theme = useTheme();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
 
-  const fetchPlayerStats = async (playerId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', playerId)
-        .single();
-
-      if (error) throw error;
-      setSelectedPlayer(data as PlayerStats);
-    } catch (error) {
-      console.error('Error fetching player stats:', error);
-      // You might want to show an error message to the user here
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePlayerPress = (player: PlayerStats | MonthlyPlayerStats) => {
-    if (isMonthly) {
-      fetchPlayerStats(player.id);
-    } else {
-      setSelectedPlayer(player as PlayerStats);
-    }
+  const handlePlayerPress = (player: PlayerStats) => {
+    setSelectedPlayer(player);
     setModalVisible(true);
   };
 
-  const renderPlayerCard = (player: PlayerStats | MonthlyPlayerStats, index: number) => {
-    const wins = isMonthly ? (player as MonthlyPlayerStats).monthly_wins : (player as PlayerStats).wins;
-    const matches = isMonthly ? (player as MonthlyPlayerStats).monthly_matches : (player as PlayerStats).matches_played;
-    const winRate = ((wins / (matches || 1)) * 100).toFixed(1);
+  const renderPlayerCard = ({ item, index }: { item: PlayerStats; index: number }) => {
+    const winRate = ((item.wins / (item.matches_played || 1)) * 100).toFixed(1);
 
     return (
-      <TouchableOpacity
-        key={player.id}
-        onPress={() => handlePlayerPress(player)}
-      >
+      <TouchableOpacity onPress={() => handlePlayerPress(item)}>
         <Card style={styles.playerCard}>
           <LinearGradient
-            colors={[colors.primary, "#000"]}
+            colors={[colors.primary, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}
@@ -96,44 +58,32 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
                 <View style={styles.rankBadge}>
                   <Text style={styles.rankText}>{index + 1}</Text>
                 </View>
-                <ProfileImage avatarUrl={player.avatar_url} size={60} />
+                <ProfileImage avatarUrl={item.avatar_url} size={60} />
                 <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{player.full_name}</Text>
-                  <Text style={styles.playerUsername}>@{player.username}</Text>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={styles.playerName}>{item.full_name}</Text>
+                  <Text numberOfLines={1} ellipsizeMode="tail" style={styles.playerUsername}>@{item.username}</Text>
                 </View>
               </View>
               <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="trophy" size={24} color={theme.colors.surface} />
-                  <Text style={styles.statValue}>{wins}</Text>
+                  <MaterialCommunityIcons name="trophy" size={24} color={colors.surface} />
+                  <Text style={styles.statValue}>{item.wins}</Text>
                   <Text style={styles.statLabel}>Wins</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.surface} />
-                  <Text style={styles.statValue}>{matches}</Text>
+                  <MaterialCommunityIcons name="tennis" size={24} color={colors.surface} />
+                  <Text style={styles.statValue}>{item.matches_played}</Text>
                   <Text style={styles.statLabel}>Matches</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <MaterialCommunityIcons name="percent" size={24} color={theme.colors.surface} />
+                  <MaterialCommunityIcons name="percent" size={24} color={colors.surface} />
                   <Text style={styles.statValue}>{winRate}%</Text>
                   <Text style={styles.statLabel}>Win Rate</Text>
                 </View>
               </View>
-              {!isMonthly && (
-                <View style={styles.levelContainer}>
-                  <Text style={styles.levelLabel}>Level {(player as PlayerStats).level}</Text>
-                  <View style={styles.levelStars}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <MaterialCommunityIcons
-                        key={star}
-                        name={star <= Math.floor((player as PlayerStats).level / 20) ? "star" : "star-outline"}
-                        size={20}
-                        color={star <= Math.floor((player as PlayerStats).level / 20) ? "#FFD700" : "#E0E0E0"}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
+              <View style={styles.levelContainer}>
+                <LevelIndicator level={item.level} />
+              </View>
             </View>
           </LinearGradient>
         </Card>
@@ -143,32 +93,81 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}><MaterialCommunityIcons name="medal" size={32} color="#FFc700" /> Top Players <MaterialCommunityIcons name="medal" size={32} color="#FFc700" /></Text>
-      {topPlayers.map((player, index) => renderPlayerCard(player, index))}
+      <View style={styles.titleContainer}>
+        <Text style={styles.sectionTitle}>
+          <MaterialCommunityIcons name="medal" size={32} color="#FFD700" /> Top Players <MaterialCommunityIcons name="medal" size={32} color="#FFD700" />
+        </Text>
+        <IconButton
+          icon="information"
+          size={24}
+          onPress={() => setInfoModalVisible(true)}
+          
+        />
+      </View>
+      {topPlayers.length > 0 ? (
+        <FlatList
+          data={topPlayers}
+          renderItem={renderPlayerCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+        />
+      ) : (
+        <View style={styles.noPlayersContainer}>
+          <MaterialCommunityIcons name="emoticon-sad-outline" size={64} color={theme.colors.primary} />
+          <Text style={styles.noPlayersText}>No top players to show at the moment.</Text>
+          <Text style={styles.noPlayersSubtext}>Start playing to see your name here!</Text>
+        </View>
+      )}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {loading ? (
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            ) : (
-              selectedPlayer && <PlayerProfileCard player={selectedPlayer} />
-            )}
+            {selectedPlayer && <PlayerProfileCard player={selectedPlayer} />}
             <Button
               mode="contained"
               onPress={() => {
-                setModalVisible(!modalVisible);
+                setModalVisible(false);
                 setSelectedPlayer(null);
               }}
               style={styles.closeButton}
             >
               Close
+            </Button>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={infoModalVisible}
+        onRequestClose={() => setInfoModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.infoModalView}>
+            <Text style={styles.infoModalTitle}>
+              <MaterialCommunityIcons name="medal" size={16} color="#FFD700" /> How Top Players are Selected <MaterialCommunityIcons name="medal" size={16} color="#FFD700" />
+            </Text>
+            <Text style={styles.infoModalText}>
+              {isMonthly
+                ? "Monthly top players are determined based on their performance in matches played this month. We consider the number of wins and total matches played within the current month."
+                : "Overall top players are determined based on their total performance. We consider the total number of wins and matches played since joining the community."}
+            </Text>
+            <Text style={styles.infoModalText}>
+              Players are ranked based on their win rate, with total wins as a tiebreaker. This ensures that both consistency and volume of play are rewarded.
+            </Text>
+            <Text style={styles.infoModalText}>
+              Keep playing and improving your game to see your name climb up the rankings!
+            </Text>
+            <Button
+              mode="contained"
+              onPress={() => setInfoModalVisible(false)}
+              style={styles.closeButton}
+            >
+              Got it!
             </Button>
           </View>
         </View>
@@ -179,24 +178,37 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
 
 const styles = StyleSheet.create({
   section: {
+    flex: 1,
     marginVertical: 16,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginLeft: 16,
-    marginBottom: 12,
     color: '#333',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  listContainer: {
+    paddingHorizontal: 16,
   },
   playerCard: {
-    marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   cardGradient: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
   cardContent: {
     padding: 16,
@@ -208,9 +220,9 @@ const styles = StyleSheet.create({
   },
   rankBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -218,19 +230,19 @@ const styles = StyleSheet.create({
   rankText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
   },
   playerInfo: {
     flex: 1,
     marginLeft: 12,
   },
   playerName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   playerUsername: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   statsContainer: {
@@ -242,24 +254,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   levelContainer: {
     alignItems: 'center',
-  },
-  levelLabel: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 4,
-  },
-  levelStars: {
-    flexDirection: 'row',
+    marginTop: 8,
   },
   centeredView: {
     flex: 1,
@@ -269,7 +274,7 @@ const styles = StyleSheet.create({
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
     padding: 35,
     alignItems: 'center',
@@ -282,8 +287,55 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  infoModalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxWidth: '90%',
+  },
+  infoModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  infoModalText: {
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#666',
+  },
   closeButton: {
     marginTop: 20,
     paddingHorizontal: 20,
+  },
+  noPlayersContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noPlayersText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 16,
+    color: '#333',
+  },
+  noPlayersSubtext: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+    color: '#666',
   },
 });

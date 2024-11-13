@@ -201,7 +201,7 @@ export default function MyBookingsScreen() {
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
             <Paragraph style={styles.noBookings}>You have no bookings in the last 3 days or upcoming.</Paragraph>
-            <Button mode="contained" onPress={onRefresh} style={styles.refreshButton}>
+            <Button mode="contained" textColor='black' onPress={onRefresh} style={styles.refreshButton}>
               Refresh
             </Button>
           </View>
@@ -302,7 +302,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 40,
+    paddingBottom:200,
   },
   noBookings: {
     textAlign: 'center',
@@ -314,6 +315,7 @@ const styles = StyleSheet.create({
   refreshButton: {
     paddingHorizontal: 16,
     backgroundColor: '#ffffff',
+    
   },
   pastBooking: {
     opacity: 0.8,
