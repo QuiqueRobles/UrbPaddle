@@ -3,6 +3,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-nativ
 import { Card, Title, TextInput, useTheme, List, Chip, Avatar, Text, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import {colors} from "../theme/colors"
 
 type Profile = {
   id: string;
@@ -189,7 +190,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                 <MaterialCommunityIcons 
                   name="account-plus" 
                   size={24} 
-                  color={activeSlot === teamIndex * 2 + index ? theme.colors.primary : theme.colors.placeholder} 
+                  color={activeSlot === teamIndex * 2 + index ? colors.primary : colors.secondary} 
                 />
                 <Text style={[
                   styles.emptySlotText,
@@ -203,7 +204,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
         ))}
       </View>
     </View>
-  ), [players, handlePlayerChange, theme.colors.primary, theme.colors.placeholder, activeSlot]);
+  ), [players, handlePlayerChange, colors.primary, colors.secondary, activeSlot]);
 
   return (
     <Card style={styles.card}>

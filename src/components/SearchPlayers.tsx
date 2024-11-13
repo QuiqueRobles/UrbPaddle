@@ -4,6 +4,7 @@ import { TextInput, Text, Avatar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import ProfileImage from './ProfileImage';
 
 type Player = {
   id: string;
@@ -59,10 +60,7 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.playerItem} onPress={() => onSelectPlayer(item)}>
-            <Avatar.Image 
-              size={40} 
-              source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/icon.png')} 
-            />
+            <ProfileImage avatarUrl={item.avatar_url} size={60} />
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{item.full_name}</Text>
               <Text style={styles.playerUsername}>@{item.username}</Text>
@@ -83,6 +81,7 @@ const styles = StyleSheet.create({
   searchInput: {
     marginBottom: 16,
     backgroundColor: '#fff',
+    
   },
   playerItem: {
     flexDirection: 'row',
@@ -98,10 +97,10 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
   },
   playerUsername: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
   },
 });

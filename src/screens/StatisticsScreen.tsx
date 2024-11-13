@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert, Modal, FlatList, SafeAreaView, StatusBar } from 'react-native';
+import { View, ScrollView,Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, Modal, FlatList, SafeAreaView, StatusBar } from 'react-native';
 import { Text, Button, ActivityIndicator, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
@@ -352,25 +352,35 @@ const handleSelectPlayer = async (player: { id: string }) => {
         </View>
       </Modal>
       <Modal
-        animationType="slide"
-        transparent={true}
-        visible={!!selectedPlayer}
-        onRequestClose={() => setSelectedPlayer(null)}
+  animationType="fade"
+  transparent={true}
+  visible={!!selectedPlayer}
+  onRequestClose={() => setSelectedPlayer(null)}
+>
+  <View style={styles.playerProfileModalContainer}>
+    <View style={styles.playerProfileModalContent}>
+      <ScrollView contentContainerStyle={styles.playerProfileModalScrollContent}>
+        {selectedPlayer && (
+          <PlayerProfileCard
+            player={selectedPlayer}
+          />
+        )}
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setSelectedPlayer(null)}
+        accessibilityLabel="Close player profile"
       >
-        <View style={styles.playerProfileModalContainer}>
-          <View style={styles.playerProfileModalContent}>
-            {selectedPlayer && (
-              <PlayerProfileCard
-                player={selectedPlayer}
-                onClose={() => setSelectedPlayer(null)}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+        <MaterialCommunityIcons name="close" size={24} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
     </SafeAreaView>
   );
 }
+
+const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -488,22 +498,32 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
   },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-  },
+  
    playerProfileModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  playerProfileModalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: width,
+    minHeight: height,
+  },
   playerProfileModalContent: {
-    backgroundColor: '#fff',
+    width: '100%',
+    maxHeight: '90%',
+    backgroundColor: 'transparent',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
+    padding: 8,
+    zIndex: 1,
   },
 });

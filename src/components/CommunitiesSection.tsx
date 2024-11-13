@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { Text, Button, TextInput, Card, Title, Paragraph, Modal, Portal } from 'react-native-paper';
+import { Button, TextInput, Card, Title, Paragraph, Modal, Portal } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 

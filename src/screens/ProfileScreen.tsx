@@ -12,7 +12,8 @@ import PlayerInfoForm from '../components/PlayerInfoForm';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommunitiesSection from '../components/CommunitiesSection';
 import LevelIndicator from '../components/LevelIndicator';
-import {colors} from "../theme/colors"
+import { colors } from "../theme/colors";
+import { useNavigation } from '@react-navigation/native';
 
 type UserProfile = {
   id: string;
@@ -44,6 +45,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const theme = useTheme();
+  const navigation = useNavigation();
   const [errors, setErrors] = useState({
     full_name: '',
     apartment: '',
@@ -78,25 +80,32 @@ export default function ProfileScreen() {
     setErrors(prev => ({ ...prev, [field]: error }));
     return error === '';
   };
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       Alert.alert('Error', 'Failed to log out. Please try again.');
     } else {
-      Navigation.reset({
+      navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
     }
   };
-  const handleFieldChange = (field: string, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+
+  const handleFieldChange = (field: keyof UserProfile, value: string) => {
+    setProfile(prev => prev ? { ...prev, [field]: value } : null);
     validateField(field, value);
   };
 
   const canSave = () => {
     return Object.values(errors).every(error => error === '') &&
-           Object.entries(profile).some(([key, value]) => ['full_name', 'apartment', 'phone_number', 'motivational_speech'].includes(key) && value !== '');
+           profile !== null &&
+           Object.entries(profile).some(([key, value]) => 
+             ['full_name', 'apartment', 'phone_number', 'motivational_speech'].includes(key) && 
+             value !== undefined && 
+             value !== ''
+           );
   };
 
   const xp_to_next_level = 5000;
@@ -146,13 +155,14 @@ export default function ProfileScreen() {
     try {
       setLoading(true);
       if (!session?.user) throw new Error('No user on the session!');
+      if (!profile) throw new Error('No profile data!');
 
       const updates = {
         id: session.user.id,
-        full_name: profile?.full_name,
-        apartment: profile?.apartment,
-        phone_number: profile?.phone_number,
-        motivational_speech: profile?.motivational_speech,
+        full_name: profile.full_name,
+        apartment: profile.apartment,
+        phone_number: profile.phone_number,
+        motivational_speech: profile.motivational_speech,
         updated_at: new Date(),
       };
 
@@ -282,120 +292,118 @@ export default function ProfileScreen() {
             />
           }
         >
-            <View style={styles.header}>
-              <View style={styles.profileImageContainer}>
-                <ProfileImage key={refreshKey} avatarUrl={profile?.avatar_url} size={140} />
-                <TouchableOpacity onPress={changeProfilePicture} style={styles.cameraButtonContainer}>
-                  <IconButton
-                    icon="camera"
-                    size={24}
-                    iconColor={colors.primary}
-                    style={styles.cameraButton}
-                  />
-                </TouchableOpacity>
+          <View style={styles.header}>
+            <View style={styles.profileImageContainer}>
+              <ProfileImage key={refreshKey} avatarUrl={profile.avatar_url} size={140} />
+              <TouchableOpacity onPress={changeProfilePicture} style={styles.cameraButtonContainer}>
+                <IconButton
+                  icon="camera"
+                  size={24}
+                  iconColor={colors.primary}
+                  style={styles.cameraButton}
+                />
+              </TouchableOpacity>
+            </View>
+            <Title style={styles.name}>@{profile.username || 'Name not set'}</Title>
+            <Text style={styles.fullName}>{profile.full_name}</Text>
+            <LevelIndicator level={profile.level} />
+            <View style={styles.xpContainer}>
+              <Text style={styles.xpText}>XP: {profile.xp} / {xp_to_next_level}</Text>
+              <View style={styles.xpBarContainer}>
+                <LinearGradient
+                  colors={['#4CAF50', '#8BC34A']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={[styles.xpBar, { width: `${(profile.xp / xp_to_next_level) * 100}%` }]}
+                />
               </View>
-              <Title style={styles.name}>@{profile.username || 'Name not set'}</Title>
-              <Text style={styles.fullName}>{profile.full_name}</Text>
-              <LevelIndicator level={profile.level} />
-              <View style={styles.xpContainer}>
-                <Text style={styles.xpText}>XP: {profile.xp} / {xp_to_next_level}</Text>
-                <View style={styles.xpBarContainer}>
-                  <LinearGradient
-                    colors={['#4CAF50', '#8BC34A']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    style={[styles.xpBar, { width: `${(profile.xp / xp_to_next_level) * 100}%` }]}
-                  />
+            </View>
+          </View>
+          <CommunitiesSection />
+          <View style={styles.content}>
+            {profile.motivational_speech && (
+              <Card style={styles.quoteCard}>
+                <Card.Content>
+                  <Text style={styles.quoteText}>"{profile.motivational_speech}"</Text>
+                </Card.Content>
+              </Card>
+            )}
+
+            <Card style={styles.card}>
+              <Card.Content>
+                <Title style={styles.cardTitle}>Paddle Stats</Title>
+                <View style={styles.statsRow}>
+                  <StatItem icon="tennis" value={profile.matches_played} label="Matches" />
+                  <StatItem icon="trophy" value={profile.wins} label="Wins" />
+                  <StatItem icon="close-circle" value={profile.losses} label="Losses" />
                 </View>
-              </View>
-            </View>
-            <CommunitiesSection />
-            <View style={styles.content}>
-              {profile.motivational_speech && (
-                <Card style={styles.quoteCard}>
-                  <Card.Content>
-                    <Text style={styles.quoteText}>"{profile.motivational_speech}"</Text>
-                  </Card.Content>
-                </Card>
-              )}
-
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Title style={styles.cardTitle}>Paddle Stats</Title>
-                  <View style={styles.statsRow}>
-                    <StatItem icon="tennis" value={profile.matches_played} label="Matches" />
-                    <StatItem icon="trophy" value={profile.wins} label="Wins" />
-                    <StatItem icon="close-circle" value={profile.losses} label="Losses" />
-                  </View>
-                  <View style={styles.winRateContainer}>
-                    <Text style={styles.winRateLabel}>Match Win Rate</Text>
-                    <ProgressBar progress={winRate / 100} color={colors.primary} style={styles.winRateBar} />
-                    <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
-                  </View>
-                  
-                  <View style={styles.statsRow}>
-                    <StatItem icon="table-tennis" value={profile.sets_won} label="Sets Won" />
-                    <StatItem icon="table-tennis" value={profile.sets_lost} label="Sets Lost" />
-                  </View>
-                  <View style={styles.winRateContainer}>
-                    <Text style={styles.winRateLabel}>Set Win Rate</Text>
-                    <ProgressBar progress={setWinRate / 100} color={colors.primary} style={styles.winRateBar} />
-                    <Text style={styles.winRateValue}>{setWinRate.toFixed(1)}%</Text>
-                  </View>
-                  <View style={styles.statsRow}>
-                    <StatItem icon="tennis-ball" value={profile.games_won} label="Games Won" />
-                    <StatItem icon="tennis-ball" value={profile.games_lost} label="Games Lost" />
-                  </View>
-                  <View style={styles.winRateContainer}>
-                    <Text style={styles.winRateLabel}>Game Win Rate</Text>
-                    <ProgressBar progress={gameWinRate / 100} color={colors.primary} style={styles.winRateBar} />
-                    <Text style={styles.winRateValue}>{gameWinRate.toFixed(1)}%</Text>
-                  </View>
-                </Card.Content>
-              </Card>
-
-              <Card style={[styles.card, editing && styles.editingCard]}>
-                <Card.Content>
-                  <Title style={styles.cardTitle}>Player Info</Title>
-                  <PlayerInfoForm
-                    profile={profile}
-                    errors={errors}
-                    handleFieldChange={handleFieldChange}
-                    editing={editing}
-                  />
-                  <Button 
-                mode={editing ? "contained" : "outlined"} 
-                textColor='rgba(0,0,0,0.75)'
-                onPress={editing ? updateProfile : () => setEditing(true)} 
-                style={[styles.button, editing ? styles.saveButton : styles.editButton]}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                disabled={editing && !canSave()}
-              >
-                {editing ? 'Save Changes' : 'Edit Profile'}
-              </Button>
-                </Card.Content>
+                <View style={styles.winRateContainer}>
+                  <Text style={styles.winRateLabel}>Match Win Rate</Text>
+                  <ProgressBar progress={winRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
+                </View>
                 
-              </Card>
-              <Card style={styles.card}>
-            <Card.Content>
-              <Button 
-                mode="contained" 
-                onPress={handleLogout}
-                style={styles.logoutButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon="logout"
-              >
-                Log Out
-              </Button>
-            </Card.Content>
-          </Card>
-              
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
+                <View style={styles.statsRow}>
+                  <StatItem icon="table-tennis" value={profile.sets_won} label="Sets Won" />
+                  <StatItem icon="table-tennis" value={profile.sets_lost} label="Sets Lost" />
+                </View>
+                <View style={styles.winRateContainer}>
+                  <Text style={styles.winRateLabel}>Set Win Rate</Text>
+                  <ProgressBar progress={setWinRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <Text style={styles.winRateValue}>{setWinRate.toFixed(1)}%</Text>
+                </View>
+                <View style={styles.statsRow}>
+                  <StatItem icon="tennis-ball" value={profile.games_won} label="Games Won" />
+                  <StatItem icon="tennis-ball" value={profile.games_lost} label="Games Lost" />
+                </View>
+                <View style={styles.winRateContainer}>
+                  <Text style={styles.winRateLabel}>Game Win Rate</Text>
+                  <ProgressBar progress={gameWinRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <Text style={styles.winRateValue}>{gameWinRate.toFixed(1)}%</Text>
+                </View>
+              </Card.Content>
+            </Card>
+
+            <Card style={[styles.card, editing && styles.editingCard]}>
+              <Card.Content>
+                <Title style={styles.cardTitle}>Player Info</Title>
+                <PlayerInfoForm
+                  profile={profile}
+                  errors={errors}
+                  handleFieldChange={handleFieldChange}
+                  editing={editing}
+                />
+                <Button 
+                  mode={editing ? "contained" : "outlined"} 
+                  textColor='rgba(0,0,0,0.75)'
+                  onPress={editing ? updateProfile : () => setEditing(true)} 
+                  style={[styles.button, editing ? styles.saveButton : styles.editButton]}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  disabled={editing && !canSave()}
+                >
+                  {editing ? 'Save Changes' : 'Edit Profile'}
+                </Button>
+              </Card.Content>
+            </Card>
+            <Card style={styles.card}>
+              <Card.Content>
+                <Button 
+                  mode="contained" 
+                  onPress={handleLogout}
+                  style={styles.logoutButton}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  icon="logout"
+                >
+                  Log Out
+                </Button>
+              </Card.Content>
+            </Card>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -406,6 +414,7 @@ const StatItem: React.FC<{ icon: string; value: number; label: string }> = ({ ic
     <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -430,6 +439,9 @@ const styles = StyleSheet.create({
   },
   editButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
   },
   profileImageContainer: {
     position: 'relative',
@@ -551,7 +563,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  
   winRateContainer: {
     marginTop: 20,
   },
