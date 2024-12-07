@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { TextInput, Text, Avatar } from 'react-native-paper';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { TextInput, Text, Surface } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -21,6 +21,8 @@ type SearchPlayersProps = {
 export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPlayersProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+  const animatedWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -29,6 +31,14 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
       setPlayers([]);
     }
   }, [searchQuery]);
+
+  useEffect(() => {
+    Animated.timing(animatedWidth, {
+      toValue: isFocused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isFocused]);
 
   const searchPlayers = async () => {
     try {
@@ -46,21 +56,31 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
     }
   };
 
+  const interpolatedWidth = animatedWidth.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
   return (
     <View style={styles.container}>
-      <TextInput
-        placeholder="Search players..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        style={styles.searchInput}
-        left={<TextInput.Icon icon="magnify" />}
-      />
+      <Surface style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search players..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={styles.searchInput}
+          left={<TextInput.Icon icon="magnify" color={colors.primary} />}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+        <Animated.View style={[styles.focusLine, { width: interpolatedWidth }]} />
+      </Surface>
       <FlatList
         data={players}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.playerItem} onPress={() => onSelectPlayer(item)}>
-            <ProfileImage avatarUrl={item.avatar_url} size={60} />
+            <ProfileImage avatarUrl={item.avatar_url} size={50} />
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{item.full_name}</Text>
               <Text style={styles.playerUsername}>@{item.username}</Text>
@@ -78,17 +98,30 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
   },
-  searchInput: {
+  searchContainer: {
+    borderRadius: 25,
     marginBottom: 16,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  searchInput: {
     backgroundColor: '#fff',
-    
+    borderRadius: 25,
+    paddingHorizontal: 16,
+  },
+  focusLine: {
+    height: 2,
+    backgroundColor: colors.primary,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
   },
   playerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   playerInfo: {
     flex: 1,

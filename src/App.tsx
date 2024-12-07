@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
-import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { RootStackParamList } from './navigation'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper'
@@ -9,7 +9,6 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { colors } from './theme/colors'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-
 import ProfileScreen from './screens/ProfileScreen'
 import LoginScreen from './screens/LoginScreen'
 import RegisterScreen from './screens/RegisterScreen'
@@ -24,9 +23,8 @@ import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 
-
 const Stack = createStackNavigator<RootStackParamList>()
-const Tab = createMaterialBottomTabNavigator()
+const Tab = createBottomTabNavigator()
 
 const theme = {
   ...DefaultTheme,
@@ -66,56 +64,56 @@ function MainTabs() {
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
-      activeColor={colors.primary}
-      inactiveColor="rgba(255, 255, 255, 0.6)"
-      barStyle={{
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        position: 'absolute',        
-        height: 120,
-        overflow: 'hidden',
-        elevation: 10,
-      }}
+      screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarIcon: ({ color, size }) => {
+        let iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+        if (route.name === 'HomeTab') {
+          iconName = 'home';
+        } else if (route.name === 'MyBookingsTab') {
+          iconName = 'calendar-check';
+        } else if (route.name === 'ProfileTab') {
+          iconName = 'account';
+        } else if (route.name === 'CommunityManagementTab') {
+          iconName = 'office-building';
+        } else {
+          iconName = 'alert-circle'; // Default icon
+        }
+
+        return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+      },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          position: 'absolute',
+          height: 80,
+          overflow: 'hidden',
+          elevation: 10,
+        },
+      })}
     >
       <Tab.Screen 
         name="HomeTab" 
         component={HomeScreen} 
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="home" color={color} size={26} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen 
         name="MyBookingsTab" 
         component={MyBookingsScreen} 
-        options={{
-          tabBarLabel: 'My Bookings',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="calendar-check" color={color} size={26} />
-          ),
-        }}
+        options={{ tabBarLabel: 'My Bookings' }}
       />
       <Tab.Screen 
         name="ProfileTab" 
         component={ProfileScreen} 
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="account" color={color} size={26} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Profile' }}
       />
       {isAdmin && (
         <Tab.Screen 
           name="CommunityManagementTab" 
           component={CommunityManagementScreen} 
-          options={{
-            tabBarLabel: 'Community',
-            tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="office-building" color={color} size={26} />
-            ),
-          }}
+          options={{ tabBarLabel: 'Community' }}
         />
       )}
     </Tab.Navigator>
@@ -164,7 +162,6 @@ export default function App() {
                 <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} />
                 <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
                 <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
-              
               </>
             ) : (
               <>
@@ -178,3 +175,4 @@ export default function App() {
     </PaperProvider>
   )
 }
+

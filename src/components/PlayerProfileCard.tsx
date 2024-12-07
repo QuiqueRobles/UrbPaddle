@@ -29,6 +29,7 @@ type PlayerProfileCardProps = {
 };
 
 const { width } = Dimensions.get('window');
+const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
 
 export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
   const theme = useTheme();
@@ -116,7 +117,7 @@ const ProgressItem = ({ label, value, color }) => (
       <Text style={styles.progressLabel}>{label}</Text>
       <Text style={styles.progressValue}>{value.toFixed(1)}%</Text>
     </View>
-    <ProgressBar progress={value / 100} color={color} style={styles.progressBar} />
+    <ProgressBar progress={roundToTwoDecimals(value / 100)} color={color} style={styles.progressBar} />
   </View>
 );
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView,Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, Modal, FlatList, SafeAreaView, StatusBar } from 'react-native';
-import { Text, Button, ActivityIndicator, useTheme } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, ScrollView, Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, FlatList, SafeAreaView, StatusBar } from 'react-native';
+import { Text, Button, ActivityIndicator, useTheme, Avatar, Card, Chip, Modal, Surface, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import HotStreaks from '../components/HotStreaks';
 import SearchPlayers from '../components/SearchPlayers';
 import PlayerProfileCard from '../components/PlayerProfileCard';
 import { colors } from "../theme/colors";
+import { BlurView } from 'expo-blur';
 
 type PlayerStats = {
   id: string;
@@ -253,37 +254,112 @@ const handleSelectPlayer = async (player: { id: string }) => {
       Alert.alert('Error', 'Failed to fetch player details. Please try again.');
     }
   };
+const renderCommunitySelector = () => (
+    <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.communitySelector}>
+      <MaterialCommunityIcons name="map-marker" size={24} color="#fff" style={styles.communityIcon} />
+      <Text style={styles.communitySelectorText}>{selectedCommunity?.name || "Select Community"}</Text>
+      <MaterialCommunityIcons name="chevron-down" size={24} color="#fff" style={styles.chevronIcon} />
+    </TouchableOpacity>
+  );
+
+  const renderTabs = () => (
+    <View style={styles.tabContainer}>
+      {['overall', 'monthly'].map((tab) => (
+        <TouchableOpacity
+          key={tab}
+          style={[styles.tab, activeTab === tab && styles.activeTab]}
+          onPress={() => setActiveTab(tab)}
+        >
+          <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderCommunityModal = () => (
+    <BlurView intensity={15} style={styles.modalContainer}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Select Community</Text>
+        <FlatList
+          data={communities}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.communityItem}
+              onPress={() => {
+                setSelectedCommunity(item);
+                setModalVisible(false);
+              }}
+            >
+              <MaterialCommunityIcons name="map-marker" size={24} color={colors.primary} style={styles.communityItemIcon} />
+              <Text style={styles.communityItemText}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+        <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
+          Close
+        </Button>
+      </View>
+    </BlurView>
+  );
+
+ const renderPlayerProfileModal = () => (
+  <Modal
+    visible={!!selectedPlayer}
+    onDismiss={() => setSelectedPlayer(null)}
+    contentContainerStyle={styles.playerProfileModalContainer}
+  >
+    <Surface style={styles.playerProfileModalContent}>
+      <ScrollView contentContainerStyle={styles.playerProfileModalScrollContent}>
+        {selectedPlayer && (
+          <PlayerProfileCard player={selectedPlayer} />
+        )}
+      </ScrollView>
+      <IconButton
+        icon="close"
+        size={24}
+        onPress={() => setSelectedPlayer(null)}
+        style={styles.closePlayerProfileButton}
+      />
+    </Surface>
+  </Modal>
+);
 
   if (loading) {
     return (
+       <LinearGradient
+        colors={[colors.primary, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.gradientBackground}
+      >
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+      </LinearGradient>
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
-        style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={[colors.primary, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.gradientBackground}
       >
-        <StatusBar barStyle="light-content" />
-        <LinearGradient
-          colors={[colors.primary, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.gradientBackground}
+        <ScrollView 
+          style={styles.container}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Player Statistics</Text>
-            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.communitySelector}>
-              <MaterialCommunityIcons name="map-marker" size={24} color="#fff" style={styles.communityIcon} />
-              <Text style={styles.communitySelectorText}>{selectedCommunity?.name || "Select Community"}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={24} color="#fff" style={styles.chevronIcon} />
-            </TouchableOpacity>
+            {renderCommunitySelector()}
           </View>
           {selectedCommunity && (
             <SearchPlayers
@@ -291,91 +367,28 @@ const handleSelectPlayer = async (player: { id: string }) => {
               onSelectPlayer={handleSelectPlayer}
             />
           )}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'overall' && styles.activeTab]}
-              onPress={() => setActiveTab('overall')}
-            >
-              <Text style={[styles.tabText, activeTab === 'overall' && styles.activeTabText]}>Overall</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'monthly' && styles.activeTab]}
-              onPress={() => setActiveTab('monthly')}
-            >
-              <Text style={[styles.tabText, activeTab === 'monthly' && styles.activeTabText]}>Monthly</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-        
-        <TopPlayers
-          topPlayers={activeTab === 'overall' ? topPlayers : monthlyTopPlayers}
-          isMonthly={activeTab === 'monthly'}
-        />
+          {renderTabs()}
+          
+          <Card style={styles.statsCard}>
+            <Card.Content>
+              <TopPlayers
+                topPlayers={activeTab === 'overall' ? topPlayers : monthlyTopPlayers}
+                isMonthly={activeTab === 'monthly'}
+              />
 
-        {activeTab === 'overall' && (
-          <HotStreaks
-            currentHotStreakPlayers={currentHotStreakPlayers}
-            maxHotStreakPlayers={maxHotStreakPlayers}
-          />
-        )}
-      </ScrollView>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Community</Text>
-            <FlatList
-              data={communities}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.communityItem}
-                  onPress={() => {
-                    setSelectedCommunity(item);
-                    setModalVisible(false);
-                  }}
-                >
-                  <MaterialCommunityIcons name="map-marker" size={24} color={colors.primary} style={styles.communityItemIcon} />
-                  <Text style={styles.communityItemText}>{item.name}</Text>
-                </TouchableOpacity>
+              {activeTab === 'overall' && (
+                <HotStreaks
+                  currentHotStreakPlayers={currentHotStreakPlayers}
+                  maxHotStreakPlayers={maxHotStreakPlayers}
+                />
               )}
-            />
-            <Button onPress={() => setModalVisible(false)} style={styles.closeButton}>
-              Close
-            </Button>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-  animationType="fade"
-  transparent={true}
-  visible={!!selectedPlayer}
-  onRequestClose={() => setSelectedPlayer(null)}
->
-  <View style={styles.playerProfileModalContainer}>
-    <View style={styles.playerProfileModalContent}>
-      <ScrollView contentContainerStyle={styles.playerProfileModalScrollContent}>
-        {selectedPlayer && (
-          <PlayerProfileCard
-            player={selectedPlayer}
-          />
-        )}
-      </ScrollView>
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => setSelectedPlayer(null)}
-        accessibilityLabel="Close player profile"
-      >
-        <MaterialCommunityIcons name="close" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+            </Card.Content>
+          </Card>
+        </ScrollView>
+      </LinearGradient>
+
+      {modalVisible && renderCommunityModal()}
+      {selectedPlayer && renderPlayerProfileModal()}
     </SafeAreaView>
   );
 }
@@ -384,10 +397,10 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor:'black',
   },
   gradientBackground: {
-    paddingTop: StatusBar.currentHeight,
+    flex: 1,
   },
   container: {
     flex: 1,
@@ -397,7 +410,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
@@ -449,29 +462,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activeTabText: {
-    color: '#000',
+    color: colors.primary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-  button: {
-    margin: 16,
-    borderRadius: 8,
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  statsCard: {
+    borderRadius: 16,
+    elevation: 4,
+    width:'100%'
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor:'transparent'
+    
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     width: '90%',
@@ -482,48 +494,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
+    color: colors.text,
   },
   communityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'white',
   },
   communityItemIcon: {
     marginRight: 15,
   },
   communityItemText: {
     fontSize: 18,
-    color: '#333',
+    color: colors.text,
   },
-  
-   playerProfileModalContainer: {
+  closeButton: {
+    marginTop: 20,
+  },
+ playerProfileModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  playerProfileModalContent: {
+    borderRadius: 20,
+    overflow: 'hidden'
   },
   playerProfileModalScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: width,
-    minHeight: height,
   },
-  playerProfileModalContent: {
-    width: '100%',
-    maxHeight: '90%',
-    backgroundColor: 'transparent',
-  },
-  closeButton: {
+  closePlayerProfileButton: {
     position: 'absolute',
     top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Add a slight background for better visibility
     borderRadius: 20,
-    padding: 8,
-    zIndex: 1,
   },
 });

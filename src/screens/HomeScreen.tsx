@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView, Image, Dimensions } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Modal, Portal } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { supabase } from '../lib/supabase';
 import CommunityInfoCard from '../components/CommunityInfoCard';
@@ -27,6 +28,7 @@ type ActionButtonProps = {
   onPress: () => void;
   delay: number;
   color: string;
+  shouldAnimate: boolean;
 };
 
 type ProfileData = {
@@ -45,10 +47,25 @@ export default function HomeScreen({ navigation }: Props) {
   const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
   const modalY = useSharedValue(SCREEN_HEIGHT);
+  const isFirstLaunch = useRef(true);
 
   useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const value = await AsyncStorage.getItem('@first_launch');
+        if (value === null) {
+          setShouldAnimate(true);
+          await AsyncStorage.setItem('@first_launch', 'false');
+        }
+      } catch (error) {
+        console.error('Error checking first launch:', error);
+      }
+    };
+
+    checkFirstLaunch();
     fetchUserCommunity();
   }, []);
 
@@ -84,8 +101,11 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color }) => (
-    <Animated.View entering={FadeInRight.delay(delay).duration(400)} style={styles.actionButtonContainer}>
+  const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color, shouldAnimate }) => (
+    <Animated.View 
+      entering={shouldAnimate ? FadeInRight.delay(delay).duration(400) : undefined} 
+      style={styles.actionButtonContainer}
+    >
       <TouchableOpacity onPress={onPress} style={[styles.actionButton, { backgroundColor: color }]}>
         <View style={styles.actionButtonContent}>
           <MaterialCommunityIcons name={icon} size={28} color={colors.primary} style={styles.actionButtonIcon} />
@@ -132,20 +152,20 @@ export default function HomeScreen({ navigation }: Props) {
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Animated.View entering={FadeIn.duration(600)} style={styles.logoContainer}>
+          <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
               source={require('../../assets/images/logoUrbPaddle.png')} 
               style={styles.logo}
               resizeMode="contain"
             />
           </Animated.View>
-          <Animated.View style={styles.header} entering={FadeInDown.delay(300).duration(600)}>
+          <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
             <Text style={[styles.title, { color: colors.onPrimary }]}>U R your Best with paddle</Text>
             <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
           </Animated.View>
           
           {communityData && (
-            <Animated.View entering={FadeIn.delay(600).duration(400)} style={styles.communityContainer}>
+            <Animated.View entering={shouldAnimate ? FadeIn.delay(600).duration(400) : undefined} style={styles.communityContainer}>
               <TouchableOpacity onPress={openCommunityInfo} style={styles.communityButton}>
                 <MaterialCommunityIcons name="home-group" size={24} color={colors.onPrimary} />
                 <Text style={styles.communityName}>{communityData.name}</Text>
@@ -160,6 +180,7 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('DateSelection')}
               delay={900}
               color={colors.surface}
+              shouldAnimate={shouldAnimate}
             />
             <ActionButton
               icon="chart-bar"
@@ -167,6 +188,7 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Statistics')}
               delay={1000}
               color={colors.surface}
+              shouldAnimate={shouldAnimate}
             />
             <ActionButton
               icon="trophy"
@@ -174,6 +196,7 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('AddMatchResult')}
               delay={1100}
               color={colors.surface}
+              shouldAnimate={shouldAnimate}
             />
           </View>
         </ScrollView>

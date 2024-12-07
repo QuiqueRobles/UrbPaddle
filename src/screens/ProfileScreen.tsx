@@ -15,6 +15,7 @@ import LevelIndicator from '../components/LevelIndicator';
 import { colors } from "../theme/colors";
 import { useNavigation } from '@react-navigation/native';
 
+
 type UserProfile = {
   id: string;
   email: string;
@@ -270,7 +271,7 @@ export default function ProfileScreen() {
       </View>
     );
   }
-
+  const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
   const winRate = profile.matches_played > 0 ? (profile.wins / profile.matches_played) * 100 : 0;
   const setWinRate = profile.sets_won + profile.sets_lost > 0 ? (profile.sets_won / (profile.sets_won + profile.sets_lost)) * 100 : 0;
   const gameWinRate = profile.games_won + profile.games_lost > 0 ? (profile.games_won / (profile.games_won + profile.games_lost)) * 100 : 0;
@@ -339,7 +340,11 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.winRateContainer}>
                   <Text style={styles.winRateLabel}>Match Win Rate</Text>
-                  <ProgressBar progress={winRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <ProgressBar 
+                    progress={roundToTwoDecimals(winRate / 100)} 
+                    color={colors.primary} 
+                    style={styles.winRateBar} 
+                  />
                   <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
                 </View>
                 
@@ -349,7 +354,11 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.winRateContainer}>
                   <Text style={styles.winRateLabel}>Set Win Rate</Text>
-                  <ProgressBar progress={setWinRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <ProgressBar 
+                    progress={roundToTwoDecimals(setWinRate / 100)} 
+                    color={colors.primary} 
+                    style={styles.winRateBar} 
+                  />
                   <Text style={styles.winRateValue}>{setWinRate.toFixed(1)}%</Text>
                 </View>
                 <View style={styles.statsRow}>
@@ -358,7 +367,11 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.winRateContainer}>
                   <Text style={styles.winRateLabel}>Game Win Rate</Text>
-                  <ProgressBar progress={gameWinRate / 100} color={colors.primary} style={styles.winRateBar} />
+                  <ProgressBar 
+                    progress={roundToTwoDecimals(gameWinRate / 100)} 
+                    color={colors.primary} 
+                    style={styles.winRateBar} 
+                  />
                   <Text style={styles.winRateValue}>{gameWinRate.toFixed(1)}%</Text>
                 </View>
               </Card.Content>

@@ -99,6 +99,7 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
         </Text>
         <IconButton
           icon="information"
+          iconColor="white"
           size={24}
           onPress={() => setInfoModalVisible(true)}
           
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: 'white',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },

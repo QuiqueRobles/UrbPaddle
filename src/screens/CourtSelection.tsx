@@ -1,33 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Title, Card, Chip, Button, Text, useTheme, ActivityIndicator, HelperText } from 'react-native-paper';
-import { NavigationProp, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { Title, Card, Text, useTheme, ActivityIndicator, HelperText } from 'react-native-paper';
+import { NavigationProp } from '@react-navigation/native';
+import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { format, addMinutes, parseISO, parse, isBefore } from 'date-fns';
-import { Calendar } from 'lucide-react-native';
+import { Calendar, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const ConfirmButton = ({ onPress, disabled, style, labelStyle }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    disabled={disabled}
+    style={[styles.confirmButton, style, disabled && styles.confirmButtonDisabled]}
+  >
+    <LinearGradient
+      colors={['#00D68F', '#00A86B']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.confirmButtonGradient}
+    >
+      <View style={styles.confirmButtonContent}>
+        <Clock size={24} color="#fff" style={styles.confirmButtonIcon} />
+        <Text style={[styles.confirmButtonText, labelStyle]}>Confirm Booking</Text>
+      </View>
+    </LinearGradient>
+  </TouchableOpacity>
+);
 
 type RootStackParamList = {
   CourtSelection: { date: string };
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string };
 };
 
-type BottomTabParamList = {
-  HomeTab: undefined;
-  MyBookingsTab: undefined;
-  ProfileTab: undefined;
-  CommunityManagementTab: undefined;
-};
-
-type CourtSelectionScreenNavigationProp = CompositeNavigationProp<
-  StackNavigationProp<RootStackParamList, 'CourtSelection'>,
-  BottomTabNavigationProp<BottomTabParamList>
->;
-
 type Props = {
-  navigation: CourtSelectionScreenNavigationProp;
+  navigation: NavigationProp<RootStackParamList, 'CourtSelection'>;
   route: RouteProp<RootStackParamList, 'CourtSelection'>;
 };
 
@@ -37,11 +44,6 @@ type Booking = {
   date: string;
   start_time: string;
   end_time: string;
-};
-
-type CommunityData = {
-  id: string;
-  court_number: number;
 };
 
 const TIME_SLOTS = Array.from({ length: 30 }, (_, i) => 
@@ -60,76 +62,33 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(60);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const { date } = route.params;
 
   const gradientStart = '#00A86B';
-  const gradientEnd = '#000000';
+  const gradientMiddle = '#000';
+  const gradientEnd = '#000';
 
   useEffect(() => {
-    fetchCommunityDataAndBookings();
+    fetchBookings();
   }, []);
 
-  const fetchCommunityDataAndBookings = async () => {
+
+  const fetchBookings = async () => {
     setLoading(true);
-    setError(null);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('date', date);
 
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('resident_community_id')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      if (!profileData.resident_community_id) {
-        setError('no_community');
-        setLoading(false);
-        return;
-      }
-
-      const { data: communityData, error: communityError } = await supabase
-        .from('community')
-        .select('id, court_number')
-        .eq('id', profileData.resident_community_id)
-        .single();
-
-      if (communityError) throw communityError;
-
-      setCommunityData(communityData);
-
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('date', date)
-        .eq('community_id', communityData.id);
-
-      if (bookingsError) throw bookingsError;
-
-      setBookings(bookingsData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('fetch_error');
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error('Error fetching bookings:', error);
+      Alert.alert('Error', 'Unable to load bookings. Please try again.');
+    } else {
+      setBookings(data || []);
     }
-  };
-
-  const handleNoCommunity = () => {
-    Alert.alert(
-      'No Community Found',
-      'You need to add a community to your profile before booking a court.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Go to Profile', onPress: () => navigation.navigate('ProfileTab') }
-      ]
-    );
+    setLoading(false);
   };
 
   const getSlotStatus = (courtId: number, time: string) => {
@@ -162,8 +121,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
     return 'available';
   };
-
-  const handleBooking = () => {
+const handleBooking = () => {
     if (selectedCourt && selectedTime) {
       const endTime = format(addMinutes(parseISO(`2023-01-01T${selectedTime}`), selectedDuration), 'HH:mm');
       navigation.navigate('ConfirmBooking', {
@@ -180,35 +138,35 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
       const slotStatus = getSlotStatus(courtId, time);
       const isAvailable = slotStatus === 'available';
       const isSelected = selectedCourt === courtId && selectedTime === time;
-
-      let chipStyle = {
-        ...styles.timeChip,
-        backgroundColor: isAvailable ? (isSelected ? '#28A745' : 'rgba(255, 255, 255, 0.2)') : 'rgba(255, 0, 0, 0.5)',
-      };
-      let chipTextStyle = {
-        ...styles.chipText,
-        color: isAvailable ? (isSelected ? '#000' : '#fff') : '#fff',
-      };
-
+      
       return (
-        <Chip
+        <TouchableOpacity
           key={time}
-          selected={isSelected}
           onPress={() => {
             if (isAvailable) {
               setSelectedCourt(courtId);
               setSelectedTime(time);
             }
           }}
-          style={chipStyle}
-          textStyle={chipTextStyle}
           disabled={!isAvailable}
+          style={[
+            styles.timeSlot,
+            { backgroundColor: isAvailable 
+              ? (isSelected ? theme.colors.primary : 'rgba(255, 255, 255, 0.2)') 
+              : 'rgba(255, 0, 0, 0.5)'
+            }
+          ]}
         >
-          {time}
-        </Chip>
+          <Text style={[
+            styles.timeSlotText,
+            { color: isAvailable ? (isSelected ? '#fff' : '#000') : '#fff' }
+          ]}>
+            {time}
+          </Text>
+        </TouchableOpacity>
       );
     });
-  };
+  }; 
 
   const renderCourtCard = (courtId: number) => (
     <Card key={courtId} style={styles.courtCard}>
@@ -223,105 +181,82 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
+      <LinearGradient colors={[gradientStart, gradientMiddle, gradientEnd]} style={[styles.container, styles.centered]} locations={[0, 0.7, 1]}>
         <ActivityIndicator size="large" color="#fff" />
       </LinearGradient>
     );
   }
 
-  if (error === 'no_community') {
-    return (
-      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>You haven't joined a community yet.</Text>
-        <Button mode="contained" onPress={handleNoCommunity} style={styles.errorButton}>
-          Add Community to Profile
-        </Button>
-      </LinearGradient>
-    );
-  }
-
-  if (error === 'fetch_error') {
-    return (
-      <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>Failed to load community data.</Text>
-        <Button mode="contained" onPress={fetchCommunityDataAndBookings} style={styles.errorButton}>
-          Retry
-        </Button>
-      </LinearGradient>
-    );
-  }
-
   return (
-    <LinearGradient colors={[gradientStart, gradientEnd]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Title style={styles.title}>Book a Court</Title>
-          <View style={styles.dateContainer}>
-            <Calendar size={24} color="#fff" />
-            <Text style={styles.dateText}>{format(parseISO(date), 'MMMM d, yyyy')}</Text>
+    
+      <LinearGradient colors={[gradientStart, gradientMiddle, gradientEnd]} style={styles.container} locations={[0, 0.7, 1]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Title style={styles.title}>Book a Court</Title>
+            <View style={styles.dateContainer}>
+              <Calendar size={24} color="#fff" />
+              <Text style={styles.dateText}>{format(parseISO(date), 'MMMM d, yyyy')}</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.durationContainer}>
-          <Text style={styles.durationLabel}>Duration:</Text>
-          <View style={styles.durationButtons}>
-            {DURATIONS.map((duration) => (
-              <Chip
-                key={duration.value}
-                selected={selectedDuration === duration.value}
-                onPress={() => setSelectedDuration(duration.value)}
-                style={[
-                  styles.durationChip,
-                  selectedDuration === duration.value && { backgroundColor: '#28A745' }
-                ]}
-                textStyle={[
-                  styles.durationChipText,
-                  selectedDuration === duration.value && { color: '#000' }
-                ]}
-              >
-                {duration.label}
-              </Chip>
-            ))}
+          <View style={styles.durationContainer}>
+            <Text style={styles.durationLabel}>Duration:</Text>
+            <View style={styles.durationButtons}>
+              {DURATIONS.map((duration) => (
+                <TouchableOpacity
+                  key={duration.value}
+                  onPress={() => setSelectedDuration(duration.value)}
+                  style={[
+                    styles.durationButton,
+                    { backgroundColor: selectedDuration === duration.value ? theme.colors.primary : 'rgba(255, 255, 255, 0.2)' }
+                  ]}
+                >
+                  <Text style={[
+                    styles.durationButtonText,
+                    { color: selectedDuration === duration.value ? '#fff' : '#000' }
+                  ]}>
+                    {duration.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
-        {communityData && Array.from({ length: communityData.court_number }, (_, i) => i + 1).map(courtId => renderCourtCard(courtId))}
-        <Button
-          mode="contained"
-          onPress={handleBooking}
-          disabled={!selectedCourt || !selectedTime}
-          style={styles.bookButton}
-          labelStyle={styles.buttonLabel}
-          icon="check"
-        >
-          Confirm Booking
-        </Button>
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]} />
-            <Text style={styles.legendText}>Available</Text>
+          {renderCourtCard(1)}
+          {renderCourtCard(2)}
+          <ConfirmButton
+            onPress={handleBooking}
+            disabled={!selectedCourt || !selectedTime}
+            style={styles.bookButton}
+            labelStyle={styles.buttonLabel}
+          />
+          <View style={styles.legend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]} />
+              <Text style={styles.legendText}>Available</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
+              <Text style={styles.legendText}>Unavailable</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: theme.colors.primary }]} />
+              <Text style={styles.legendText}>Selected</Text>
+            </View>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
-            <Text style={styles.legendText}>Unavailable</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: gradientStart }]} />
-            <Text style={styles.legendText}>Selected</Text>
-          </View>
-        </View>
-        <HelperText type="info" style={styles.helperText}>
-          Tap on an available time slot to select it. Unavailable slots cannot be selected.
-        </HelperText>
-      </ScrollView>
-    </LinearGradient>
+          <HelperText type="info" style={styles.helperText}>
+            Tap on an available time slot to select it. Unavailable slots cannot be selected.
+          </HelperText>
+        </ScrollView>
+      </LinearGradient>
+   
   );
 }
 
 const styles = StyleSheet.create({
+  
   container: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     padding: 16,
   },
   centered: {
@@ -329,10 +264,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    marginTop:32,
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
@@ -342,6 +278,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 8,
   },
   dateText: {
     fontSize: 18,
@@ -352,22 +291,36 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   durationLabel: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 8,
     color: '#fff',
+    fontWeight: 'bold',
   },
   durationButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  durationChip: {
+  durationButton: {
     flex: 1,
     marginHorizontal: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
   },
-  durationChipText: {
-    textAlign: 'center',
-    color: '#fff',
+  durationButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  timeSlot: {
+    margin: 4,
+    padding: 8,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  timeSlotText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   courtCard: {
     marginBottom: 24,
@@ -376,36 +329,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   courtTitle: {
-    fontSize: 22,
+    fontSize: 24,
     marginBottom: 12,
     color: '#fff',
+    fontWeight: 'bold',
   },
   timeSlotContainer: {
     paddingVertical: 8,
   },
-  timeChip: {
-    margin: 4,
-  },
-  chipText: {
-    fontSize: 14,
-  },
   bookButton: {
     marginTop: 24,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    paddingVertical: 1,
+    borderRadius: 30,
   },
   buttonLabel: {
     fontSize: 18,
-    color: '#008C59',
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 16,
-    padding: 8,
+    marginTop: 24,
+    padding: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   legendItem: {
     flexDirection: 'row',
@@ -415,23 +361,41 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    marginRight: 4,
+    marginRight: 8,
   },
   legendText: {
     color: '#fff',
+    fontSize: 14,
   },
   helperText: {
     textAlign: 'center',
     marginTop: 16,
     color: '#fff',
+    fontSize: 14,
   },
-  errorText: {
+  confirmButton: {
+    marginTop: 24,
+    borderRadius: 80,
+    overflow: 'hidden',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.5,
+  },
+  confirmButtonGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  confirmButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonIcon: {
+    marginRight: 8,
+  },
+  confirmButtonText: {
     fontSize: 18,
+    fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  errorButton: {
-    marginTop: 16,
   },
 });

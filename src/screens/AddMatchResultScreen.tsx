@@ -383,9 +383,14 @@ export default function AddMatchResultScreen() {
 
   if (loading) {
     return (
+      <LinearGradient
+      colors={[theme.colors.primary, "#000"]}
+      style={styles.container}
+    >
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={'white'} />
       </View>
+      </LinearGradient>
     );
   }
 

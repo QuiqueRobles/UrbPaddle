@@ -114,6 +114,7 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
         </Text>
         <IconButton
           icon="information"
+          iconColor='white'
           size={24}
           onPress={() => setInfoModalVisible(true)}
         />
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: 'white',
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

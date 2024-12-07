@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { TextInput, HelperText, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type PlayerInfoFormProps = {
   profile: {
@@ -22,9 +23,11 @@ type PlayerInfoFormProps = {
 
 const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handleFieldChange, editing }) => {
   const { colors } = useTheme();
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const renderInput = (field: keyof typeof profile, label: string, icon: string, multiline: boolean = false) => {
     const shakeAnimation = new Animated.Value(0);
+    const scaleAnimation = new Animated.Value(1);
 
     const startShake = () => {
       Animated.sequence([
@@ -35,12 +38,48 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
       ]).start();
     };
 
+    const handleFocus = () => {
+      setFocusedField(field);
+      Animated.spring(scaleAnimation, {
+        toValue: 1.02,
+        friction: 3,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const handleBlur = () => {
+      setFocusedField(null);
+      Animated.spring(scaleAnimation, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }).start();
+    };
+
     return (
-      <Animated.View style={[styles.inputContainer, { transform: [{ translateX: shakeAnimation }] }]}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name={icon} size={24} color={'white'} />
-        </View>
-        <View style={styles.inputWrapper}>
+      <Animated.View 
+        style={[
+          styles.inputContainer, 
+          { 
+            transform: [
+              { translateX: shakeAnimation },
+              { scale: scaleAnimation }
+            ] 
+          }
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.background, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.inputWrapper,
+            focusedField === field && styles.focusedInput
+          ]}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons name={icon} size={24} color={colors.primary} />
+          </View>
           <TextInput
             label={label}
             value={profile[field] || ''}
@@ -49,17 +88,21 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
             style={styles.input}
             mode="flat"
             error={!!errors[field]}
-            textColor={'white'}
+            textColor={colors.text}
             multiline={multiline}
             numberOfLines={multiline ? 4 : 1}
             theme={{ colors: { placeholder: colors.primary } }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
           />
-          {!!errors[field] && (
-            <HelperText type="error" visible={true} style={styles.errorText} onPress={startShake}>
+        </LinearGradient>
+        {!!errors[field] && (
+          <TouchableOpacity onPress={startShake}>
+            <HelperText type="error" visible={true} style={styles.errorText}>
               {errors[field]}
             </HelperText>
-          )}
-        </View>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     );
   };
@@ -76,37 +119,46 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 16,
   },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  focusedInput: {
+    shadowColor: "#6200EA",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 50,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  inputWrapper: {
-    flex: 1,
   },
   input: {
+    flex: 1,
     backgroundColor: 'transparent',
     fontSize: 16,
+    paddingVertical: 8,
   },
   errorText: {
     color: '#FF6B6B',
     fontWeight: 'bold',
     marginTop: 4,
+    marginLeft: 50,
   },
 });
 
 export default PlayerInfoForm;
+

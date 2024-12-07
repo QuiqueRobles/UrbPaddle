@@ -3,6 +3,7 @@
     "name": "UrbPaddle",
     "slug": "UrbPaddle",
     "version": "1.0.0",
+    "newArchEnabled": true,
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -37,6 +38,7 @@
           "messagingSenderId": "571200478793",
           "appId": "1:571200478793:web:5c8b933d442a1a8592a998"
         }
+        
       ]
     ]
   }
