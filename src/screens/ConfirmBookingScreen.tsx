@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 24,
     textAlign: 'center',
-    color: colors.primary,
+    color: colors.text,
   },
   detailsContainer: {
     marginBottom: 24,
