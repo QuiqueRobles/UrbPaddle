@@ -110,7 +110,7 @@ export default function CommunitiesSection() {
               {
                 text: 'Confirm',
                 onPress: async () => {
-                  const updatedGuestCommunities = profileData.guest_communities.filter(id => id !== residentCommunityData.id);
+                 const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== residentCommunityData.id);
                   const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 

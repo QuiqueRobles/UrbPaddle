@@ -6,31 +6,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 type LevelInfo = {
   name: string;
-  color: string[];
+  color: [string, string, ...string[]]; // Explicitly define the tuple type
 };
 
 const levelData: LevelInfo[] = [
-  { name: "Novato", color: ['#4CAF50', '#8BC34A'] },
-  { name: "Aprendiz", color: ['#2196F3', '#03A9F4'] },
-  { name: "Intermedio", color: ['#9C27B0', '#E91E63'] },
-  { name: "Avanzado", color: ['#FF9800', '#FF5722'] },
-  { name: "Experto", color: ['#F44336', '#E91E63'] },
-  { name: "Maestro", color: ['#9C27B0', '#673AB7'] },
-  { name: "Élite", color: ['#3F51B5', '#2196F3'] },
-  { name: "Leyenda", color: ['#FFC107', '#FF9800'] },
-  { name: "Campeón", color: ['#FF5722', '#F44336'] },
-  { name: "Inmortal", color: ['#607D8B', '#455A64'] },
-  { name: "Divino", color: ['#FF9800', '#FFC107'] },
-  { name: "Celestial", color: ['#00BCD4', '#03A9F4'] },
-  { name: "Trascendental", color: ['#8BC34A', '#4CAF50'] },
-  { name: "Omnipotente", color: ['#9C27B0', '#673AB7'] },
-  { name: "Supremo", color: ['#E91E63', '#F44336'] },
-  { name: "Mítico", color: ['#FF9800', '#FF5722'] },
-  { name: "Legendario", color: ['#795548', '#5D4037'] },
-  { name: "Titánico", color: ['#607D8B', '#455A64'] },
-  { name: "Cósmico", color: ['#3F51B5', '#303F9F'] },
-  { name: "Infinito", color: ['#212121', '#673AB7'] },
+  { name: "Novato", color: ['#4CAF50', '#8BC34A'] as const },
+  { name: "Aprendiz", color: ['#2196F3', '#03A9F4'] as const },
+  { name: "Intermedio", color: ['#9C27B0', '#E91E63'] as const },
+  { name: "Avanzado", color: ['#FF9800', '#FF5722'] as const },
+  { name: "Experto", color: ['#F44336', '#E91E63'] as const },
+  { name: "Maestro", color: ['#9C27B0', '#673AB7'] as const },
+  { name: "Élite", color: ['#3F51B5', '#2196F3'] as const },
+  { name: "Leyenda", color: ['#FFC107', '#FF9800'] as const },
+  { name: "Campeón", color: ['#FF5722', '#F44336'] as const },
+  { name: "Inmortal", color: ['#607D8B', '#455A64'] as const },
+  { name: "Divino", color: ['#FF9800', '#FFC107'] as const },
+  { name: "Celestial", color: ['#00BCD4', '#03A9F4'] as const },
+  { name: "Trascendental", color: ['#8BC34A', '#4CAF50'] as const },
+  { name: "Omnipotente", color: ['#9C27B0', '#673AB7'] as const },
+  { name: "Supremo", color: ['#E91E63', '#F44336'] as const },
+  { name: "Mítico", color: ['#FF9800', '#FF5722'] as const },
+  { name: "Legendario", color: ['#795548', '#5D4037'] as const },
+  { name: "Titánico", color: ['#607D8B', '#455A64'] as const },
+  { name: "Cósmico", color: ['#3F51B5', '#303F9F'] as const },
+  { name: "Infinito", color: ['#212121', '#673AB7'] as const },
 ];
+
 
 interface LevelIndicatorProps {
   level: number;

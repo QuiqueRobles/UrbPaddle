@@ -103,7 +103,13 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
   );
 }
 
-const StatItem = ({ icon, value, label }) => (
+interface StatItemProps {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap; // Ensure compatibility with valid icon names
+  value: number | string;
+  label: string;
+}
+
+const StatItem = ({ icon, value, label }: StatItemProps) => (
   <View style={styles.statItem}>
     <MaterialCommunityIcons name={icon} size={28} color="#fff" />
     <Text style={styles.statValue}>{value}</Text>
@@ -111,7 +117,13 @@ const StatItem = ({ icon, value, label }) => (
   </View>
 );
 
-const ProgressItem = ({ label, value, color }) => (
+interface ProgressItemProps {
+  label: string; // Label for the progress bar
+  value: number; // Progress value as a percentage (0 to 100)
+  color: string; // Color of the progress bar
+}
+
+const ProgressItem = ({ label, value, color }: ProgressItemProps) => (
   <View style={styles.progressItem}>
     <View style={styles.progressLabelContainer}>
       <Text style={styles.progressLabel}>{label}</Text>

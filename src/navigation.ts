@@ -16,7 +16,7 @@ export type RootStackParamList = {
   Booking: undefined
   MyBookings: undefined
   AddMatchResult:undefined
-  CommunityCode:undefined
+  CommunityCode: { userId: string };
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

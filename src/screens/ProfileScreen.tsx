@@ -420,7 +420,7 @@ export default function ProfileScreen() {
   );
 }
 
-const StatItem: React.FC<{ icon: string; value: number; label: string }> = ({ icon, value, label }) => (
+const StatItem: React.FC<{ icon: keyof typeof MaterialCommunityIcons.glyphMap; value: number; label: string }> = ({ icon, value, label }) => (
   <View style={styles.statItem}>
     <MaterialCommunityIcons name={icon} size={36} color="white" />
     <Text style={styles.statValue}>{value}</Text>

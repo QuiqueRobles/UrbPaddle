@@ -23,6 +23,8 @@ import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 
+
+
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
 

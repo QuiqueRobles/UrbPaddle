@@ -7,8 +7,17 @@ import { supabase } from '../lib/supabase';
 import { format, addMinutes, parseISO, parse, isBefore } from 'date-fns';
 import { Calendar, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureResponderEvent } from 'react-native'; // Import for event typing
 
-const ConfirmButton = ({ onPress, disabled, style, labelStyle }) => (
+// Define prop types for ConfirmButton
+type ConfirmButtonProps = {
+  onPress: (event: GestureResponderEvent) => void; // Type for the press handler
+  disabled: boolean;
+  style?: object;
+  labelStyle?: object;
+};
+
+const ConfirmButton = ({ onPress, disabled, style, labelStyle }: ConfirmButtonProps) => (
   <TouchableOpacity
     onPress={onPress}
     disabled={disabled}
