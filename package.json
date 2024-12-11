@@ -57,7 +57,8 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
     "victory-native": "^37.3.1",
-    "webpack": "^5.96.1"
+    "webpack": "^5.96.1",
+    "expo-haptics": "~14.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

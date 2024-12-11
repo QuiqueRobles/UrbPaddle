@@ -22,7 +22,7 @@ import MyBookingsScreen from './screens/MyBookingsScreen'
 import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
-
+import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 
 
 const Stack = createStackNavigator<RootStackParamList>()
@@ -164,6 +164,7 @@ export default function App() {
                 <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} />
                 <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
                 <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
+                <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: 'About the Developer' }} />
               </>
             ) : (
               <>

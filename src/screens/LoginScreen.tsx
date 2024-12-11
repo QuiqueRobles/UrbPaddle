@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useLayoutEffect } from 'react'
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native'
 import { TextInput, Button, useTheme } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -25,6 +25,13 @@ export default function LoginScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const theme = useTheme()
+
+  // Añade este useLayoutEffect para eliminar el título de la cabecera
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false, // Esto oculta completamente la cabecera
+    });
+  }, [navigation]);
 
   async function handleLogin() {
     setLoading(true)
@@ -128,12 +135,13 @@ const styles = StyleSheet.create({
     marginBottom: 140,
   },
   logoContainer: {
-    marginBottom: 30,
+    marginBottom: 20,
     alignItems: 'center',
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 250,
+    height: 250,
+    marginTop:100,
   },
   input: {
     marginBottom: 16,

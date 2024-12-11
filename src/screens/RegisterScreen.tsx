@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native'
 import { TextInput, Button, Title, HelperText, useTheme, Card, Text } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -38,6 +38,11 @@ export default function RegisterScreen({ navigation }: Props) {
   const validatePassword = (password: string) => {
     return password.length >= 6
   }
+    useLayoutEffect(() => {
+      navigation.setOptions({
+        headerShown: false, // Esto oculta completamente la cabecera
+      });
+    }, [navigation]);
 
   async function handleRegister() {
     setEmailError('')

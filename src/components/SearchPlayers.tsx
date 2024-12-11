@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import ProfileImage from './ProfileImage';
 
+
 type Player = {
   id: string;
   full_name: string;
@@ -79,11 +80,20 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
         data={players}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.playerItem} onPress={() => onSelectPlayer(item)}>
-            <ProfileImage avatarUrl={item.avatar_url} size={50} />
-            <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>{item.full_name}</Text>
-              <Text style={styles.playerUsername}>@{item.username}</Text>
+          <TouchableOpacity 
+            style={styles.playerItem} 
+            onPress={() => onSelectPlayer(item)}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel={`Select player ${item.full_name}`}
+            accessibilityHint="Tapping this will select the player"
+          >
+            <View style={styles.playerContent}>
+              <ProfileImage avatarUrl={item.avatar_url} size={50} />
+              <View style={styles.playerInfo}>
+                <Text style={styles.playerName}>{item.full_name}</Text>
+                <Text style={styles.playerUsername}>@{item.username}</Text>
+              </View>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color={colors.primary} />
           </TouchableOpacity>
@@ -120,20 +130,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    minHeight: 70,
+  },
+  playerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   playerInfo: {
     flex: 1,
     marginLeft: 16,
+    justifyContent: 'center',
   },
   playerName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+    marginBottom: 4,
   },
   playerUsername: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
   },
 });
+

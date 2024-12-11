@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, RefreshControl } from 'react-native';
-import { Button, Card, TextInput, Title, Text, ActivityIndicator, useTheme, ProgressBar, IconButton } from 'react-native-paper';
+import { Button, Card, TextInput, Title, Text, ActivityIndicator, useTheme, ProgressBar, IconButton, Portal, Modal } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,7 @@ import CommunitiesSection from '../components/CommunitiesSection';
 import LevelIndicator from '../components/LevelIndicator';
 import { colors } from "../theme/colors";
 import { useNavigation } from '@react-navigation/native';
+import SettingsModal from '../components/SettingsModal';
 
 
 type UserProfile = {
@@ -45,6 +46,7 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const theme = useTheme();
   const navigation = useNavigation();
   const [errors, setErrors] = useState({
@@ -256,6 +258,11 @@ export default function ProfileScreen() {
     }
   }
 
+  const toggleSettings = useCallback(() => {
+    console.log('Toggle Settings pressed');
+    setSettingsVisible((prev) => !prev);
+  }, []);
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -293,6 +300,13 @@ export default function ProfileScreen() {
             />
           }
         >
+          <IconButton
+            icon="cog"
+            size={24}
+            iconColor="white"
+            style={styles.settingsButton}
+            onPress={toggleSettings}
+          />
           <View style={styles.header}>
             <View style={styles.profileImageContainer}>
               <ProfileImage key={refreshKey} avatarUrl={profile.avatar_url} size={140} />
@@ -415,6 +429,11 @@ export default function ProfileScreen() {
             </Card>
           </View>
         </ScrollView>
+        <Portal>
+          <Modal visible={settingsVisible} onDismiss={toggleSettings} contentContainerStyle={styles.modalContainer}>
+            <SettingsModal onClose={toggleSettings} />
+          </Modal>
+        </Portal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -619,4 +638,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 59, 48, 0.8)', // A semi-transparent red color
     marginTop: 20,
   },
+  settingsButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
+    borderRadius: 10,
+  },
 });
+

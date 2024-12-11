@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, FlatList, SafeAreaView, StatusBar } from 'react-native';
+import { View, ScrollView, Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, FlatList, SafeAreaView, StatusBar, Vibration } from 'react-native';
 import { Text, Button, ActivityIndicator, useTheme, Avatar, Card, Chip, Modal, Surface, IconButton } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import SearchPlayers from '../components/SearchPlayers';
 import PlayerProfileCard from '../components/PlayerProfileCard';
 import { colors } from "../theme/colors";
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 
 type PlayerStats = {
   id: string;
@@ -240,6 +241,7 @@ export default function StatisticsScreen() {
 
  
 const handleSelectPlayer = async (player: { id: string }) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     try {
       const { data, error } = await supabase
         .from('profiles')

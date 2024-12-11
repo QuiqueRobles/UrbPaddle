@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, FlatList, Vibration } from 'react-native';
 import { Text, Card, useTheme, Button, ActivityIndicator, IconButton } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,6 +7,8 @@ import ProfileImage from './ProfileImage';
 import PlayerProfileCard from './PlayerProfileCard';
 import LevelIndicator from './LevelIndicator';
 import { colors } from "../theme/colors";
+import { gradients } from "../theme/gradients";
+import * as Haptics from 'expo-haptics';
 
 type PlayerStats = {
   id: string;
@@ -36,7 +38,9 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
 
-  const handlePlayerPress = (player: PlayerStats) => {
+  const handlePlayerPress = async (player: PlayerStats) => {
+    // Haptic feedback when the player card is pressed
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setSelectedPlayer(player);
     setModalVisible(true);
   };
@@ -48,7 +52,7 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
       <TouchableOpacity onPress={() => handlePlayerPress(item)}>
         <Card style={styles.playerCard}>
           <LinearGradient
-            colors={[colors.primary, colors.gradientEnd]}
+            colors={gradients.mint}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}
