@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, Clock } from 'lucide-react-native';
 
 type RootStackParamList = {
-  ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string };
+  ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string; communityId: string };
   Home: undefined;
 };
 
@@ -24,7 +24,7 @@ type Props = {
 export default function ConfirmBookingScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const theme = useTheme();
-  const { courtId, date, startTime, endTime } = route.params;
+  const { courtId, date, startTime, endTime, communityId } = route.params;
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -35,7 +35,8 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
       setLoading(false);
       return;
     }
-
+    
+    console.log(communityId)
     const { error } = await supabase
       .from('bookings')
       .insert({
@@ -43,7 +44,8 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
         date: date,
         start_time: startTime,
         end_time: endTime,
-        user_id: userData.user.id
+        user_id: userData.user.id,
+        community_id: communityId
       });
 
     setLoading(false);
