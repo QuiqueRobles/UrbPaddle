@@ -1,12 +1,20 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Button, Text, Title, Divider } from 'react-native-paper';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation';
 
 interface SettingsModalProps {
   onClose: () => void;
+  navigation: NavigationProp<RootStackParamList>;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) => {
+  const handleAboutDeveloper = () => {
+    onClose();
+    navigation.navigate('AboutDeveloper');
+  };
+
   return (
     <ScrollView>
       <Title style={styles.title}>Ajustes</Title>
@@ -28,9 +36,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
       
       <View style={styles.section}>
         <Title style={styles.sectionTitle}>Sobre el desarrollador</Title>
-        <Text style={styles.developerInfo}>
-          Desarrollado por Juan Pérez, un apasionado del pádel y la tecnología. Con más de 5 años de experiencia en desarrollo de aplicaciones móviles, Juan creó esta app para unir a la comunidad de jugadores de pádel.
-        </Text>
+        <Button mode="outlined" style={styles.button} onPress={handleAboutDeveloper}>
+          Ver información del desarrollador
+        </Button>
       </View>
       
       <Button mode="contained" onPress={onClose} style={styles.closeButton}>
@@ -60,15 +68,9 @@ const styles = StyleSheet.create({
   divider: {
     marginVertical: 10,
   },
-  developerInfo: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
   closeButton: {
     marginTop: 20,
   },
 });
 
 export default SettingsModal;
-

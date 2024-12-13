@@ -198,6 +198,14 @@ export default function HomeScreen({ navigation }: Props) {
               color={colors.surface}
               shouldAnimate={shouldAnimate}
             />
+            <ActionButton
+              icon="tennis-ball"
+              label="View Matches"
+              onPress={() => navigation.navigate('Matches')}
+              delay={1200}
+              color={colors.surface}
+              shouldAnimate={shouldAnimate}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -232,7 +240,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 24 : 48,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 24 : 24,
     paddingBottom: 80,
   },
   header: {
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 0,
   },
   logo: {
     width: 200,

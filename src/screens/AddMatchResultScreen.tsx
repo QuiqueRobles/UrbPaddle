@@ -29,6 +29,9 @@ type Player = {
   name: string;
   profile_id: string | null;
   avatar_url?: string;
+  level?: number;
+  isResident: boolean;
+  isAnonymous: boolean;
 };
 
 type SetScore = {
@@ -62,11 +65,11 @@ export default function AddMatchResultScreen() {
   const [loading, setLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: '', profile_id: null },
-    { id: '2', name: '', profile_id: null },
-    { id: '3', name: '', profile_id: null },
-    { id: '4', name: '', profile_id: null },
-  ]);
+      { id: '1', name: '', profile_id: null, isResident: false, isAnonymous: false },
+      { id: '2', name: '', profile_id: null, isResident: false, isAnonymous: false },
+      { id: '3', name: '', profile_id: null, isResident: false, isAnonymous: false },
+      { id: '4', name: '', profile_id: null, isResident: false, isAnonymous: false },
+    ]);
   const [winningTeam, setWinningTeam] = useState<'1' | '2' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -213,6 +216,15 @@ export default function AddMatchResultScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('resident_community_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userError) throw userError;
+      if (!userData?.resident_community_id) throw new Error('User community not found');
+
       const selectedBookingData = bookings.find(b => b.id === selectedBooking);
       if (!selectedBookingData || selectedBookingData.user_id !== user.id) {
         throw new Error('You can only add results for your own bookings');
@@ -225,22 +237,23 @@ export default function AddMatchResultScreen() {
         .from('matches')
         .insert({
           booking_id: selectedBooking,
-          player1_id: players[0].profile_id,
-          player2_id: players[1].profile_id,
-          player3_id: players[2].profile_id,
-          player4_id: players[3].profile_id,
+          player1_id: players[0].isAnonymous ? null : players[0].profile_id,
+          player2_id: players[1].isAnonymous ? null : players[1].profile_id,
+          player3_id: players[2].isAnonymous ? null : players[2].profile_id,
+          player4_id: players[3].isAnonymous ? null : players[3].profile_id,
           score: formattedScore,
           winner_team: winningTeam,
           match_date: selectedBookingData.date,
           match_time: selectedBookingData.start_time,
-          court_number: selectedBookingData.court_number
+          court_number: selectedBookingData.court_number,
+          community_id: userData.resident_community_id,
         })
         .select()
         .single();
 
       if (matchError) throw matchError;
 
-      // Update player profiles and XP
+      // Update player profiles and XP only for non-anonymous players
       await updatePlayerProfilesAndXP(formattedScore, winningTeam);
 
       Alert.alert('Success', 'Match result added successfully');
@@ -255,8 +268,8 @@ export default function AddMatchResultScreen() {
 
   async function updatePlayerProfilesAndXP(formattedScore: string, winningTeam: '1' | '2') {
     const scoreArray = formattedScore.split(',');
-    const team1Players = [players[0].profile_id, players[1].profile_id].filter(Boolean) as string[];
-    const team2Players = [players[2].profile_id, players[3].profile_id].filter(Boolean) as string[];
+    const team1Players = players.slice(0, 2).filter(p => !p.isAnonymous).map(p => p.profile_id).filter(Boolean) as string[];
+    const team2Players = players.slice(2, 4).filter(p => !p.isAnonymous).map(p => p.profile_id).filter(Boolean) as string[];
     const allPlayers = [...team1Players, ...team2Players];
 
     let team1SetsWon = 0;
@@ -274,6 +287,7 @@ export default function AddMatchResultScreen() {
       team1GamesWon += team1Score;
       team2GamesWon += team2Score;
     });
+
 
     const updateProfile = async (profileId: string, isWinner: boolean, setsWon: number, setsLost: number, gamesWon: number, gamesLost: number) => {
       const { data, error } = await supabase
@@ -332,8 +346,8 @@ export default function AddMatchResultScreen() {
     };
 
     // Update profiles for all players
-    const updatePromises = allPlayers.map((profileId, index) => {
-      const isTeam1 = index < 2;
+     const updatePromises = allPlayers.map((profileId, index) => {
+      const isTeam1 = index < team1Players.length;
       return updateProfile(
         profileId,
         (isTeam1 && winningTeam === '1') || (!isTeam1 && winningTeam === '2'),

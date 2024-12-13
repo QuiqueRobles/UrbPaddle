@@ -23,7 +23,7 @@ import AddMatchResultScreen from './screens/AddMatchResultScreen'
 import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
-
+import MatchesScreen from './screens/MatchesScreen'
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
@@ -163,6 +163,7 @@ export default function App() {
                 <Stack.Screen name="Statistics" component={StatisticsScreen} />
                 <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} />
                 <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
+                <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: 'My matches' }} />
                 <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
                 <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: 'About the Developer' }} />
               </>

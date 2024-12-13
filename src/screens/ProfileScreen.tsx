@@ -15,7 +15,8 @@ import LevelIndicator from '../components/LevelIndicator';
 import { colors } from "../theme/colors";
 import { useNavigation } from '@react-navigation/native';
 import SettingsModal from '../components/SettingsModal';
-
+import { RootStackParamList } from '../navigation';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 type UserProfile = {
   id: string;
@@ -48,7 +49,7 @@ export default function ProfileScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const theme = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [errors, setErrors] = useState({
     full_name: '',
     apartment: '',
@@ -430,10 +431,10 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
         <Portal>
-          <Modal visible={settingsVisible} onDismiss={toggleSettings} contentContainerStyle={styles.modalContainer}>
-            <SettingsModal onClose={toggleSettings} />
-          </Modal>
-        </Portal>
+        <Modal visible={settingsVisible} onDismiss={toggleSettings} contentContainerStyle={styles.modalContainer}>
+          <SettingsModal onClose={toggleSettings} navigation={navigation} />
+        </Modal>
+      </Portal>
       </SafeAreaView>
     </LinearGradient>
   );

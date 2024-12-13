@@ -22,6 +22,7 @@ type Player = {
   avatar_url?: string;
   level?: number;
   isResident: boolean;
+  isAnonymous: boolean;
 };
 
 interface SelectPlayersProps {
@@ -30,11 +31,11 @@ interface SelectPlayersProps {
 
 export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: '', profile_id: null, isResident: false },
-    { id: '2', name: '', profile_id: null, isResident: false },
-    { id: '3', name: '', profile_id: null, isResident: false },
-    { id: '4', name: '', profile_id: null, isResident: false },
+   const [players, setPlayers] = useState<Player[]>([
+    { id: '1', name: '', profile_id: null, isResident: false, isAnonymous: false },
+    { id: '2', name: '', profile_id: null, isResident: false, isAnonymous: false },
+    { id: '3', name: '', profile_id: null, isResident: false, isAnonymous: false },
+    { id: '4', name: '', profile_id: null, isResident: false, isAnonymous: false },
   ]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -108,22 +109,36 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     }
   }, [userCommunityId]);
 
-  const handlePlayerChange = useCallback((index: number, profile: Profile | null) => {
+  const handlePlayerChange = useCallback((index: number, profile: Profile | null, isAnonymous: boolean = false) => {
     setPlayers(prevPlayers => {
       const newPlayers = [...prevPlayers];
-      newPlayers[index] = { 
-        ...newPlayers[index], 
-        name: profile ? profile.full_name : '', 
-        profile_id: profile ? profile.id : null,
-        avatar_url: profile ? profile.avatar_url : undefined,
-        level: profile ? profile.level : undefined,
-        isResident: profile ? profile.resident_community_id === userCommunityId : false
-      };
+      if (isAnonymous) {
+        newPlayers[index] = {
+          ...newPlayers[index],
+          name: `Anonymous ${index + 1}`,
+          profile_id: null,
+          avatar_url: undefined,
+          level: undefined,
+          isResident: false,
+          isAnonymous: true
+        };
+      } else {
+        newPlayers[index] = { 
+          ...newPlayers[index], 
+          name: profile ? profile.full_name : '', 
+          profile_id: profile ? profile.id : null,
+          avatar_url: profile ? profile.avatar_url : undefined,
+          level: profile ? profile.level : undefined,
+          isResident: profile ? profile.resident_community_id === userCommunityId : false,
+          isAnonymous: false
+        };
+      }
       return newPlayers;
     });
     setSearchQuery('');
     setActiveSlot(null);
   }, [userCommunityId]);
+
 
   const renderSearchResult = useCallback(({ item }: { item: Profile }) => (
     <TouchableOpacity
@@ -149,7 +164,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     </TouchableOpacity>
   ), [activeSlot, handlePlayerChange, userCommunityId]);
 
-  const renderTeam = useCallback((teamName: string, teamIndex: number) => (
+ const renderTeam = useCallback((teamName: string, teamIndex: number) => (
     <View key={teamName} style={styles.team}>
       <Text style={styles.teamTitle}>{teamName}</Text>
       <View style={styles.playerSlots}>
@@ -169,18 +184,27 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
             {player.name ? (
               <Chip
                 avatar={
-                  player.avatar_url ? (
+                  player.isAnonymous ? (
+                    <Avatar.Icon size={24} icon="account-question" />
+                  ) : player.avatar_url ? (
                     <Avatar.Image size={24} source={{ uri: player.avatar_url }} />
                   ) : (
                     <Avatar.Text size={24} label={player.name.substring(0, 2).toUpperCase()} />
                   )
                 }
                 onClose={() => handlePlayerChange(teamIndex * 2 + index, null)}
-                style={[styles.playerChip, player.isResident ? styles.residentChip : styles.guestChip]}
+                style={[
+                  styles.playerChip, 
+                  player.isAnonymous ? styles.anonymousChip : player.isResident ? styles.residentChip : styles.guestChip
+                ]}
               >
                 <Text style={styles.playerNameInSlot}>{player.name}</Text>
-                <Text style={styles.playerLevelInSlot}> Lvl {player.level || 'N/A'}</Text>
-                <Text style={styles.playerTypeInSlot}> {player.isResident ? 'R' : 'G'}</Text>
+                {!player.isAnonymous && (
+                  <>
+                    <Text style={styles.playerLevelInSlot}> Lvl {player.level || 'N/A'}</Text>
+                    <Text style={styles.playerTypeInSlot}> {player.isResident ? 'R' : 'G'}</Text>
+                  </>
+                )}
               </Chip>
             ) : (
               <View style={[
@@ -228,6 +252,14 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                 style={styles.searchResults}
               />
             )}
+            <Button 
+              mode="outlined" 
+              onPress={() => handlePlayerChange(activeSlot, null, true)} 
+              style={styles.anonymousButton}
+              icon="account-question"
+            >
+              Add Anonymous Player
+            </Button>
           </>
         )}
         
@@ -254,6 +286,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 12,
     elevation: 4,
+  },
+   anonymousChip: {
+    backgroundColor: 'rgba(150, 150, 150, 0.1)',
+  },
+  anonymousButton: {
+    marginTop: 8,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,

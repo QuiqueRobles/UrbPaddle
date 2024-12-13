@@ -18,6 +18,7 @@ export type RootStackParamList = {
   AddMatchResult:undefined
   CommunityCode: { userId: string };
   AboutDeveloper:undefined
+  Matches:undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>
