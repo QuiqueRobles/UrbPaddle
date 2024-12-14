@@ -177,6 +177,7 @@ export default function App() {
         </NavigationContainer>
       </SafeAreaProvider>
     </PaperProvider>
+ 
   )
 }
 
