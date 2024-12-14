@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Linking } from 'react-native';
-import { Title, Text, Button, Avatar, Card, useTheme, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import { Title, Text, Avatar, Card, useTheme, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ const AboutDeveloperScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: false, // This will hide the navigation header
+      headerShown: false,
     });
   }, [navigation]);
 
@@ -25,46 +25,71 @@ const AboutDeveloperScreen = () => {
   };
 
   const openLinkedIn = () => {
-    Linking.openURL('https://www.linkedin.com/in/enrique-robles-ros/');
+    Linking.openURL('https://www.linkedin.com/in/enrique-robles-uriel/');
   };
 
   const openGitHub = () => {
-    Linking.openURL('https://github.com/enriquerobles');
+    Linking.openURL('https://github.com/QuiqueRobles');
   };
 
   const goToHome = () => {
     navigation.navigate('Home');
   };
 
-  const GradientButton: React.FC<{
+  const GalaxyGradientButton: React.FC<{
     onPress: () => void;
     icon: string;
     children: React.ReactNode;
   }> = ({ onPress, icon, children }) => (
-    <LinearGradient
-      colors={['#00FF41', '#00C853']}
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 1}}
-      style={styles.gradientButton}
-    >
-      <Button
-        mode="contained"
-        onPress={onPress}
-        icon={icon}
-        style={styles.button}
-        labelStyle={styles.buttonLabel}
-        contentStyle={styles.buttonContent}
+    <TouchableOpacity onPress={onPress} style={styles.gradientButton}>
+      <LinearGradient
+        colors={['rgba(56, 8, 99, 0.8)', 'rgba(12, 73, 195, 0.9)']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.gradientButtonInner}
       >
-        {children}
-      </Button>
-    </LinearGradient>
+        <View style={styles.buttonContentContainer}>
+          <MaterialCommunityIcons 
+            name={icon} 
+            size={20} 
+            color="#00FF41" 
+            style={styles.buttonIcon}
+          />
+          <Text style={styles.buttonLabel}>{children}</Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   return (
     <LinearGradient
-      colors={['#001F0E', '#003F1C', '#006B31', '#004F24', '#002A13']}
-      style={styles.gradient}
+      colors={[
+        'rgba(0,7,20,1)', 
+        'rgba(0,15,40,1)', 
+        'rgba(0,25,60,1)', 
+        'rgba(0,10,30,1)'
+      ]}
+      locations={[0, 0.3, 0.7, 1]}
+      style={styles.galaxyGradient}
     >
+      {/* Add some star-like dots for galaxy effect */}
+      {[...Array(50)].map((_, index) => (
+        <View 
+          key={index} 
+          style={[
+            styles.star,
+            { 
+              top: Math.random() * 800, 
+              right: Math.random() * 800,
+              left: Math.random() * 800,
+              opacity: Math.random(),
+              width: Math.random() * 3,
+              height: Math.random() * 3,
+            }
+          ]} 
+        />
+      ))}
+
       <SafeAreaView style={styles.container}>
         <IconButton
           icon="arrow-left"
@@ -73,25 +98,28 @@ const AboutDeveloperScreen = () => {
           onPress={goToHome}
           style={styles.backButton}
         />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <Avatar.Image 
             size={150} 
             source={{ uri: 'https://www.enriquerobles.es/static/media/quique.1a4aa01d625432bd2958.png' }} 
             style={styles.avatar}
           />
           <Title style={styles.name}>Enrique Robles</Title>
-          <Text style={styles.title}>Telecommunications Engineer & Software Developer</Text>
+          <Text style={styles.title}>Telecommunications Engineer & Computer Science Engineer</Text>
           
           <View style={styles.socialButtons}>
-            <GradientButton onPress={openWebsite} icon="web">
+            <GalaxyGradientButton onPress={openWebsite} icon="web">
               Website
-            </GradientButton>
-            <GradientButton onPress={openLinkedIn} icon="linkedin">
+            </GalaxyGradientButton>
+            <GalaxyGradientButton onPress={openLinkedIn} icon="linkedin">
               LinkedIn
-            </GradientButton>
-            <GradientButton onPress={openGitHub} icon="github">
+            </GalaxyGradientButton>
+            <GalaxyGradientButton onPress={openGitHub} icon="github">
               GitHub
-            </GradientButton>
+            </GalaxyGradientButton>
           </View>
 
           <Card style={styles.card}>
@@ -166,21 +194,27 @@ const AboutDeveloperScreen = () => {
             </Card.Content>
           </Card>
 
-          <GradientButton onPress={openWebsite} icon="rocket">
+          <GalaxyGradientButton onPress={openWebsite} icon="rocket">
             Explore More Projects
-          </GradientButton>
+          </GalaxyGradientButton>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
 };
-
 const styles = StyleSheet.create({
-  gradient: {
+  galaxyGradient: {
     flex: 1,
+    position: 'relative',
+  },
+  star: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 50,
   },
   container: {
     flex: 1,
+    zIndex: 10,
   },
   scrollContent: {
     padding: 20,
@@ -219,23 +253,32 @@ const styles = StyleSheet.create({
     borderRadius: 90,
     marginHorizontal: 5,
     marginBottom: 10,
+    overflow: 'hidden',
   },
-  button: {
-    marginHorizontal: 0,
-    elevation: 0,
+  gradientButtonInner: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonContent: {
-    height: 40,
-    paddingHorizontal: 16,
+  buttonContentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   buttonLabel: {
-    color: '#000000',
+    color: '#00FF41',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   card: {
     width: '100%',
     marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,65,0.2)',
   },
   sectionTitle: {
     fontSize: 22,
