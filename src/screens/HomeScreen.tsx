@@ -154,13 +154,13 @@ export default function HomeScreen({ navigation }: Props) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
-              source={require('../../assets/images/logoUrbPaddle.png')} 
+              source={require('../../assets/images/logo.png')} 
               style={styles.logo}
               resizeMode="contain"
             />
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
-            <Text style={[styles.title, { color: colors.onPrimary }]}>U R your Best with paddle</Text>
+            <Text style={[styles.title, { color: colors.onPrimary }]}>Be the king of your community!</Text>
             <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
           </Animated.View>
           

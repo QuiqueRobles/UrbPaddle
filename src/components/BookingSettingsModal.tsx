@@ -1,8 +1,9 @@
-import React, { useRef, useMemo, useEffect,useState } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, LayoutChangeEvent } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { UpdateModal } from './UpdateModal';
 import { parse, format, addMinutes } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface BookingSettingsModalProps {
   visible: boolean;
@@ -97,20 +98,38 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                 setSelectedTime(newDate);
                 scrollToTime(scrollViewRef, newDate);
               }}
-              style={[
-                styles.timeSlot,
-                { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface }
-              ]}
               onLayout={handleTimeSlotLayout}
             >
-              <Text style={[styles.timeSlotText, { color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface }]}>
-                {time}
-              </Text>
+              <LinearGradient
+                colors={isSelected ? ['#00A86B', '#00C853'] : ['#f0f0f0', '#e0e0e0']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.timeSlot, isSelected && styles.selectedTimeSlot]}
+              >
+                <Text style={[styles.timeSlotText, { color: isSelected ? 'white' : theme.colors.onSurface }]}>
+                  {time}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
     </View>
+  );
+
+  const GradientButton = ({ onPress, isSelected, children }) => (
+    <TouchableOpacity onPress={onPress} style={styles.gradientButtonContainer}>
+      <LinearGradient
+        colors={isSelected ? ['#00A86B', '#00C853'] : ['#f0f0f0', '#e0e0e0']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.gradientButton, isSelected && styles.selectedGradientButton]}
+      >
+        <Text style={[styles.gradientButtonText, { color: isSelected ? 'white' : theme.colors.onSurface }]}>
+          {children}
+        </Text>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   return (
@@ -138,7 +157,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
         <Text style={styles.label}>Booking Durations:</Text>
         <View style={styles.durationContainer}>
           {[30, 60, 90, 120].map((duration) => (
-            <TouchableOpacity
+            <GradientButton
               key={duration}
               onPress={() => {
                 if (bookingDurations.includes(duration)) {
@@ -147,39 +166,23 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
                   setBookingDurations([...bookingDurations, duration].sort((a, b) => a - b));
                 }
               }}
-              style={[
-                styles.durationButton,
-                { backgroundColor: bookingDurations.includes(duration) ? theme.colors.primary : theme.colors.surface }
-              ]}
+              isSelected={bookingDurations.includes(duration)}
             >
-              <Text style={[
-                styles.durationButtonText,
-                { color: bookingDurations.includes(duration) ? theme.colors.onPrimary : theme.colors.onSurface }
-              ]}>
-                {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
-              </Text>
-            </TouchableOpacity>
+              {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+            </GradientButton>
           ))}
         </View>
 
         <Text style={styles.label}>Default Booking Duration:</Text>
         <View style={styles.durationContainer}>
           {[30, 60, 90, 120].map((duration) => (
-            <TouchableOpacity
+            <GradientButton
               key={duration}
               onPress={() => setDefaultBookingDuration(duration)}
-              style={[
-                styles.durationButton,
-                { backgroundColor: defaultBookingDuration === duration ? theme.colors.primary : theme.colors.surface }
-              ]}
+              isSelected={defaultBookingDuration === duration}
             >
-              <Text style={[
-                styles.durationButtonText,
-                { color: defaultBookingDuration === duration ? theme.colors.onPrimary : theme.colors.onSurface }
-              ]}>
-                {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
-              </Text>
-            </TouchableOpacity>
+              {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+            </GradientButton>
           ))}
         </View>
       </ScrollView>
@@ -214,6 +217,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 62,
   },
+  selectedTimeSlot: {
+    elevation: 2,
+  },
   timeSlotText: {
     fontSize: 14,
   },
@@ -222,18 +228,22 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginBottom: 16,
   },
-  durationButton: {
+  gradientButtonContainer: {
     flex: 0.45,
     marginHorizontal: 4,
     marginVertical: 4,
+  },
+  gradientButton: {
     padding: 8,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  durationButtonText: {
+  selectedGradientButton: {
+    elevation: 2,
+  },
+  gradientButtonText: {
     fontSize: 14,
     textAlign: 'center',
   },
 });
-

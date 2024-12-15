@@ -368,8 +368,66 @@ export default function AddMatchResultScreen() {
   }
 
   function isValidScore() {
-    return Object.values(score).some(set => set.team1 !== '' && set.team2 !== '');
+  // Verificar que haya al menos un set con puntuación
+  const setsWithScore = Object.values(score).filter(set => set.team1 !== '' && set.team2 !== '');
+  
+  if (setsWithScore.length === 0) {
+    Alert.alert('Error', 'Debes introducir la puntuación al menos de un set');
+    return false;
   }
+
+  for (const set of setsWithScore) {
+    const team1Score = parseInt(set.team1);
+    const team2Score = parseInt(set.team2);
+
+    // Verificar que sean números válidos
+    if (isNaN(team1Score) || isNaN(team2Score)) {
+      Alert.alert('Error', 'Las puntuaciones deben ser números');
+      return false;
+    }
+
+    // Verificar que sean números positivos
+    if (team1Score < 0 || team2Score < 0) {
+      Alert.alert('Error', 'Las puntuaciones no pueden ser negativas');
+      return false;
+    }
+
+    // Reglas para ganar un set en pádel
+    if (team1Score < 6 && team2Score < 6) {
+      Alert.alert('Error', 'Un set debe terminar al menos 6-x o x-6');
+      return false;
+    }
+
+    // Verificar diferencia de 2 juegos o tie-break
+    if (team1Score >= 6 && team2Score >= 6) {
+      const difference = Math.abs(team1Score - team2Score);
+      if (difference !== 1 && difference !== 2) {
+        Alert.alert('Error', 'En un tie-break, la diferencia debe ser de 1 o 2 juegos');
+        return false;
+      }
+    } else {
+      const difference = Math.abs(team1Score - team2Score);
+      if (difference < 2) {
+        Alert.alert('Error', 'La diferencia entre equipos debe ser de al menos 2 juegos');
+        return false;
+      }
+    }
+
+    // Evitar resultados extremadamente improbables
+    if (team1Score > 7 || team2Score > 7) {
+      Alert.alert('Error', 'Los resultados de un set no suelen superar 7 juegos');
+      return false;
+    }
+  }
+
+  // Verificar que el número de sets no sea excesivo
+  if (setsWithScore.length > 3) {
+    Alert.alert('Error', 'Un partido de pádel no puede tener más de 3 sets');
+    return false;
+  }
+
+  return true;
+}
 
   function formatScore() {
     return Object.values(score)

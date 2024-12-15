@@ -394,38 +394,41 @@ export default function ProfileScreen() {
 
             <Card style={[styles.card, editing && styles.editingCard]}>
               <Card.Content>
-                <Title style={styles.cardTitle}>Player Info</Title>
                 <PlayerInfoForm
                   profile={profile}
                   errors={errors}
                   handleFieldChange={handleFieldChange}
                   editing={editing}
                 />
-                <Button 
-                  mode={editing ? "contained" : "outlined"} 
-                  textColor='rgba(0,0,0,0.75)'
-                  onPress={editing ? updateProfile : () => setEditing(true)} 
-                  style={[styles.button, editing ? styles.saveButton : styles.editButton]}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                  disabled={editing && !canSave()}
-                >
-                  {editing ? 'Save Changes' : 'Edit Profile'}
-                </Button>
+                <TouchableOpacity onPress={editing ? updateProfile : () => setEditing(true)} disabled={editing && !canSave()}>
+                  <LinearGradient
+                    colors={editing ? ['#00A86B', '#00C853'] : ['#f0f0f0', '#e0e0e0']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.button, editing ? styles.saveButton : styles.editButton]}
+                  >
+                    <Text style={[styles.buttonLabel, { color: editing ? 'white' : 'rgba(0,0,0,0.75)' }]}>
+                      {editing ? 'Save Changes' : 'Edit Profile'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </Card.Content>
             </Card>
             <Card style={styles.card}>
               <Card.Content>
-                <Button 
-                  mode="contained" 
-                  onPress={handleLogout}
-                  style={styles.logoutButton}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                  icon="logout"
-                >
-                  Log Out
-                </Button>
+                <TouchableOpacity onPress={handleLogout}>
+                  <LinearGradient
+                    colors={['#FF3B30', '#FF6B6B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.button, styles.logoutButton]}
+                  >
+                    <View style={styles.buttonContent}>
+                      <MaterialCommunityIcons name="logout" size={24} color="white" style={{ marginRight: 8 }} />
+                      <Text style={[styles.buttonLabel, { color: 'white' }]}>Log Out</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
               </Card.Content>
             </Card>
           </View>
@@ -471,10 +474,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
   },
   editButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    // Remove backgroundColor
   },
   saveButton: {
-    backgroundColor: colors.primary,
+    // Remove backgroundColor
   },
   profileImageContainer: {
     position: 'relative',
@@ -626,17 +629,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 16,
     borderRadius: 8,
-    elevation: 4,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonContent: {
-    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonLabel: {
     fontSize: 16,
     fontWeight: 'bold',
   },
   logoutButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.8)', // A semi-transparent red color
     marginTop: 20,
   },
   settingsButton: {
@@ -652,4 +658,3 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 });
-

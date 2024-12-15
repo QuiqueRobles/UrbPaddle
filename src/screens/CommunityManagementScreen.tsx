@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Dimensions, Image } from 'react-native';
-import { Card, Title, Paragraph, Button, IconButton, TextInput, useTheme } from 'react-native-paper';
+  import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, Dimensions, Image, TouchableOpacity, Text } from 'react-native';
+import { Card, Title, Paragraph, IconButton, TextInput, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -155,13 +155,31 @@ export default function CommunityManagementScreen() {
     }
   };
 
-  if (!communityData) {
+
+
+    if (!communityData) {
     return (
-      <View style={styles.loadingContainer}>
-        <Title style={styles.loadingText}>Loading community data...</Title>
-      </View>
+      <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Title style={styles.loadingText}>Loading community data...</Title>
+        </View>
+      </LinearGradient>
     );
   }
+
+  const GradientButton = ({ onPress, icon, children }: { onPress: () => void, icon: string, children: React.ReactNode }) => (
+    <TouchableOpacity onPress={onPress}>
+      <LinearGradient
+        colors={['#00A86B', '#00C853']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradientButton}
+      >
+        <MaterialCommunityIcons name={icon} size={24} color="white" style={styles.buttonIcon} />
+        <Text style={styles.buttonText}>{children}</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
@@ -200,32 +218,17 @@ export default function CommunityManagementScreen() {
             </Card.Content>
           </Card>
           
-          <Button 
-            mode="contained" 
-            onPress={() => setShowCourtsModal(true)} 
-            style={styles.button}
-            icon="tennis-ball"
-          >
+          <GradientButton onPress={() => setShowCourtsModal(true)} icon="tennis-ball">
             Update Number of Courts
-          </Button>
+          </GradientButton>
           
-          <Button 
-            mode="contained" 
-            onPress={() => setShowRulesModal(true)} 
-            style={styles.button}
-            icon="book-open-variant"
-          >
+          <GradientButton onPress={() => setShowRulesModal(true)} icon="book-open-variant">
             Update Community Rules
-          </Button>
+          </GradientButton>
 
-          <Button 
-            mode="contained" 
-            onPress={() => setShowBookingSettingsModal(true)} 
-            style={styles.button}
-            icon="calendar-clock"
-          >
+          <GradientButton onPress={() => setShowBookingSettingsModal(true)} icon="calendar-clock">
             Update Booking Settings
-          </Button>
+          </GradientButton>
 
           <UpdateModal
             visible={showCourtsModal}
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     paddingBottom: 32,
-    marginTop:60,
+    marginTop: 60,
   },
   loadingContainer: {
     flex: 1,
@@ -318,10 +321,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#333',
   },
-  button: {
+  gradientButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
     borderRadius: 8,
+    padding: 12,
     elevation: 2,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   courtsContainer: {
     flexDirection: 'row',

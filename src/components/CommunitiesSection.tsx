@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { Button, TextInput, Card, Title, Paragraph, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
+import { TextInput, Card, Title, Paragraph, Modal, Portal, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Community = {
   id: string;
@@ -15,6 +16,7 @@ export default function CommunitiesSection() {
   const [joinCode, setJoinCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isJoinModalVisible, setIsJoinModalVisible] = useState(false);
+  const { colors } = useTheme();
 
   useEffect(() => {
     fetchCommunities();
@@ -193,70 +195,78 @@ export default function CommunitiesSection() {
     }
   };
 
-  if (isLoading) {
+   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <Card style={styles.container}>
-      <Card.Content>
-        <Title style={styles.sectionTitle}>Your Communities</Title>
-        
-        {residentCommunity && (
-          <View style={styles.communityItem}>
-            <MaterialCommunityIcons name="home" size={24} color="#00A86B" />
-            <Paragraph style={styles.communityName}>{residentCommunity.name} (Resident)</Paragraph>
-          </View>
-        )}
+      
+        <Card.Content>
+          <Title style={styles.sectionTitle}>Your Communities</Title>
+          
+          {residentCommunity && (
+            <View style={styles.communityItem}>
+              <MaterialCommunityIcons name="home" size={24} color={colors.background} />
+              <Paragraph style={styles.communityName}>{residentCommunity.name} (Resident)</Paragraph>
+            </View>
+          )}
 
-        {guestCommunities.map((community) => (
-          <View key={community.id} style={styles.communityItem}>
-            <MaterialCommunityIcons name="account-group" size={24} color="#00A86B" />
-            <Paragraph style={styles.communityName}>{community.name} (Guest)</Paragraph>
-          </View>
-        ))}
+          {guestCommunities.map((community) => (
+            <View key={community.id} style={styles.communityItem}>
+              <MaterialCommunityIcons name="account-group" size={24} color={colors.background} />
+              <Paragraph style={styles.communityName}>{community.name} (Guest)</Paragraph>
+            </View>
+          ))}
 
-        <Button 
-          mode="contained" 
-          onPress={() => setIsJoinModalVisible(true)}
-          style={styles.joinButton}
-        >
-          Join a Community
-        </Button>
+          <TouchableOpacity onPress={() => setIsJoinModalVisible(true)}>
+            <LinearGradient
+              colors={['#00A86B', '#00C853']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.joinButton}
+            >
+              <Text style={styles.joinButtonText}>Join a Community</Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-        <Portal>
-          <Modal visible={isJoinModalVisible} onDismiss={() => setIsJoinModalVisible(false)} contentContainerStyle={styles.modalContainer}>
-            <Card>
-              <Card.Content>
-                <Title style={styles.joinTitle}>Join a Community</Title>
-                <Paragraph style={styles.warningText}>
-                  WARNING: It is strictly prohibited to join as a resident if you are not an actual resident of the community. 
-                  Misuse may result in account suspension.
-                </Paragraph>
-                <TextInput
-                  label="Community Join Code"
-                  value={joinCode}
-                  onChangeText={setJoinCode}
-                  style={styles.input}
-                  mode="outlined"
-                />
-                <Button 
-                  mode="contained" 
-                  onPress={handleJoinCommunity}
-                  disabled={isLoading}
-                  style={styles.modalJoinButton}
-                >
-                  Join
-                </Button>
-              </Card.Content>
-            </Card>
-          </Modal>
-        </Portal>
-      </Card.Content>
+          <Portal>
+            <Modal visible={isJoinModalVisible} onDismiss={() => setIsJoinModalVisible(false)} contentContainerStyle={styles.modalContainer}>
+              <Card>
+                <Card.Content>
+                  <Title style={styles.joinTitle}>Join a Community</Title>
+                  <View style={styles.warningContainer}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#FF6B6B" />
+                    <Paragraph style={styles.warningText}>
+                      Joining as a resident is only for actual community residents. Misuse may lead to account suspension.
+                    </Paragraph>
+                  </View>
+                  <TextInput
+                    label="Community Join Code"
+                    value={joinCode}
+                    onChangeText={setJoinCode}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                  <TouchableOpacity onPress={handleJoinCommunity} disabled={isLoading}>
+                    <LinearGradient
+                      colors={['#00A86B', '#00C853']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.modalJoinButton}
+                    >
+                      <Text style={styles.joinButtonText}>Join</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Card.Content>
+              </Card>
+            </Modal>
+          </Portal>
+        </Card.Content>
     </Card>
   );
 }
@@ -264,7 +274,11 @@ export default function CommunitiesSection() {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
-    elevation: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  gradient: {
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -272,45 +286,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-    color: 'white'
+    marginBottom: 20,
+    color: 'white',
+    textAlign: 'center',
   },
   communityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 12,
   },
   communityName: {
     marginLeft: 12,
     fontSize: 16,
-    color: 'white'
+    color: 'white',
+    fontWeight: '500',
   },
   joinButton: {
-    marginTop: 16,
+    marginTop: 20,
+    borderRadius: 25,
+    paddingVertical: 12,
+    elevation: 3,
+  },
+  joinButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   modalContainer: {
     backgroundColor: 'white',
-    padding: 20,
     margin: 20,
-    borderRadius: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   joinTitle: {
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 12,
-    color: 'black'
+    marginBottom: 20,
+    color: '#333',
+    textAlign: 'center',
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalJoinButton: {
-    marginTop: 8,
+    borderRadius: 25,
+    paddingVertical: 12,
+    elevation: 3,
+  },
+ warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
   },
   warningText: {
-    color: 'red',
-    fontStyle: 'italic',
-    marginBottom: 16,
+    flex: 1,
+    marginLeft: 12,
+    color: '#FF6B6B',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
