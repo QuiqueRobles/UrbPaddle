@@ -19,6 +19,9 @@ export const gradients = {
   mint: ['#00B09B', '#96C93D'],
   forest2: ['#2C3E50', '#4CA1AF'],
 
+
+
+  greenchupiguay:['#00B09B', '#00C853'],
   // New black gradients
   midnight: ['#232526', '#414345'],
   charcoal: ['#283048', '#859398'],

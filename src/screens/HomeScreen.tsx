@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView
 import { Text, useTheme, ActivityIndicator, Modal, Portal } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import FireText from '../components/FireText'; 
 import Animated, { 
   FadeIn, 
   FadeInDown, 
@@ -16,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { supabase } from '../lib/supabase';
-import CommunityInfoCard from '../components/CommunityInfoCard';
+import CommunityInfoCard from '../components/CommunityInfoCard'
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -150,7 +151,7 @@ export default function HomeScreen({ navigation }: Props) {
       style={styles.container}
     >
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView  style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
@@ -160,7 +161,13 @@ export default function HomeScreen({ navigation }: Props) {
             />
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
-            <Text style={[styles.title, { color: colors.onPrimary }]}>Be the king of your community!</Text>
+             <FireText
+              text="Be the king of your community!"
+              fontSize={23}
+              intensity={1.2}
+              style={styles.fireTitle}
+            />
+
             <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
           </Animated.View>
           
@@ -314,6 +321,10 @@ const styles = StyleSheet.create({
   logo: {
     width: 200,
     height: 200,
+  },
+  fireTitle: {
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   modalContainer: {
     position: 'absolute',

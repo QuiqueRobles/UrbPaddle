@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Dimensions, Image, TouchableOpacity, Text } from 'react-native';
 import { Card, Title, Paragraph, IconButton, TextInput, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
@@ -12,7 +12,7 @@ import { CodeDisplay } from '../components/CodeDisplay';
 import { UpdateModal } from '../components/UpdateModal';
 import { BookingSettingsModal } from '../components/BookingSettingsModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 type CommunityData = {
   id: string;
@@ -26,6 +26,7 @@ type CommunityData = {
   booking_end_time: string;
   booking_duration_options: number[];
   default_booking_duration: number;
+  image: string | null;
 };
 
 export default function CommunityManagementScreen() {
@@ -155,9 +156,7 @@ export default function CommunityManagementScreen() {
     }
   };
 
-
-
-    if (!communityData) {
+  if (!communityData) {
     return (
       <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -186,14 +185,15 @@ export default function CommunityManagementScreen() {
       <StatusBar style="light" />
       <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require('../../assets/images/logoUrbPaddle.png')} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
           <Card style={styles.card}>
+            {communityData?.image && (
+              <Card.Cover 
+                source={{ uri: communityData.image }} 
+                style={styles.communityImage}
+              />
+              
+            )}
+            
             <Card.Content>
               <Title style={styles.title}>{communityData.name}</Title>
               <Paragraph style={styles.paragraph}>Address: {communityData.address}</Paragraph>
@@ -292,8 +292,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    paddingBottom: 32,
-    marginTop: 60,
+    paddingBottom: 100, // Increased padding to ensure content is above bottom tab
   },
   loadingContainer: {
     flex: 1,
@@ -304,7 +303,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'white',
   },
+  logoContainer: {
+    position: 'relative',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
+  logo: {
+    width: 60,
+    height: 60,
+  },
   card: {
+    marginTop:60,
     marginBottom: 16,
     elevation: 4,
     borderRadius: 12,
@@ -346,12 +356,10 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 16,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
-    width: 150,
-    height: 150,
+  communityImage: {
+    height: 200,
+    marginBottom: 8,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
 });

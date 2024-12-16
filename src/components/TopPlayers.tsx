@@ -52,7 +52,7 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
       <TouchableOpacity onPress={() => handlePlayerPress(item)}>
         <Card style={styles.playerCard}>
           <LinearGradient
-            colors={gradients.mint}
+            colors={gradients.greenchupiguay}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}

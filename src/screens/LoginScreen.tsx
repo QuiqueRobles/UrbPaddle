@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { LinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
 import { colors } from '../theme/colors'
+import FireText from '../components/FireText'; 
 
 type RootStackParamList = {
   Login: undefined;
@@ -57,11 +58,17 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <View style={styles.logoContainer}>
             <Image 
-              source={require('../../assets/images/logoUrbPaddle.png')} 
+              source={require('../../assets/images/logo.png')} 
               style={styles.logo}
               resizeMode="contain"
             />
           </View>
+         <FireText
+              text="Be the king of your community!"
+              fontSize={23}
+              intensity={1.2}
+              style={styles.fireTitle}
+            />
         <View style={styles.loginContainer}>
           
           <TextInput
@@ -135,7 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 140,
   },
   logoContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
     alignItems: 'center',
   },
   logo: {
@@ -170,5 +177,10 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     color: '#FFFFFF',
+  },
+  fireTitle: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom:30,
   },
 })
