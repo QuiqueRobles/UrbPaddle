@@ -152,7 +152,7 @@ export default function HomeScreen({ navigation }: Props) {
     >
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
       <SafeAreaView  style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
               source={require('../../assets/images/logo.png')} 
@@ -214,7 +214,7 @@ export default function HomeScreen({ navigation }: Props) {
               shouldAnimate={shouldAnimate}
             />
           </View>
-        </ScrollView>
+        </View>
       </SafeAreaView>
       <Portal>
         <Animated.View 

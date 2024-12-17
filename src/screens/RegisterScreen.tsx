@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react'
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native'
-import { TextInput, Button, Title, HelperText, useTheme, Card, Text } from 'react-native-paper'
+import React, { useState, useLayoutEffect } from 'react'
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions, Image, SafeAreaView } from 'react-native'
+import { TextInput, Button, Title, HelperText, useTheme, Text } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { RootStackParamList } from '../navigation'
 import { LinearGradient } from 'expo-linear-gradient'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { colors } from '../theme/colors'
+import FireText from '../components/FireText'
+import { TouchableOpacity } from 'react-native-gesture-handler'
+import { ActivityIndicator } from 'react-native'
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>
 
@@ -25,6 +28,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -38,11 +42,12 @@ export default function RegisterScreen({ navigation }: Props) {
   const validatePassword = (password: string) => {
     return password.length >= 6
   }
-    useLayoutEffect(() => {
-      navigation.setOptions({
-        headerShown: false, // Esto oculta completamente la cabecera
-      });
-    }, [navigation]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   async function handleRegister() {
     setEmailError('')
@@ -96,7 +101,7 @@ export default function RegisterScreen({ navigation }: Props) {
       }
 
       Alert.alert('Success', 'Registration successful. Please check your email to verify your account.')
-      navigation.navigate('Login')
+      navigation.navigate('Home')
     }
   }
 
@@ -104,123 +109,146 @@ export default function RegisterScreen({ navigation }: Props) {
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <StatusBar style="light" />
       <LinearGradient
-        colors={['#00A86B', '#0f3d0f', '#000000']}
-        style={[styles.gradient, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        style={styles.gradient}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView 
-            contentContainerStyle={[styles.scrollContent, { minHeight: screenHeight - insets.top - insets.bottom }]}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.cardContainer}>
-              <Card style={styles.card}>
-                <Card.Content>
-                  <View style={styles.iconContainer}>
-                    <MaterialCommunityIcons name="tennis" size={50} color="#00A86B" />
-                  </View>
-                  <Title style={styles.title}>Join Paddle Court</Title>
-                  <Text style={styles.subtitle}>Create your account to start booking</Text>
-                  <TextInput
-                    label="Full Name"
-                    value={fullName}
-                    onChangeText={setFullName}
-                    style={styles.input}
-                    mode="outlined"
-                    left={<TextInput.Icon icon="account" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  <TextInput
-                    label="Username"
-                    value={userName}
-                    onChangeText={setUserName}
-                    style={styles.input}
-                    mode="outlined"
-                    left={<TextInput.Icon icon="at" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  <TextInput
-                    label="Email"
-                    value={email}
-                    onChangeText={(text) => {
-                      setEmail(text)
-                      setEmailError('')
-                    }}
-                    style={styles.input}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    error={!!emailError}
-                    mode="outlined"
-                    left={<TextInput.Icon icon="email" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  <HelperText type="error" visible={!!emailError}>
-                    {emailError}
-                  </HelperText>
-                  <TextInput
-                    label="Password"
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text)
-                      setPasswordError('')
-                    }}
-                    secureTextEntry
-                    style={styles.input}
-                    error={!!passwordError}
-                    mode="outlined"
-                    left={<TextInput.Icon icon="lock" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  <HelperText type="error" visible={!!passwordError}>
-                    {passwordError}
-                  </HelperText>
-                  <TextInput
-                    label="Apartment Number"
-                    value={apartment}
-                    onChangeText={setApartment}
-                    style={styles.input}
-                    mode="outlined"
-                    left={<TextInput.Icon icon="home" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  <TextInput
-                    label="Phone Number"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    style={styles.input}
-                    keyboardType="phone-pad"
-                    mode="outlined"
-                    left={<TextInput.Icon icon="phone" color="#00A86B" />}
-                    theme={{ colors: { primary: '#00A86B', text: '#333' } }}
-                  />
-                  
-                  <Button 
-                    mode="contained" 
-                    onPress={handleRegister} 
-                    style={styles.button} 
-                    loading={loading} 
-                    disabled={loading}
-                    contentStyle={styles.buttonContent}
-                    labelStyle={styles.buttonLabel}
-                    color="#00A86B"
+        <SafeAreaView style={styles.safeArea}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.logoContainer}>
+                <Image 
+                  source={require('../../assets/images/logo.png')} 
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+              <FireText
+                text="Start your path to become the king!"
+                fontSize={20}
+                intensity={1.2}
+                style={styles.fireTitle}
+              />
+              <View style={styles.formContainer}>
+                <TextInput
+                  label="Full Name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  style={styles.input}
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
+                />
+                <TextInput
+                  label="Username"
+                  value={userName}
+                  onChangeText={setUserName}
+                  style={styles.input}
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="at" color={theme.colors.primary} />}
+                />
+                <TextInput
+                  label="Email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    setEmailError('')
+                  }}
+                  style={styles.input}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  error={!!emailError}
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
+                />
+                <HelperText type="error" visible={!!emailError} style={styles.errorText}>
+                  {emailError}
+                </HelperText>
+                <TextInput
+                  label="Password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text)
+                    setPasswordError('')
+                  }}
+                  secureTextEntry={!showPassword}
+                  style={styles.input}
+                  error={!!passwordError}
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="lock" color={theme.colors.primary} />}
+                  right={
+                    <TextInput.Icon 
+                      icon={showPassword ? "eye-off" : "eye"} 
+                      color={theme.colors.primary}
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
+                  }
+                />
+                <HelperText type="error" visible={!!passwordError} style={styles.errorText}>
+                  {passwordError}
+                </HelperText>
+                <TextInput
+                  label="Apartment Number"
+                  value={apartment}
+                  onChangeText={setApartment}
+                  style={styles.input}
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="home" color={theme.colors.primary} />}
+                />
+                <TextInput
+                  label="Phone Number"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  mode="flat"
+                  underlineColor="transparent"
+                  textColor='#fff'
+                  left={<TextInput.Icon icon="phone" color={theme.colors.primary} />}
+                />
+                
+                <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.button}>
+                  <LinearGradient
+                    colors={['#00A86B', '#00C853']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
                   >
-                    Create Account
-                  </Button>
-                  <Button 
-                    onPress={() => navigation.navigate('Login')} 
-                    style={styles.loginButton}
-                    labelStyle={styles.loginButtonLabel}
-                    color="#00A86B"
-                  >
-                    Already have an account? Log in
-                  </Button>
-                </Card.Content>
-              </Card>
-            </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
+                    {loading ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.buttonLabel}>Create Account</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+                <Button 
+                  onPress={() => navigation.navigate('Login')}
+                  style={styles.loginButton}
+                  labelStyle={styles.loginButtonLabel}
+                >
+                  Already have an account? Log in
+                </Button>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </SafeAreaView>
       </LinearGradient>
     </KeyboardAvoidingView>
   )
@@ -232,71 +260,76 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  safeArea: {
+    flex: 1,
+    width: '100%',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 16,
-  },
-  cardContainer: {
+    paddingBottom: 60,
     width: '100%',
-    alignItems: 'center',
-    marginBottom:200,
   },
-  card: {
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 0,
     width: '100%',
-    maxWidth: 400,
-    elevation: 4,
-    borderRadius: 20,
-    marginVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-    backgroundColor: 'rgba(26, 92, 26, 0.1)',
-    borderRadius: 50,
-    padding: 16,
-    alignSelf: 'center',
+  logo: {
+    width: 150,
+    height: 150,
+    marginTop: 40,
   },
-  title: {
-    fontSize: 28,
-    marginBottom: 8,
+  fireTitle: {
     textAlign: 'center',
     fontWeight: 'bold',
-    color: '#00A86B',
+    marginBottom: 20,
+    fontSize: 20,
   },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#0f3d0f',
-    opacity: 0.8,
+  formContainer: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
   },
   input: {
-    marginBottom: 16,
-    backgroundColor: 'white',
+    marginBottom: 12,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    height: 50,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    alignSelf: 'flex-start',
   },
   button: {
     marginTop: 24,
     marginBottom: 16,
-    borderRadius: 25,
-    elevation: 2,
+    width: '100%',
   },
-  buttonContent: {
+  gradientButton: {
     height: 50,
+    padding:10,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
   },
   loginButton: {
     marginTop: 8,
   },
   loginButtonLabel: {
     fontSize: 14,
-    color: '#1a5c1a',
+    color: '#FFFFFF',
   },
 })

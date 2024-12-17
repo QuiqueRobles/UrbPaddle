@@ -1,12 +1,13 @@
 import React, { useState, useLayoutEffect } from 'react'
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native'
-import { TextInput, Button, useTheme } from 'react-native-paper'
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native'
+import { TextInput, Button, useTheme, Text } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { LinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
 import { colors } from '../theme/colors'
-import FireText from '../components/FireText'; 
+import FireText from '../components/FireText'
+import { ActivityIndicator } from 'react-native'
 
 type RootStackParamList = {
   Login: undefined;
@@ -27,10 +28,9 @@ export default function LoginScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false)
   const theme = useTheme()
 
-  // Añade este useLayoutEffect para eliminar el título de la cabecera
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: false, // Esto oculta completamente la cabecera
+      headerShown: false,
     });
   }, [navigation]);
 
@@ -57,20 +57,19 @@ export default function LoginScreen({ navigation }: Props) {
         style={styles.gradient}
       >
         <View style={styles.logoContainer}>
-            <Image 
-              source={require('../../assets/images/logo.png')} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-         <FireText
-              text="Be the king of your community!"
-              fontSize={23}
-              intensity={1.2}
-              style={styles.fireTitle}
-            />
+          <Image 
+            source={require('../../assets/images/logo.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+        <FireText
+          text="Be the king of your community!"
+          fontSize={23}
+          intensity={1.2}
+          style={styles.fireTitle}
+        />
         <View style={styles.loginContainer}>
-          
           <TextInput
             label="Email"
             value={email}
@@ -100,17 +99,20 @@ export default function LoginScreen({ navigation }: Props) {
               />
             }
           />
-          <Button 
-            mode="contained" 
-            onPress={handleLogin} 
-            style={styles.button} 
-            loading={loading} 
-            disabled={loading}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-          >
-            Login
-          </Button>
+          <TouchableOpacity onPress={handleLogin} disabled={loading} style={styles.button}>
+            <LinearGradient
+              colors={['#00A86B', '#00C853']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.buttonLabel}>Login</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
           <Button 
             onPress={() => navigation.navigate('Register')}
             style={styles.registerButton}
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 250,
     height: 250,
-    marginTop:100,
+    marginTop: 100,
   },
   input: {
     marginBottom: 16,
@@ -163,14 +165,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 16,
     width: '100%',
-    borderRadius: 25,
   },
-  buttonContent: {
+  gradientButton: {
     height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonLabel: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   registerButton: {
     marginTop: 8,
@@ -181,6 +186,6 @@ const styles = StyleSheet.create({
   fireTitle: {
     textAlign: 'center',
     fontWeight: 'bold',
-    marginBottom:30,
+    marginBottom: 30,
   },
 })

@@ -19,6 +19,7 @@ export const gradients = {
   mint: ['#00B09B', '#96C93D'],
   forest2: ['#2C3E50', '#4CA1AF'],
 
+  greenTheme: ['#00A86B', '#00C853'],
 
 
   greenchupiguay:['#00B09B', '#00C853'],
