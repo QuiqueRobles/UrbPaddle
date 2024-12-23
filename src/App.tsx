@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import ProfileScreen from './screens/ProfileScreen'
 import LoginScreen from './screens/LoginScreen'
 import RegisterScreen from './screens/RegisterScreen'
+import CommunityCodeScreen from './screens/CommunityCodeScreen'
 import HomeScreen from './screens/HomeScreen'
 import DateSelectionScreen from './screens/DateSelectionScreen'
 import TimeSelectionScreen from './screens/TimeSelectionScreen'
@@ -166,6 +167,7 @@ export default function App() {
                 <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: 'My matches' }} />
                 <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
                 <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: 'About the Developer' }} />
+                <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: 'Join a Community' }} />
               </>
             ) : (
               <>
@@ -177,7 +179,5 @@ export default function App() {
         </NavigationContainer>
       </SafeAreaProvider>
     </PaperProvider>
- 
   )
 }
-

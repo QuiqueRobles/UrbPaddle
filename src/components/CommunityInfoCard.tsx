@@ -8,9 +8,10 @@ import {
   ActivityIndicator, 
   TouchableWithoutFeedback,
   PanResponder,
-  Animated as RNAnimated 
+  Animated as RNAnimated,
+  ImageBackground
 } from 'react-native';
-import { Card, Title, Paragraph, Text, Avatar, useTheme } from 'react-native-paper';
+import { Card, Title, Paragraph, Text, Avatar, useTheme, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +33,7 @@ type CommunityInfo = {
   bookingEndTime: string;
   bookingDurations: number[];
   defaultBookingDuration: number;
+  image: string | null;
 };
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -42,7 +44,6 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
   const [isLoading, setIsLoading] = useState(true);
   const theme = useTheme();
 
-  // Swipe to dismiss animation
   const translateY = useRef(new RNAnimated.Value(0)).current;
   const panResponder = useRef(
     PanResponder.create({
@@ -54,14 +55,12 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
       },
       onPanResponderRelease: (event, gestureState) => {
         if (gestureState.dy > SWIPE_THRESHOLD) {
-          // Swipe down far enough, close the modal
           RNAnimated.timing(translateY, {
             toValue: SCREEN_HEIGHT,
             duration: 300,
             useNativeDriver: true,
           }).start(onClose);
         } else {
-          // Snap back to original position
           RNAnimated.spring(translateY, {
             toValue: 0,
             bounciness: 0,
@@ -81,7 +80,7 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
       setIsLoading(true);
       const { data, error } = await supabase
         .from('community')
-        .select('name, rules, resident_count, guest_count, court_number, booking_start_time, booking_end_time, booking_duration_options, default_booking_duration')
+        .select('name, rules, resident_count, guest_count, court_number, booking_start_time, booking_end_time, booking_duration_options, default_booking_duration, image')
         .eq('id', communityId)
         .single();
 
@@ -97,6 +96,7 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
           bookingEndTime: data.booking_end_time,
           bookingDurations: data.booking_duration_options || [],
           defaultBookingDuration: data.default_booking_duration,
+          image: data.image,
         });
       }
     } catch (error) {
@@ -129,10 +129,10 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
             style={styles.loadingContainer} 
             entering={FadeIn.duration(300)}
           >
-            <Text>Unable to load community information</Text>
-            <TouchableOpacity onPress={onClose} style={styles.errorCloseButton}>
-              <Text>Close</Text>
-            </TouchableOpacity>
+            <Text style={styles.errorText}>Unable to load community information</Text>
+            <Button mode="contained" onPress={onClose} style={styles.errorCloseButton}>
+              Close
+            </Button>
           </Animated.View>
         </View>
       </TouchableWithoutFeedback>
@@ -147,7 +147,6 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
             styles.container, 
             { 
               transform: [{ translateY: translateY }],
-              // Optional: Add opacity to darken background when swiping down
               opacity: translateY.interpolate({
                 inputRange: [0, SCREEN_HEIGHT * 0.5],
                 outputRange: [1, 0.5],
@@ -159,82 +158,89 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
         >
           <TouchableWithoutFeedback>
             <View style={styles.modalContent}>
-              <LinearGradient
-                colors={[colors.primary, colors.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.headerGradient}
+              <ImageBackground
+                source={communityInfo.image ? { uri: communityInfo.image } : require('../../assets/default-community-image.png')}
+                style={styles.headerImage}
               >
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <MaterialCommunityIcons name="close" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Animated.View style={styles.headerContent} entering={FadeInUp.delay(150).duration(300)}>
-                  <Avatar.Icon size={64} icon="home-group" style={styles.avatar} />
-                  <Title style={styles.title}>{communityInfo.name}</Title>
-                </Animated.View>
-              </LinearGradient>
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.6)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.headerGradient}
+                >
+                  <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                    <MaterialCommunityIcons name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                  <Animated.View style={styles.headerContent} entering={FadeInUp.delay(150).duration(300)}>
+                    <Title style={styles.title}>{communityInfo.name}</Title>
+                  </Animated.View>
+                </LinearGradient>
+              </ImageBackground>
               <ScrollView 
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollViewContent}
                 bounces={true} 
                 showsVerticalScrollIndicator={true}
-                keyboardShouldPersistTaps="handled"
               >
-        <Card.Content style={styles.content}>
-          <Animated.View style={styles.statsContainer} entering={FadeInUp.delay(300).duration(300)}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="account-group" size={32} color={colors.primary} />
-              <Paragraph style={styles.statValue}>{communityInfo.residentCount}</Paragraph>
-              <Paragraph style={styles.statLabel}>Residents</Paragraph>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="account-multiple" size={32} color={colors.accent} />
-              <Paragraph style={styles.statValue}>{communityInfo.guestCount}</Paragraph>
-              <Paragraph style={styles.statLabel}>Guests</Paragraph>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="tennis-ball" size={32} color={colors.warning} />
-              <Paragraph style={styles.statValue}>{communityInfo.courtCount}</Paragraph>
-              <Paragraph style={styles.statLabel}>Courts</Paragraph>
-            </View>
-          </Animated.View>
-          
-          <Animated.View entering={FadeInUp.delay(450).duration(300)}>
-            <Title style={styles.sectionTitle}>Booking Information</Title>
-            <View style={styles.bookingInfoContainer}>
-              <View style={styles.bookingInfoItem}>
-                <MaterialCommunityIcons name="clock-start" size={24} color={colors.primary} />
-                <Text style={styles.bookingInfoText}>Start Time: {communityInfo.bookingStartTime}</Text>
-              </View>
-              <View style={styles.bookingInfoItem}>
-                <MaterialCommunityIcons name="clock-end" size={24} color={colors.primary} />
-                <Text style={styles.bookingInfoText}>End Time: {communityInfo.bookingEndTime}</Text>
-              </View>
-              {communityInfo.bookingDurations.length > 0 && (
-                <View style={styles.bookingInfoItem}>
-                  <MaterialCommunityIcons name="clock-outline" size={24} color={colors.primary} />
-                  <Text style={styles.bookingInfoText}>
-                    Durations: {communityInfo.bookingDurations.map(d => `${d}min`).join(', ')}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.bookingInfoItem}>
-                <MaterialCommunityIcons name="clock-check" size={24} color={colors.primary} />
-                <Text style={styles.bookingInfoText}>
-                  Default Duration: {communityInfo.defaultBookingDuration}min
-                </Text>
-              </View>
-            </View>
-          </Animated.View>
-          
-          <Animated.View entering={FadeInUp.delay(600).duration(300)}>
-            <Title style={styles.sectionTitle}>Community Rules</Title>
-            <View style={styles.rulesContainer}>
-              <Text style={styles.ruleText}>{communityInfo.rules}</Text>
-            </View>
-          </Animated.View>
-        </Card.Content>
-     </ScrollView>
+                <Card.Content style={styles.content}>
+                  <Animated.View style={styles.statsContainer} entering={FadeInUp.delay(300).duration(300)}>
+                    <View style={styles.statItem}>
+                      <MaterialCommunityIcons name="account-group" size={32} color={colors.primary} />
+                      <Paragraph style={styles.statValue}>{communityInfo.residentCount}</Paragraph>
+                      <Paragraph style={styles.statLabel}>Residents</Paragraph>
+                    </View>
+                    <View style={styles.statItem}>
+                      <MaterialCommunityIcons name="account-multiple" size={32} color={colors.accent} />
+                      <Paragraph style={styles.statValue}>{communityInfo.guestCount}</Paragraph>
+                      <Paragraph style={styles.statLabel}>Guests</Paragraph>
+                    </View>
+                    <View style={styles.statItem}>
+                      <MaterialCommunityIcons name="tennis-ball" size={32} color={colors.warning} />
+                      <Paragraph style={styles.statValue}>{communityInfo.courtCount}</Paragraph>
+                      <Paragraph style={styles.statLabel}>Courts</Paragraph>
+                    </View>
+                  </Animated.View>
+                  
+                  <Animated.View entering={FadeInUp.delay(450).duration(300)}>
+                    <Title style={styles.sectionTitle}>Booking Information</Title>
+                    <Card style={styles.bookingInfoContainer}>
+                      <Card.Content>
+                        <View style={styles.bookingInfoItem}>
+                          <MaterialCommunityIcons name="clock-start" size={24} color={colors.primary} />
+                          <Text style={styles.bookingInfoText}>Start Time: {communityInfo.bookingStartTime}</Text>
+                        </View>
+                        <View style={styles.bookingInfoItem}>
+                          <MaterialCommunityIcons name="clock-end" size={24} color={colors.primary} />
+                          <Text style={styles.bookingInfoText}>End Time: {communityInfo.bookingEndTime}</Text>
+                        </View>
+                        {communityInfo.bookingDurations.length > 0 && (
+                          <View style={styles.bookingInfoItem}>
+                            <MaterialCommunityIcons name="clock-outline" size={24} color={colors.primary} />
+                            <Text style={styles.bookingInfoText}>
+                              Durations: {communityInfo.bookingDurations.map(d => `${d}min`).join(', ')}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={styles.bookingInfoItem}>
+                          <MaterialCommunityIcons name="clock-check" size={24} color={colors.primary} />
+                          <Text style={styles.bookingInfoText}>
+                            Default Duration: {communityInfo.defaultBookingDuration}min
+                          </Text>
+                        </View>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
+                  
+                  <Animated.View entering={FadeInUp.delay(600).duration(300)}>
+                    <Title style={styles.sectionTitle}>Community Rules</Title>
+                    <Card style={styles.rulesContainer}>
+                      <Card.Content>
+                        <Text style={styles.ruleText}>{communityInfo.rules}</Text>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
+                </Card.Content>
+              </ScrollView>
             </View>
           </TouchableWithoutFeedback>
         </RNAnimated.View>
@@ -242,7 +248,6 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
     </TouchableWithoutFeedback>
   );
 }
-  
 
 const styles = StyleSheet.create({
   overlay: {
@@ -259,6 +264,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: SCREEN_HEIGHT * 0.9,
+    overflow: 'hidden',
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -276,16 +282,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   errorCloseButton: {
     marginTop: 20,
-    padding: 10,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
+  },
+  headerImage: {
+    height: 200,
+    justifyContent: 'flex-end',
   },
   headerGradient: {
     padding: 24,
     paddingTop: 40,
-    alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
@@ -295,10 +306,6 @@ const styles = StyleSheet.create({
     right: 16,
     top: 16,
     zIndex: 1,
-  },
-  avatar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 16,
   },
   title: {
     fontSize: 28,
@@ -311,7 +318,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    paddingBottom: 50, // Añadir padding al final para mejor experiencia de scroll
+    paddingBottom: 50,
   },
   content: {
     padding: 16,
@@ -337,27 +344,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 12,
+    color: colors.primary,
   },
   bookingInfoContainer: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 16,
     marginBottom: 24,
+    elevation: 2,
   },
   bookingInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   bookingInfoText: {
     fontSize: 16,
-    marginLeft: 8,
-    flex: 1, // Permitir que el texto se expanda
+    marginLeft: 12,
+    flex: 1,
   },
   rulesContainer: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
   },
   ruleText: {
     fontSize: 16,

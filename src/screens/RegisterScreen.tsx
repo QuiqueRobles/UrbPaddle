@@ -31,8 +31,6 @@ export default function RegisterScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false)
 
   const theme = useTheme()
-  const insets = useSafeAreaInsets()
-  const screenHeight = Dimensions.get('window').height
 
   const validateEmail = (email: string) => {
     const re = /\S+@\S+\.\S+/
@@ -101,7 +99,7 @@ export default function RegisterScreen({ navigation }: Props) {
       }
 
       Alert.alert('Success', 'Registration successful. Please check your email to verify your account.')
-      navigation.navigate('Home')
+      navigation.navigate('CommunityCode', { userId: authData.user.id })
     }
   }
 
@@ -132,7 +130,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 />
               </View>
               <FireText
-                text="Start your path to become the king!"
+                text="Join the Paddle Community!"
                 fontSize={20}
                 intensity={1.2}
                 style={styles.fireTitle}
@@ -143,6 +141,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={fullName}
                   onChangeText={setFullName}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   mode="flat"
                   underlineColor="transparent"
                   textColor='#fff'
@@ -153,6 +152,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={userName}
                   onChangeText={setUserName}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   mode="flat"
                   underlineColor="transparent"
                   textColor='#fff'
@@ -166,6 +166,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     setEmailError('')
                   }}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   error={!!emailError}
@@ -186,6 +187,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   }}
                   secureTextEntry={!showPassword}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   error={!!passwordError}
                   mode="flat"
                   underlineColor="transparent"
@@ -207,6 +209,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={apartment}
                   onChangeText={setApartment}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   mode="flat"
                   underlineColor="transparent"
                   textColor='#fff'
@@ -217,6 +220,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
                   style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   keyboardType="phone-pad"
                   mode="flat"
                   underlineColor="transparent"
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 16,
-    paddingBottom: 60,
+    paddingBottom: 32,
     width: '100%',
   },
   logoContainer: {
@@ -297,12 +301,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
   },
-  input: {
-    marginBottom: 12,
+   input: {
+    marginBottom: 16,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20,
-    height: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   errorText: {
     color: '#FF6B6B',
@@ -315,7 +320,6 @@ const styles = StyleSheet.create({
   },
   gradientButton: {
     height: 50,
-    padding:10,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',

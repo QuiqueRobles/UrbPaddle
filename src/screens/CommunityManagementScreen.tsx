@@ -42,6 +42,9 @@ export default function CommunityManagementScreen() {
   const [bookingEndTime, setBookingEndTime] = useState(new Date());
   const [bookingDurations, setBookingDurations] = useState<number[]>([]);
   const [defaultBookingDuration, setDefaultBookingDuration] = useState(60);
+  const [maxNumberCurrentBookings, setMaxNumberCurrentBookings] = useState(1);
+   const [simultaneousBookings, setSimultaneousBookings] = useState(false);
+
   const theme = useTheme();
 
   useEffect(() => {
@@ -66,6 +69,7 @@ export default function CommunityManagementScreen() {
             .single();
 
           if (error) throw error;
+        
           setCommunityData(communityData);
           setNewRules(communityData.rules);
           setNewCourtCount(communityData.court_number);
@@ -73,7 +77,10 @@ export default function CommunityManagementScreen() {
           setBookingEndTime(new Date(`2000-01-01T${communityData.booking_end_time}`));
           setBookingDurations(communityData.booking_duration_options);
           setDefaultBookingDuration(communityData.default_booking_duration);
+          setMaxNumberCurrentBookings(communityData.max_number_current_bookings);
+          setSimultaneousBookings(communityData.simultaneous_bookings);
         }
+        
       }
     } catch (error) {
       console.error('Error fetching community data:', error);
@@ -96,7 +103,7 @@ export default function CommunityManagementScreen() {
       ]
     );
   };
-
+  
   const handleUpdateCourts = async () => {
     try {
       const { error } = await supabase
@@ -133,7 +140,7 @@ export default function CommunityManagementScreen() {
     }
   };
 
-  const handleUpdateBookingSettings = async () => {
+   const handleUpdateBookingSettings = async (newMaxBookings: number) => {
     try {
       const { error } = await supabase
         .from('community')
@@ -142,6 +149,8 @@ export default function CommunityManagementScreen() {
           booking_end_time: format(bookingEndTime, 'HH:mm:ss'),
           booking_duration_options: bookingDurations,
           default_booking_duration: defaultBookingDuration,
+          max_number_current_bookings: newMaxBookings,
+          simultaneous_bookings: simultaneousBookings,
         })
         .eq('id', communityData?.id);
       
@@ -275,6 +284,8 @@ export default function CommunityManagementScreen() {
             setBookingDurations={setBookingDurations}
             defaultBookingDuration={defaultBookingDuration}
             setDefaultBookingDuration={setDefaultBookingDuration}
+            maxNumberCurrentBookings={maxNumberCurrentBookings}
+            setSimultaneousBookings={setSimultaneousBookings}
           />
         </ScrollView>
       </LinearGradient>

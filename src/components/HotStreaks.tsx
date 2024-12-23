@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ProfileImage from './ProfileImage';
 import PlayerProfileCard from './PlayerProfileCard';
-import { colors } from "../theme/colors";
+import { gradients } from "../theme/gradients";
 
 type PlayerStats = {
   id: string;
@@ -72,7 +72,7 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
         }}>
           <Card style={styles.hotStreakCard}>
             <LinearGradient
-              colors={isCurrentStreak ? [colors.primary, colors.gradientEnd] : [colors.gradientEnd, colors.gradientStart]}
+              colors={gradients.obsidian}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={styles.cardGradient}

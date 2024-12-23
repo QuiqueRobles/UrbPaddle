@@ -85,14 +85,14 @@ export default function CommunitiesSection() {
         .single();
 
       if (profileError) throw profileError;
-
+     
       // Check if the code matches a resident_code
       const { data: residentCommunityData, error: residentError } = await supabase
         .from('community')
         .select('id, name')
         .eq('resident_code', joinCode)
         .single();
-
+      
       if (!residentError && residentCommunityData) {
         // Code matches a resident_code
         if (profileData.resident_community_id) {
@@ -250,6 +250,7 @@ export default function CommunitiesSection() {
                     value={joinCode}
                     onChangeText={setJoinCode}
                     style={styles.input}
+                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                     mode="outlined"
                   />
                   <TouchableOpacity onPress={handleJoinCommunity} disabled={isLoading}>

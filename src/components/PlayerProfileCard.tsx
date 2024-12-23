@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ProfileImage from './ProfileImage';
 import LevelIndicator from './LevelIndicator';
+import { gradients } from '../theme/gradients';
 
 type PlayerProfile = {
   id: string;
@@ -40,7 +41,7 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
   return (
     <Card style={styles.playerCard}>
       <LinearGradient
-        colors={[theme.colors.primary, "#000"]}
+        colors={gradients.obsidian}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.cardGradient}

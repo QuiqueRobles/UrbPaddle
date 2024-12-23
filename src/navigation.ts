@@ -10,15 +10,15 @@ export type RootStackParamList = {
   TimeSelection: { courtId: number; date: string }
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string }
   Statistics: undefined
-  MyStatistics:undefined
+  MyStatistics: undefined
   Login: undefined
   Register: undefined
   Booking: undefined
   MyBookings: undefined
-  AddMatchResult:undefined
-  CommunityCode: { userId: string };
-  AboutDeveloper:undefined
-  Matches:undefined
+  AddMatchResult: undefined
+  CommunityCode: { userId: string }
+  AboutDeveloper: undefined
+  Matches: undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>
