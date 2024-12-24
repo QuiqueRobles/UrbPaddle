@@ -17,7 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { supabase } from '../lib/supabase';
-import CommunityInfoCard from '../components/CommunityInfoCard'
+import CommunityInfoCard from '../components/CommunityInfoCard';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NavigationProp<any>;
@@ -44,6 +45,7 @@ type CommunityData = {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color, shouldAnimate }) => (
+   const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color, shouldAnimate }) => (
     <Animated.View 
       entering={shouldAnimate ? FadeInRight.delay(delay).duration(400) : undefined} 
       style={styles.actionButtonContainer}
@@ -110,7 +112,7 @@ export default function HomeScreen({ navigation }: Props) {
       <TouchableOpacity onPress={onPress} style={[styles.actionButton, { backgroundColor: color }]}>
         <View style={styles.actionButtonContent}>
           <MaterialCommunityIcons name={icon} size={28} color={colors.primary} style={styles.actionButtonIcon} />
-          <Text style={[styles.actionButtonLabel, { color: colors.text }]}>{label}</Text>
+          <Text style={[styles.actionButtonLabel, { color: colors.text }]}>{t(label)}</Text>
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color={colors.primary} />
       </TouchableOpacity>
@@ -134,7 +136,7 @@ export default function HomeScreen({ navigation }: Props) {
     });
   }, []);
 
-  if (isLoading) {
+   if (isLoading) {
     return (
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
@@ -151,7 +153,7 @@ export default function HomeScreen({ navigation }: Props) {
       style={styles.container}
     >
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
-      <SafeAreaView  style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.scrollContent}>
           <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
@@ -162,13 +164,13 @@ export default function HomeScreen({ navigation }: Props) {
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
              <FireText
-              text="Be the king of your community!"
-              fontSize={23}
+              text={t('Be the King of your community!')}
+              fontSize={21}
               intensity={1.2}
               style={styles.fireTitle}
             />
 
-            <Text style={[styles.subtitle, { color: colors.onPrimary }]}>Book your court and enjoy playing!</Text>
+            <Text style={[styles.subtitle, { color: colors.onPrimary }]}>{t('Book and Enjoy!')}</Text>
           </Animated.View>
           
           {communityData && (
@@ -183,7 +185,7 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.buttonContainer}>
             <ActionButton
               icon="calendar-plus"
-              label="Book a Court"
+              label="Book Court"
               onPress={() => navigation.navigate('DateSelection')}
               delay={900}
               color={colors.surface}

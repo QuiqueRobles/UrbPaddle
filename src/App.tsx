@@ -25,6 +25,9 @@ import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 import MatchesScreen from './screens/MatchesScreen'
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n';
+import { useTranslation } from 'react-i18next';
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
@@ -35,6 +38,7 @@ const theme = {
 }
 
 function MainTabs() {
+  const { t } = useTranslation();
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -100,23 +104,23 @@ function MainTabs() {
       <Tab.Screen 
         name="HomeTab" 
         component={HomeScreen} 
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: t('home') }}
       />
       <Tab.Screen 
         name="MyBookingsTab" 
         component={MyBookingsScreen} 
-        options={{ tabBarLabel: 'My Bookings' }}
+        options={{ tabBarLabel: t('myBookings') }}
       />
       <Tab.Screen 
         name="ProfileTab" 
         component={ProfileScreen} 
-        options={{ tabBarLabel: 'Profile' }}
+        options={{ tabBarLabel: t('profile') }}
       />
       {isAdmin && (
         <Tab.Screen 
           name="CommunityManagementTab" 
           component={CommunityManagementScreen} 
-          options={{ tabBarLabel: 'Community' }}
+          options={{ tabBarLabel: t('community') }}
         />
       )}
     </Tab.Navigator>
@@ -124,6 +128,7 @@ function MainTabs() {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
@@ -137,47 +142,49 @@ export default function App() {
   }, [])
 
   return (
-    <PaperProvider theme={theme}>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <Stack.Navigator
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: colors.primary,
-              },
-              headerTintColor: colors.onPrimary,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-            }}
-          >
-            {session && session.user ? (
-              <>
-                <Stack.Screen 
-                  name="Home" 
-                  component={MainTabs} 
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="DateSelection" component={DateSelectionScreen} options={{ title: 'Seleccionar Fecha' }} />
-                <Stack.Screen name="TimeSelection" component={TimeSelectionScreen} options={{ title: 'Seleccionar Hora' }} />
-                <Stack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: 'Confirmar Reserva' }} />
-                <Stack.Screen name="Statistics" component={StatisticsScreen} />
-                <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} />
-                <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: 'Add match' }} />
-                <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: 'My matches' }} />
-                <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: 'Pistas de Pádel' }} />
-                <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: 'About the Developer' }} />
-                <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: 'Join a Community' }} />
-              </>
-            ) : (
-              <>
-                <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="Register" component={RegisterScreen} />
-              </>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </PaperProvider>
+    <I18nextProvider i18n={i18n}>
+      <PaperProvider theme={theme}>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <Stack.Navigator
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: colors.primary,
+                },
+                headerTintColor: colors.onPrimary,
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+              }}
+            >
+              {session && session.user ? (
+                <>
+                  <Stack.Screen 
+                    name="Home" 
+                    component={MainTabs} 
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen name="DateSelection" component={DateSelectionScreen} options={{ title: t('selectDate') }} />
+                  <Stack.Screen name="TimeSelection" component={TimeSelectionScreen} options={{ title: t('selectTime') }} />
+                  <Stack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: t('confirmBooking') }} />
+                  <Stack.Screen name="Statistics" component={StatisticsScreen} options={{ title: t('statistics') }} />
+                  <Stack.Screen name="MyStatistics" component={MyStatisticsScreen} options={{ title: t('myStatistics') }} />
+                  <Stack.Screen name="AddMatchResult" component={AddMatchResultScreen} options={{ title: t('addMatch') }} />
+                  <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: t('myMatches') }} />
+                  <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: t('paddleCourts') }} />
+                  <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: t('aboutDeveloper') }} />
+                </>
+              ) : (
+                <>
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                  <Stack.Screen name="Register" component={RegisterScreen} />
+                  <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
+                </>
+              )}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </PaperProvider>
+    </I18nextProvider>
   )
 }

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import ProfileImage from './ProfileImage';
-
+import { useTranslation } from 'react-i18next';
 
 type Player = {
   id: string;
@@ -24,6 +24,7 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
   const [players, setPlayers] = useState<Player[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const animatedWidth = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation(); // <--- Add the useTranslation hook
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -66,7 +67,7 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
     <View style={styles.container}>
       <Surface style={styles.searchContainer}>
         <TextInput
-          placeholder="Search players..."
+          placeholder={t('Search players...')} // <-- Translate
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={styles.searchInput}
@@ -85,8 +86,8 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
             onPress={() => onSelectPlayer(item)}
             activeOpacity={0.7}
             accessible={true}
-            accessibilityLabel={`Select player ${item.full_name}`}
-            accessibilityHint="Tapping this will select the player"
+            accessibilityLabel={t('Select player {{name}}', { name: item.full_name })} // <-- Translate
+            accessibilityHint={t('Tapping this will select the player')} // <-- Translate
           >
             <View style={styles.playerContent}>
               <ProfileImage avatarUrl={item.avatar_url} size={50} />
@@ -156,4 +157,3 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
   },
 });
-

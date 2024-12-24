@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import SettingsModal from '../components/SettingsModal';
 import { RootStackParamList } from '../navigation';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useTranslation } from 'react-i18next';
 
 type UserProfile = {
   id: string;
@@ -41,6 +42,7 @@ type UserProfile = {
 };
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,10 +87,10 @@ export default function ProfileScreen() {
     return error === '';
   };
 
-  const handleLogout = async () => {
+const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      Alert.alert('Error', 'Failed to log out. Please try again.');
+      Alert.alert(t('error'), t('failedLogout'));
     } else {
       navigation.reset({
         index: 0,
@@ -275,7 +277,7 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text>No profile data found</Text>
+        <Text>{t('noProfileData')}</Text>
       </View>
     );
   }
@@ -320,11 +322,11 @@ export default function ProfileScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Title style={styles.name}>@{profile.username || 'Name not set'}</Title>
+            <Title style={styles.name}>@{profile.username || t('nameNotSet')}</Title>
             <Text style={styles.fullName}>{profile.full_name}</Text>
             <LevelIndicator level={profile.level} />
             <View style={styles.xpContainer}>
-              <Text style={styles.xpText}>XP: {profile.xp} / {xp_to_next_level}</Text>
+              <Text style={styles.xpText}>{t('xp', { current: profile.xp, total: xp_to_next_level })}</Text>
               <View style={styles.xpBarContainer}>
                 <LinearGradient
                   colors={['#4CAF50', '#8BC34A']}
@@ -347,14 +349,14 @@ export default function ProfileScreen() {
 
             <Card style={styles.card}>
               <Card.Content>
-                <Title style={styles.cardTitle}>Paddle Stats</Title>
+                <Title style={styles.cardTitle}>{t('paddleStats')}</Title>
                 <View style={styles.statsRow}>
-                  <StatItem icon="tennis" value={profile.matches_played} label="Matches" />
-                  <StatItem icon="trophy" value={profile.wins} label="Wins" />
-                  <StatItem icon="close-circle" value={profile.losses} label="Losses" />
+                  <StatItem icon="tennis" value={profile.matches_played} label={t('matches')} />
+                  <StatItem icon="trophy" value={profile.wins} label={t('wins')} />
+                  <StatItem icon="close-circle" value={profile.losses} label={t('losses')} />
                 </View>
                 <View style={styles.winRateContainer}>
-                  <Text style={styles.winRateLabel}>Match Win Rate</Text>
+                  <Text style={styles.winRateLabel}>{t('matchWinRate')}</Text>
                   <ProgressBar 
                     progress={roundToTwoDecimals(winRate / 100)} 
                     color={colors.primary} 
@@ -364,11 +366,11 @@ export default function ProfileScreen() {
                 </View>
                 
                 <View style={styles.statsRow}>
-                  <StatItem icon="table-tennis" value={profile.sets_won} label="Sets Won" />
-                  <StatItem icon="table-tennis" value={profile.sets_lost} label="Sets Lost" />
+                  <StatItem icon="table-tennis" value={profile.sets_won} label={t('setsWon')} />
+                  <StatItem icon="table-tennis" value={profile.sets_lost} label={t('setsLost')} />
                 </View>
                 <View style={styles.winRateContainer}>
-                  <Text style={styles.winRateLabel}>Set Win Rate</Text>
+                  <Text style={styles.winRateLabel}>{t('setWinRate')}</Text>
                   <ProgressBar 
                     progress={roundToTwoDecimals(setWinRate / 100)} 
                     color={colors.primary} 
@@ -377,11 +379,11 @@ export default function ProfileScreen() {
                   <Text style={styles.winRateValue}>{setWinRate.toFixed(1)}%</Text>
                 </View>
                 <View style={styles.statsRow}>
-                  <StatItem icon="tennis-ball" value={profile.games_won} label="Games Won" />
-                  <StatItem icon="tennis-ball" value={profile.games_lost} label="Games Lost" />
+                  <StatItem icon="tennis-ball" value={profile.games_won} label={t('gamesWon')} />
+                  <StatItem icon="tennis-ball" value={profile.games_lost} label={t('gamesLost')} />
                 </View>
                 <View style={styles.winRateContainer}>
-                  <Text style={styles.winRateLabel}>Game Win Rate</Text>
+                  <Text style={styles.winRateLabel}>{t('gameWinRate')}</Text>
                   <ProgressBar 
                     progress={roundToTwoDecimals(gameWinRate / 100)} 
                     color={colors.primary} 
@@ -408,7 +410,7 @@ export default function ProfileScreen() {
                     style={[styles.button, editing ? styles.saveButton : styles.editButton]}
                   >
                     <Text style={[styles.buttonLabel, { color: editing ? 'white' : 'rgba(0,0,0,0.75)' }]}>
-                      {editing ? 'Save Changes' : 'Edit Profile'}
+                      {editing ? t('saveChanges') : t('editProfile')}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -425,7 +427,7 @@ export default function ProfileScreen() {
                   >
                     <View style={styles.buttonContent}>
                       <MaterialCommunityIcons name="logout" size={24} color="white" style={{ marginRight: 8 }} />
-                      <Text style={[styles.buttonLabel, { color: 'white' }]}>Log Out</Text>
+                      <Text style={[styles.buttonLabel, { color: 'white' }]}>{t('logOut')}</Text>
                     </View>
                   </LinearGradient>
                 </TouchableOpacity>

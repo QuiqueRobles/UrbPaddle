@@ -5,6 +5,8 @@ import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import Flag from 'react-native-flags';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -12,12 +14,18 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) => {
+  const { t, i18n } = useTranslation();
+
   const handleAboutDeveloper = () => {
     onClose();
     navigation.navigate('AboutDeveloper');
   };
 
- const GradientButton = ({ onPress, icon, children, colors = ['#00A86B', '#00C853'] }: { onPress: () => void; icon: string; children: React.ReactNode; colors?: string[] }) => (
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
+
+  const GradientButton = ({ onPress, icon, children, colors = ['#00A86B', '#00C853'] }: { onPress: () => void; icon: string; children: React.ReactNode; colors?: string[] }) => (
     <TouchableOpacity onPress={onPress}>
       <LinearGradient
         colors={colors}
@@ -33,45 +41,65 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
 
   return (
     <ScrollView>
-      <Title style={styles.title}>Ajustes</Title>
+      <Title style={styles.title}>{t('settings')}</Title>
       
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Cuenta</Title>
+        <Title style={styles.sectionTitle}>{t('account')}</Title>
         <GradientButton onPress={() => {}} icon="lock-reset">
-          Cambiar contraseña
+          {t('changePassword')}
         </GradientButton>
         <GradientButton onPress={() => {}} icon="shield-account">
-          Privacidad
+          {t('privacy')}
         </GradientButton>
       </View>
       
       <Divider style={styles.divider} />
       
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Notificaciones</Title>
+        <Title style={styles.sectionTitle}>{t('notifications')}</Title>
         <GradientButton onPress={() => {}} icon="bell-outline">
-          Configurar notificaciones
+          {t('configureNotifications')}
         </GradientButton>
       </View>
       
       <Divider style={styles.divider} />
       
+       <View style={styles.section}>
+          <Title style={styles.sectionTitle}>{t('language')}</Title>
+          <View style={styles.languageFlags}>
+            <TouchableOpacity
+              style={[styles.flagButton, i18n.language === 'en' && styles.activeLanguage]}
+              onPress={() => changeLanguage('en')}
+            >
+              <Flag code="GB" size={32} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.flagButton, i18n.language === 'es' && styles.activeLanguage]}
+              onPress={() => changeLanguage('es')}
+            >
+              <Flag code="ES" size={32} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      
+      <Divider style={styles.divider} />
+      
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Sobre el desarrollador</Title>
+        <Title style={styles.sectionTitle}>{t('aboutDeveloper')}</Title>
         <GradientButton onPress={handleAboutDeveloper} icon="information-outline" colors={['rgba(56, 8, 99, 0.8)', 'rgba(12, 73, 195, 0.9)']}>
-          Ver información del desarrollador
+          {t('viewDeveloperInfo')}
         </GradientButton>
       </View>
       
-       <GradientButton onPress={onClose} icon="close-circle-outline" colors={['#FF6B6B', '#FF4757']}>
-            Cerrar
+      <GradientButton onPress={onClose} icon="close-circle-outline" colors={['#FF6B6B', '#FF4757']}>
+        {t('close')}
       </GradientButton>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
- title: {
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 24,
@@ -109,6 +137,19 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  languageFlags: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  flagButton: {
+    marginHorizontal: 10,
+    padding: 8,
+    borderRadius: 8,
+  },
+  activeLanguage: {
+    backgroundColor: 'rgba(0, 168, 107, 0.2)',
   },
 });
 
