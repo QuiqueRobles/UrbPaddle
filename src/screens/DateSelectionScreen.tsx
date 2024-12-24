@@ -1,176 +1,180 @@
-  import React, { useState, useCallback } from 'react';
-  import { View, StyleSheet, ScrollView } from 'react-native';
-  import { Calendar, DateData } from 'react-native-calendars';
-  import { Button, Title, Text, useTheme, Surface } from 'react-native-paper';
-  import { NavigationProp } from '../navigation';
-  import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
-  import { useFocusEffect } from '@react-navigation/native';
-  import { format } from 'date-fns';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Calendar, DateData } from 'react-native-calendars';
+import { Button, Title, Text, useTheme } from 'react-native-paper';
+import { NavigationProp } from '../navigation';
+import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { format } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 
-  type Props = {
-    navigation: NavigationProp;
+type Props = {
+  navigation: NavigationProp;
+};
+
+export default function DateSelectionScreen({ navigation }: Props) {
+  const [selectedDate, setSelectedDate] = useState('');
+  const { colors } = useTheme();
+
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedDate('');
+    }, [])
+  );
+
+  const handleDateSelect = (day: DateData) => {
+    setSelectedDate(day.dateString);
   };
 
-  export default function DateSelectionScreen({ navigation }: Props) {
-    const [selectedDate, setSelectedDate] = useState('');
-    const { colors } = useTheme();
+  const handleContinue = () => {
+    if (selectedDate) {
+      navigation.navigate('CourtSelection', { date: selectedDate });
+    }
+  };
 
-    useFocusEffect(
-      useCallback(() => {
-        setSelectedDate('');
-      }, [])
-    );
+  const today = new Date().toISOString().split('T')[0];
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 3);
+  const maxDateString = maxDate.toISOString().split('T')[0];
 
-    const handleDateSelect = (day: DateData) => {
-      setSelectedDate(day.dateString);
-    };
-
-    const handleContinue = () => {
-      if (selectedDate) {
-        navigation.navigate('CourtSelection', { date: selectedDate });
-      }
-    };
-
-    const today = new Date().toISOString().split('T')[0];
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    const maxDateString = maxDate.toISOString().split('T')[0];
-
-    return (
+  return (
+    <LinearGradient colors={['#00A86B', '#000', '#000']} style={styles.container} locations={[0, 0.7, 1]}>
       <ScrollView 
-        style={styles.container}
         contentContainerStyle={styles.contentContainer}
       >
-        <Surface style={styles.calendarContainer} elevation={2}>
+        <View style={styles.calendarContainer}>
           <View style={styles.titleContainer}>
-            <CalendarIcon size={28} color={colors.primary} />
+            <CalendarIcon size={28} color="#fff" />
             <Title style={styles.title}>Select a Date</Title>
           </View>
           <Calendar
             onDayPress={handleDateSelect}
             markedDates={{
-              [selectedDate]: { selected: true, selectedColor: colors.primary },
+              [selectedDate]: { selected: true, selectedColor: '#00C853' },
             }}
             minDate={today}
             maxDate={maxDateString}
             theme={{
-              backgroundColor: '#FFFFFF',
-              calendarBackground: '#FFFFFF',
-              textSectionTitleColor: '#555555',
-              selectedDayBackgroundColor: colors.primary,
-              selectedDayTextColor: '#FFFFFF',
-              todayTextColor: '#4A90E2',
-              dayTextColor: '#2d4150',
-              textDisabledColor: '#d9e1e8',
-              dotColor: '#4A90E2',
-              monthTextColor: '#000000',
+              backgroundColor: 'transparent',
+              calendarBackground: 'transparent',
+              textSectionTitleColor: '#ffffff',
+              selectedDayBackgroundColor: '#00A86B',
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: 'rgb(134, 252, 31)',
+              dayTextColor: '#ffffff',
+              textDisabledColor: 'rgba(255, 255, 255, 0.3)',
+              dotColor: '#00C853',
+              monthTextColor: '#ffffff',
               textMonthFontWeight: 'bold',
-              arrowColor: colors.primary,
+              arrowColor: '#ffffff',
               textDayFontSize: 16,
               textMonthFontSize: 18,
               textDayHeaderFontSize: 14,
             }}
             accessibilityLabel="Calendar for selecting date"
           />
-        </Surface>
+        </View>
         
         {selectedDate && (
-          <Surface style={styles.selectedDateContainer} elevation={2}>
+          <View style={styles.selectedDateContainer}>
             <Text style={styles.selectedDateLabel}>Selected Date</Text>
             <Text style={styles.selectedDateText}>
               {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
             </Text>
-          </Surface>
+          </View>
         )}
         
-        <Button
-          mode="contained"
-          onPress={handleContinue}
-          disabled={!selectedDate}
-          style={styles.button}
-          contentStyle={[
-            styles.buttonContent,
-            { backgroundColor: selectedDate ? colors.primary : '#E0E0E0' } // Cambia el fondo del botón
-          ]}
-          labelStyle={styles.buttonLabel}
-          icon={({ size, color }) => (
-            <ArrowRight size={size} color={color} style={styles.buttonIcon} />
-          )}
-          accessibilityLabel="Continue to court selection"
-          accessibilityState={{ disabled: !selectedDate }}
+        <LinearGradient
+          colors={['#00A86B', '#00C853']}
+          style={[styles.button, !selectedDate && styles.disabledButton]}
         >
-          Continue to Court Selection
-        </Button>
-
-
+          <Button
+            onPress={handleContinue}
+            disabled={!selectedDate}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon={({ size, color }) => (
+              <ArrowRight size={size} color={color} style={styles.buttonIcon} />
+            )}
+            accessibilityLabel="Continue to court selection"
+            accessibilityState={{ disabled: !selectedDate }}
+          >
+            Continue to Court Selection
+          </Button>
+        </LinearGradient>
       </ScrollView>
-    );
-  }
+    </LinearGradient>
+  );
+}
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#F5F5F5',
-    },
-    contentContainer: {
-      padding: 20,
-      paddingBottom: 40,
-    },
-    calendarContainer: {
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 24,
-      backgroundColor: '#FFFFFF',
-    },
-    titleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 16,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginLeft: 8,
-      color: '#000000',
-    },
-    selectedDateContainer: {
-      borderRadius: 12,
-      padding: 20,
-      marginBottom: 24,
-      alignItems: 'center',
-      backgroundColor: '#FFFFFF',
-    },
-    selectedDateLabel: {
-      fontSize: 16,
-      marginBottom: 8,
-      color: '#757575',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    selectedDateText: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#000000',
-      textAlign: 'center',
-    },
-    button: {
-      borderRadius: 12,
-      elevation: 2,
-      marginTop: 16,
-      backgroundColor:'black'
-    },
-    buttonContent: {
-      height: 56,
-      flexDirection: 'row-reverse', // Icon on the right side
-    },
-    buttonLabel: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      letterSpacing: 0.5,
-    },
-    buttonIcon: {
-      marginLeft: 8,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  calendarContainer: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 8,
+    color: '#ffffff',
+  },
+  selectedDateContainer: {
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  selectedDateLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  selectedDateText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  button: {
+    borderRadius: 12,
+    marginTop: 16,
+    overflow: 'hidden',
+  },
+  buttonContent: {
+    height: 56,
+    flexDirection: 'row-reverse',
+    backgroundColor: 'transparent',
+  },
+  buttonLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+    color: '#ffffff',
+  },
+  buttonIcon: {
+    marginLeft: 8,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+});
 
+  

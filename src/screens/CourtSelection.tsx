@@ -48,6 +48,8 @@ type Community = {
   booking_duration_options: number[];
   default_booking_duration: number;
   court_number: number;
+  max_number_current_bookings: number;
+  simultaneous_bookings: boolean;
 };
 
 export default function CourtSelectionScreen({ navigation, route }: Props) {
@@ -116,7 +118,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
     while (isBefore(currentTime, endTime)) {
       slots.push(format(currentTime, 'HH:mm'));
-      currentTime = addMinutes(currentTime, 30); // Generamos slots cada 30 minutos
+      currentTime = addMinutes(currentTime, 30);
     }
 
     return slots;
@@ -124,22 +126,20 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
   const isSlotAvailable = (courtId: number, slotStart: Date, slotEnd: Date) => {
     return !bookings.some(booking => {
+      if (booking.court_number !== courtId) return false;
       const bookingStart = parse(booking.start_time, 'HH:mm:ss', slotStart);
       const bookingEnd = parse(booking.end_time, 'HH:mm:ss', slotStart);
       return (
-        booking.court_number === courtId &&
-        (
-          (isEqual(slotStart, bookingStart) || isAfter(slotStart, bookingStart)) &&
-          isBefore(slotStart, bookingEnd)
-        ) ||
-        (
-          isAfter(slotEnd, bookingStart) &&
-          (isBefore(slotEnd, bookingEnd) || isEqual(slotEnd, bookingEnd))
-        ) ||
-        (
-          isBefore(slotStart, bookingStart) &&
-          isAfter(slotEnd, bookingEnd)
-        )
+        (isEqual(slotStart, bookingStart) || isAfter(slotStart, bookingStart)) &&
+        isBefore(slotStart, bookingEnd)
+      ) ||
+      (
+        isAfter(slotEnd, bookingStart) &&
+        (isBefore(slotEnd, bookingEnd) || isEqual(slotEnd, bookingEnd))
+      ) ||
+      (
+        isBefore(slotStart, bookingStart) &&
+        isAfter(slotEnd, bookingEnd)
       );
     });
   };
@@ -162,16 +162,47 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     return 'unavailable';
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (selectedCourt && selectedTime && selectedDuration && community) {
-      const endTime = format(addMinutes(parseISO(`2023-01-01T${selectedTime}`), selectedDuration), 'HH:mm');
-      navigation.navigate('ConfirmBooking', {
-        courtId: selectedCourt,
-        date: date,
-        startTime: selectedTime,
-        endTime: endTime,
-        communityId: community.id,
-      });
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        // Check for maximum number of bookings
+        const { data: userBookings, error: userBookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('date', new Date().toISOString().split('T')[0]);
+
+        if (userBookingsError) throw userBookingsError;
+
+        if (userBookings && userBookings.length >= community.max_number_current_bookings) {
+          Alert.alert('Booking limit reached', 'You have reached the maximum number of allowed bookings.');
+          return;
+        }
+
+        // Check for same-day booking restrictions
+        if (!community.simultaneous_bookings) {
+          const sameDayBooking = userBookings?.find(booking => booking.date === date);
+          if (sameDayBooking) {
+            Alert.alert('Booking not allowed', 'You already have a booking for this day.');
+            return;
+          }
+        }
+
+        const endTime = format(addMinutes(parseISO(`2023-01-01T${selectedTime}`), selectedDuration), 'HH:mm');
+        navigation.navigate('ConfirmBooking', {
+          courtId: selectedCourt,
+          date: date,
+          startTime: selectedTime,
+          endTime: endTime,
+          communityId: community.id,
+        });
+      } catch (error) {
+        console.error('Error checking booking restrictions:', error);
+        Alert.alert('Error', 'Unable to process your booking. Please try again.');
+      }
     }
   };
 
@@ -191,22 +222,21 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
             }
           }}
           disabled={!isAvailable}
-          style={[
-            styles.timeSlot,
-            { 
-              backgroundColor: 
-                slotStatus === 'available' 
-                  ? (isSelected ? theme.colors.primary : 'rgba(255, 255, 255, 0.2)')
-                  : 'rgba(255, 0, 0, 0.5)'    // Red for unavailable slots
-            }
-          ]}
         >
-          <Text style={[
-            styles.timeSlotText,
-            { color: isAvailable ? (isSelected ? '#fff' : '#000') : '#fff' }
-          ]}>
-            {time}
-          </Text>
+          <LinearGradient
+            colors={isAvailable ? (isSelected ? ['#00A86B', '#00C853'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.2)']) : ['rgba(255, 0, 0, 0.5)', 'rgba(255, 0, 0, 0.5)']}
+            style={[
+              styles.timeSlot,
+              { opacity: isAvailable ? (isSelected ? 1 : 0.7) : 1 }
+            ]}
+          >
+            <Text style={[
+              styles.timeSlotText,
+              { color: isAvailable ? '#fff' : '#fff' }
+            ]}>
+              {time}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       );
     });
@@ -246,25 +276,30 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
           <Text style={styles.durationLabel}>Duration:</Text>
           <View style={styles.durationButtons}>
             {community?.booking_duration_options.map((duration) => (
-              <TouchableOpacity
+              <LinearGradient
                 key={duration}
-                onPress={() => {
-                  setSelectedDuration(duration);
-                  setSelectedCourt(null);
-                  setSelectedTime(null);
-                }}
+                colors={selectedDuration === duration ? ['#00A86B', '#00C853'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.2)']}
                 style={[
                   styles.durationButton,
-                  { backgroundColor: selectedDuration === duration ? theme.colors.primary : 'rgba(255, 255, 255, 0.2)' }
+                  { borderRadius: 8 }
                 ]}
               >
-                <Text style={[
-                  styles.durationButtonText,
-                  { color: selectedDuration === duration ? '#fff' : '#000' }
-                ]}>
-                  {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedDuration(duration);
+                    setSelectedCourt(null);
+                    setSelectedTime(null);
+                  }}
+                  style={styles.durationButtonContent}
+                >
+                  <Text style={[
+                    styles.durationButtonText,
+                    { color: selectedDuration === duration ? '#fff' : '#000' }
+                  ]}>
+                    {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
             ))}
           </View>
         </View>
@@ -272,7 +307,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         {community && Array.from({ length: community.court_number }, (_, i) => i + 1).map(courtId => renderCourtCard(courtId))}
         
         <LinearGradient
-          colors={[gradientStart, '#008f5b']}
+          colors={['#00A86B', '#00C853']}
           style={[styles.bookButton, !selectedCourt || !selectedTime ? styles.disabledButton : null]}
         >
           <Button
@@ -288,7 +323,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]} />
+            <LinearGradient colors={['#00A86B', '#00C853']} style={[styles.legendColor, { opacity: 0.7 }]} />
             <Text style={styles.legendText}>Available</Text>
           </View>
           <View style={styles.legendItem}>
@@ -296,7 +331,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
             <Text style={styles.legendText}>Unavailable</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: theme.colors.primary }]} />
+            <LinearGradient colors={['#00A86B', '#00C853']} style={styles.legendColor} />
             <Text style={styles.legendText}>Selected</Text>
           </View>
         </View>
@@ -358,8 +393,10 @@ const styles = StyleSheet.create({
     flex: 0.45,
     marginHorizontal: 4,
     marginVertical: 4,
-    padding: 8,
     borderRadius: 8,
+  },
+  durationButtonContent: {
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -390,7 +427,7 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 14,
   },
-   bookButton: {
+  bookButton: {
     marginTop: 24,
     borderRadius: 8,
     overflow: 'hidden',
@@ -420,7 +457,7 @@ const styles = StyleSheet.create({
   },
   legendColor: {
     width: 16,
-    height:16,
+    height: 16,
     borderRadius: 8,
     marginRight: 4,
   },
@@ -433,3 +470,4 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
+

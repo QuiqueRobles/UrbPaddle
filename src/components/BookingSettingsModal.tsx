@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, LayoutChangeEvent, Animated } from 'react-native';
 import { Text, useTheme, Button } from 'react-native-paper';
 import { UpdateModal } from './UpdateModal';
 import { parse, format, addMinutes } from 'date-fns';
@@ -178,21 +178,46 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
     </View>
   );
 
-  const ToggleSwitch = ({ label, value, onToggle }) => (
-    <View style={styles.toggleContainer}>
-      <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity onPress={onToggle} style={styles.toggleTouchable}>
-        <LinearGradient
-          colors={value ? ['#00A86B', '#00C853'] : ['#f0f0f0', '#e0e0e0']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.toggleSwitch}
-        >
-          <View style={[styles.toggleKnob, value && styles.toggleKnobActive]} />
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
+  const ToggleSwitch = ({ label, value, onToggle }) => {
+    const [isEnabled, setIsEnabled] = useState(value);
+    const toggleAnimation = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+    const toggle = () => {
+      const newValue = !isEnabled;
+      setIsEnabled(newValue);
+      onToggle(newValue);
+
+      Animated.spring(toggleAnimation, {
+        toValue: newValue ? 1 : 0,
+        useNativeDriver: false,
+      }).start();
+    };
+
+    useEffect(() => {
+      setIsEnabled(value);
+      Animated.spring(toggleAnimation, {
+        toValue: value ? 1 : 0,
+        useNativeDriver: false,
+      }).start();
+    }, [value]);
+
+    const knobPosition = toggleAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [2, 22],
+    });
+
+    return (
+      <View style={styles.toggleContainer}>
+        <Text style={styles.label}>{label}</Text>
+        <TouchableOpacity onPress={toggle} activeOpacity={0.8}>
+          <View style={[styles.toggleSwitch, isEnabled ? styles.toggleSwitchActive : styles.toggleSwitchInactive]}>
+            <Animated.View style={[styles.toggleKnob, { transform: [{ translateX: knobPosition }] }]} />
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.toggleStatus}>{isEnabled ? 'On' : 'Off'}</Text>
+      </View>
+    );
+  };
 
   return (
     <UpdateModal
@@ -256,7 +281,10 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
         <ToggleSwitch
           label="Allow Simultaneous Bookings:"
           value={simultaneousBookings}
-          onToggle={() => setSimultaneousBookings(prev => !prev)}
+          onToggle={(newValue) => {
+            setSimultaneousBookings(newValue);
+            // Aquí puedes agregar una llamada a la API para actualizar la base de datos si es necesario
+          }}
         />
       </ScrollView>
     </UpdateModal>
@@ -347,23 +375,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   toggleTouchable: {
-    padding: 5, // Add padding to increase touch area
+    padding:10,
   },
   toggleSwitch: {
-    width: 50,
-    height: 30,
+    width: 43,
+    height: 25,
     borderRadius: 15,
-    justifyContent: 'center',
+    padding: 2,
+  },
+  toggleSwitchActive: {
+    backgroundColor: '#00C853',
+  },
+  toggleSwitchInactive: {
+    backgroundColor: '#f0f0f0',
   },
   toggleKnob: {
-    width: 26,
-    height: 26,
+    width: 15,
+    height: 20,
     borderRadius: 13,
     backgroundColor: 'white',
-    elevation: 2,
-    alignSelf: 'flex-start',
+    elevation: 20,
   },
   toggleKnobActive: {
     alignSelf: 'flex-end',
+    marginRight: 2,
+  },
+  toggleStatus: {
+    marginLeft: 3,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
+
