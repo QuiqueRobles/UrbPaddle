@@ -4,6 +4,7 @@ import { Text, useTheme } from 'react-native-paper';
 import ProfileImage from './ProfileImage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 type Player = {
   id: string;
@@ -19,6 +20,7 @@ type PaddleCourtProps = {
 
 export const PaddleCourt: React.FC<PaddleCourtProps> = ({ players, score, winner_team }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const parsedScore = score.split(',').map(set => {
     const [team1, team2] = set.trim().split('-');
@@ -45,7 +47,7 @@ export const PaddleCourt: React.FC<PaddleCourtProps> = ({ players, score, winner
                 size={48}
               />
               <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-                {player?.full_name || 'Anonymous'}
+                {player?.full_name || t('anonymous')}
               </Text>
             </View>
           ))}
@@ -67,7 +69,7 @@ export const PaddleCourt: React.FC<PaddleCourtProps> = ({ players, score, winner
                 size={48}
               />
               <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-                {player?.full_name || 'Anonymous'}
+                {player?.full_name || t('anonymous')}
               </Text>
             </View>
           ))}

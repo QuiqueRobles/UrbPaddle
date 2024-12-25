@@ -5,6 +5,7 @@ import { UpdateModal } from './UpdateModal';
 import { parse, format, addMinutes } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 interface BookingSettingsModalProps {
   visible: boolean;
@@ -44,13 +45,13 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
   const endTimeScrollViewRef = useRef<ScrollView>(null);
   const [timeSlotWidth, setTimeSlotWidth] = useState(0);
   const [maxBookings, setMaxBookings] = useState(maxNumberCurrentBookings);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setMaxBookings(maxNumberCurrentBookings);
   }, [maxNumberCurrentBookings]);
 
   useEffect(() => {
-    // This ensures the local state is updated when the prop changes
     setSimultaneousBookings(simultaneousBookings);
   }, [simultaneousBookings]);
 
@@ -214,7 +215,7 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
             <Animated.View style={[styles.toggleKnob, { transform: [{ translateX: knobPosition }] }]} />
           </View>
         </TouchableOpacity>
-        <Text style={styles.toggleStatus}>{isEnabled ? 'On' : 'Off'}</Text>
+        <Text style={styles.toggleStatus}>{isEnabled ? t('on') : t('off')}</Text>
       </View>
     );
   };
@@ -223,25 +224,25 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
     <UpdateModal
       visible={visible}
       onClose={onClose}
-      title="Update Booking Settings"
+      title={t('updateBookingSettings')}
       onUpdate={() => onUpdate(maxBookings)}
     >
       <ScrollView style={styles.container}>
         <TimeSelector
-          label="Booking Start Time:"
+          label={t('bookingStartTime')}
           selectedTime={bookingStartTime}
           setSelectedTime={setBookingStartTime}
           scrollViewRef={startTimeScrollViewRef}
         />
 
         <TimeSelector
-          label="Booking End Time:"
+          label={t('bookingEndTime')}
           selectedTime={bookingEndTime}
           setSelectedTime={setBookingEndTime}
           scrollViewRef={endTimeScrollViewRef}
         />
 
-        <Text style={styles.label}>Booking Durations:</Text>
+        <Text style={styles.label}>{t('bookingDurations')}</Text>
         <View style={styles.durationContainer}>
           {[30, 60, 90, 120].map((duration) => (
             <GradientButton
@@ -255,12 +256,12 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               }}
               isSelected={bookingDurations.includes(duration)}
             >
-              {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+              {duration >= 60 ? t('hours', { count: duration / 60 }) : t('minutes', { count: duration })}
             </GradientButton>
           ))}
         </View>
 
-        <Text style={styles.label}>Default Booking Duration:</Text>
+        <Text style={styles.label}>{t('defaultBookingDuration')}</Text>
         <View style={styles.durationContainer}>
           {[30, 60, 90, 120].map((duration) => (
             <GradientButton
@@ -268,29 +269,27 @@ export const BookingSettingsModal: React.FC<BookingSettingsModalProps> = ({
               onPress={() => setDefaultBookingDuration(duration)}
               isSelected={defaultBookingDuration === duration}
             >
-              {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+              {duration >= 60 ? t('hours', { count: duration / 60 }) : t('minutes', { count: duration })}
             </GradientButton>
           ))}
         </View>
 
         <NumberInput
-          label="Max Number of Current Bookings:"
+          label={t('maxCurrentBookings')}
           value={maxBookings}
           onChange={setMaxBookings}
         />
         <ToggleSwitch
-          label="Allow Simultaneous Bookings:"
+          label={t('allowSimultaneousBookings')}
           value={simultaneousBookings}
           onToggle={(newValue) => {
             setSimultaneousBookings(newValue);
-            // Aquí puedes agregar una llamada a la API para actualizar la base de datos si es necesario
           }}
         />
       </ScrollView>
     </UpdateModal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

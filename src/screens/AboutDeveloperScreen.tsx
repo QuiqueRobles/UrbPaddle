@@ -7,12 +7,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation'; // Adjust the import path as needed
+import { useTranslation } from 'react-i18next';
 
 type AboutDeveloperScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AboutDeveloper'>;
 
 const AboutDeveloperScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<AboutDeveloperScreenNavigationProp>();
+  const { t } = useTranslation();
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -72,7 +74,6 @@ const AboutDeveloperScreen = () => {
       locations={[0, 0.3, 0.7, 1]}
       style={styles.galaxyGradient}
     >
-      {/* Add some star-like dots for galaxy effect */}
       {[...Array(50)].map((_, index) => (
         <View 
           key={index} 
@@ -107,95 +108,81 @@ const AboutDeveloperScreen = () => {
             source={{ uri: 'https://www.enriquerobles.es/static/media/quique.1a4aa01d625432bd2958.png' }} 
             style={styles.avatar}
           />
-          <Title style={styles.name}>Enrique Robles</Title>
-          <Text style={styles.title}>Telecommunications Engineer & Computer Science Engineer</Text>
+          <Title style={styles.name}>{t('name')}</Title>
+          <Text style={styles.title}>{t('jobTitle')}</Text>
           
           <View style={styles.socialButtons}>
             <GalaxyGradientButton onPress={openWebsite} icon="web">
-              Website
+              {t('website')}
             </GalaxyGradientButton>
             <GalaxyGradientButton onPress={openLinkedIn} icon="linkedin">
-              LinkedIn
+              {t('linkedIn')}
             </GalaxyGradientButton>
             <GalaxyGradientButton onPress={openGitHub} icon="github">
-              GitHub
+              {t('gitHub')}
             </GalaxyGradientButton>
           </View>
 
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.sectionTitle}>About Me</Title>
-              <Text style={styles.text}>
-                Enrique Robles, also known as Quique Robles, is a telecommunications engineer and software developer with a great passion for technology and space communications. With a solid background in Telecommunications Engineering and Computer Engineering, Enrique has dedicated his career to learning and developing new techniques and devices to advance as a society.
-              </Text>
+              <Title style={styles.sectionTitle}>{t('aboutMe.title')}</Title>
+              <Text style={styles.text}>{t('aboutMe.description')}</Text>
             </Card.Content>
           </Card>
 
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.sectionTitle}>Education</Title>
-              <Text style={styles.text}>
-                • Currently pursuing a Master's degree in Signal Processing, Telecommunication Systems, and Space Communications at Politecnico di Milano.{'\n'}
-                • Graduated with honors in Telecommunications Engineering from Universidad CEU San Pablo.{'\n'}
-                • Bachelor's degree in Computer Engineering, including a one-year stay at Politecnico di Milano.
-              </Text>
+              <Title style={styles.sectionTitle}>{t('education.title')}</Title>
+              <Text style={styles.text}>{t('education.details')}</Text>
             </Card.Content>
           </Card>
 
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.sectionTitle}>Expertise</Title>
+              <Title style={styles.sectionTitle}>{t('expertise.title')}</Title>
               <View style={styles.expertiseItem}>
                 <MaterialCommunityIcons name="satellite-uplink" size={24} color={theme.colors.primary} />
-                <Text style={styles.expertiseText}>Space Communications</Text>
+                <Text style={styles.expertiseText}>{t('expertise.spaceCommunications')}</Text>
               </View>
               <View style={styles.expertiseItem}>
                 <MaterialCommunityIcons name="shield-lock" size={24} color={theme.colors.primary} />
-                <Text style={styles.expertiseText}>Cybersecurity</Text>
+                <Text style={styles.expertiseText}>{t('expertise.cybersecurity')}</Text>
               </View>
               <View style={styles.expertiseItem}>
                 <MaterialCommunityIcons name="antenna" size={24} color={theme.colors.primary} />
-                <Text style={styles.expertiseText}>Telecommunications Systems</Text>
+                <Text style={styles.expertiseText}>{t('expertise.telecommunicationsSystems')}</Text>
               </View>
               <View style={styles.expertiseItem}>
                 <MaterialCommunityIcons name="code-tags" size={24} color={theme.colors.primary} />
-                <Text style={styles.expertiseText}>Software Development</Text>
+                <Text style={styles.expertiseText}>{t('expertise.softwareDevelopment')}</Text>
               </View>
             </Card.Content>
           </Card>
 
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.sectionTitle}>Notable Projects</Title>
+              <Title style={styles.sectionTitle}>{t('projects.title')}</Title>
               <View style={styles.projectItem}>
-                <Title style={styles.projectTitle}>Urbpaddle</Title>
-                <Text style={styles.text}>
-                  A comprehensive mobile application for managing paddle tennis communities. Features include court booking, player matching, and community management.
-                </Text>
+                <Title style={styles.projectTitle}>{t('projects.urbpaddle.title')}</Title>
+                <Text style={styles.text}>{t('projects.urbpaddle.description')}</Text>
               </View>
               <View style={styles.projectItem}>
-                <Title style={styles.projectTitle}>CubeSat TMTC Subsystem</Title>
-                <Text style={styles.text}>
-                  Development of the Telemetry and Telecommand (TMTC) subsystem for CubeSat missions, ensuring reliable communication for satellite systems.
-                </Text>
+                <Title style={styles.projectTitle}>{t('projects.cubesat.title')}</Title>
+                <Text style={styles.text}>{t('projects.cubesat.description')}</Text>
               </View>
               <View style={styles.projectItem}>
-                <Title style={styles.projectTitle}>Meteorological Satellite Antenna</Title>
-                <Text style={styles.text}>
-                  Design and manufacture of antennas for receiving images from meteorological satellites using CST Studio.
-                </Text>
+                <Title style={styles.projectTitle}>{t('projects.meteorologicalAntenna.title')}</Title>
+                <Text style={styles.text}>{t('projects.meteorologicalAntenna.description')}</Text>
               </View>
               <View style={styles.projectItem}>
-                <Title style={styles.projectTitle}>Post-Quantum Cryptography Implementation</Title>
-                <Text style={styles.text}>
-                  Implementation of post-quantum cryptography algorithms for ensuring the integrity and confidentiality of communications in European satellites during an internship at GMV.
-                </Text>
+                <Title style={styles.projectTitle}>{t('projects.postQuantum.title')}</Title>
+                <Text style={styles.text}>{t('projects.postQuantum.description')}</Text>
               </View>
             </Card.Content>
           </Card>
 
           <GalaxyGradientButton onPress={openWebsite} icon="rocket">
-            Explore More Projects
+            {t('exploreMoreProjects')}
           </GalaxyGradientButton>
         </ScrollView>
       </SafeAreaView>
@@ -313,3 +300,4 @@ const styles = StyleSheet.create({
 });
 
 export default AboutDeveloperScreen;
+

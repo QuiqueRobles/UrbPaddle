@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, FlatList, Vibration } from 'react-native';
-import { Text, Card, useTheme, Button, ActivityIndicator, IconButton } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { Text, Card, useTheme, Button, IconButton } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ProfileImage from './ProfileImage';
@@ -9,6 +9,7 @@ import LevelIndicator from './LevelIndicator';
 import { colors } from "../theme/colors";
 import { gradients } from "../theme/gradients";
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 type PlayerStats = {
   id: string;
@@ -37,9 +38,9 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const { t } = useTranslation();
 
   const handlePlayerPress = async (player: PlayerStats) => {
-    // Haptic feedback when the player card is pressed
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setSelectedPlayer(player);
     setModalVisible(true);
@@ -72,17 +73,17 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="trophy" size={24} color={colors.surface} />
                   <Text style={styles.statValue}>{item.wins}</Text>
-                  <Text style={styles.statLabel}>Wins</Text>
+                  <Text style={styles.statLabel}>{t('wins')}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="tennis" size={24} color={colors.surface} />
                   <Text style={styles.statValue}>{item.matches_played}</Text>
-                  <Text style={styles.statLabel}>Matches</Text>
+                  <Text style={styles.statLabel}>{t('matches')}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <MaterialCommunityIcons name="percent" size={24} color={colors.surface} />
                   <Text style={styles.statValue}>{winRate}%</Text>
-                  <Text style={styles.statLabel}>Win Rate</Text>
+                  <Text style={styles.statLabel}>{t('winRate')}</Text>
                 </View>
               </View>
               <View style={styles.levelContainer}>
@@ -99,14 +100,13 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
     <View style={styles.section}>
       <View style={styles.titleContainer}>
         <Text style={styles.sectionTitle}>
-          <MaterialCommunityIcons name="medal" size={32} color="#FFD700" /> Top Players <MaterialCommunityIcons name="medal" size={32} color="#FFD700" />
+          <MaterialCommunityIcons name="medal" size={32} color="#FFD700" /> {t('topPlayers')} <MaterialCommunityIcons name="medal" size={32} color="#FFD700" />
         </Text>
         <IconButton
           icon="information"
           iconColor="white"
           size={24}
           onPress={() => setInfoModalVisible(true)}
-          
         />
       </View>
       {topPlayers.length > 0 ? (
@@ -119,8 +119,8 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
       ) : (
         <View style={styles.noPlayersContainer}>
           <MaterialCommunityIcons name="emoticon-sad-outline" size={64} color={theme.colors.primary} />
-          <Text style={styles.noPlayersText}>No top players to show at the moment.</Text>
-          <Text style={styles.noPlayersSubtext}>Start playing to see your name here!</Text>
+          <Text style={styles.noPlayersText}>{t('noTopPlayers')}</Text>
+          <Text style={styles.noPlayersSubtext}>{t('startPlayingPrompt')}</Text>
         </View>
       )}
       <Modal
@@ -140,7 +140,7 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
               }}
               style={styles.closeButton}
             >
-              Close
+              {t('close')}
             </Button>
           </View>
         </View>
@@ -154,25 +154,25 @@ export default function TopPlayers({ topPlayers, isMonthly }: TopPlayersProps) {
         <View style={styles.centeredView}>
           <View style={styles.infoModalView}>
             <Text style={styles.infoModalTitle}>
-              <MaterialCommunityIcons name="medal" size={16} color="#FFD700" /> How Top Players are Selected <MaterialCommunityIcons name="medal" size={16} color="#FFD700" />
+              <MaterialCommunityIcons name="medal" size={16} color="#FFD700" /> {t('howTopPlayersSelected')} <MaterialCommunityIcons name="medal" size={16} color="#FFD700" />
             </Text>
             <Text style={styles.infoModalText}>
               {isMonthly
-                ? "Monthly top players are determined based on their performance in matches played this month. We consider the number of wins and total matches played within the current month."
-                : "Overall top players are determined based on their total performance. We consider the total number of wins and matches played since joining the community."}
+                ? t('monthlyTopPlayersExplanation')
+                : t('overallTopPlayersExplanation')}
             </Text>
             <Text style={styles.infoModalText}>
-              Players are ranked based on their win rate, with total wins as a tiebreaker. This ensures that both consistency and volume of play are rewarded.
+              {t('rankingExplanation')}
             </Text>
             <Text style={styles.infoModalText}>
-              Keep playing and improving your game to see your name climb up the rankings!
+              {t('keepPlayingPrompt')}
             </Text>
             <Button
               mode="contained"
               onPress={() => setInfoModalVisible(false)}
               style={styles.closeButton}
             >
-              Got it!
+              {t('gotIt')}
             </Button>
           </View>
         </View>

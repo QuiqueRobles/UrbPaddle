@@ -658,5 +658,6 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 20,
     borderRadius: 10,
+    height: '70%',
   },
 });

@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from "../theme/colors";
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 type CommunityInfoProps = {
   communityId: string;
@@ -40,6 +41,7 @@ const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_HEIGHT * 0.2;
 
 export default function CommunityInfoCard({ communityId, onClose }: CommunityInfoProps) {
+  const { t } = useTranslation();
   const [communityInfo, setCommunityInfo] = useState<CommunityInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const theme = useTheme();
@@ -90,7 +92,7 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
           name: data.name,
           residentCount: data.resident_count,
           guestCount: data.guest_count,
-          rules: data.rules || 'No rules specified',
+          rules: data.rules || t('noRulesSpecified'),
           courtCount: data.court_number,
           bookingStartTime: data.booking_start_time,
           bookingEndTime: data.booking_end_time,
@@ -129,9 +131,9 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
             style={styles.loadingContainer} 
             entering={FadeIn.duration(300)}
           >
-            <Text style={styles.errorText}>Unable to load community information</Text>
+            <Text style={styles.errorText}>{t('unableToLoadCommunityInfo')}</Text>
             <Button mode="contained" onPress={onClose} style={styles.errorCloseButton}>
-              Close
+              {t('close')}
             </Button>
           </Animated.View>
         </View>
@@ -187,44 +189,44 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
                     <View style={styles.statItem}>
                       <MaterialCommunityIcons name="account-group" size={32} color={colors.primary} />
                       <Paragraph style={styles.statValue}>{communityInfo.residentCount}</Paragraph>
-                      <Paragraph style={styles.statLabel}>Residents</Paragraph>
+                      <Paragraph style={styles.statLabel}>{t('residents')}</Paragraph>
                     </View>
                     <View style={styles.statItem}>
                       <MaterialCommunityIcons name="account-multiple" size={32} color={colors.accent} />
                       <Paragraph style={styles.statValue}>{communityInfo.guestCount}</Paragraph>
-                      <Paragraph style={styles.statLabel}>Guests</Paragraph>
+                      <Paragraph style={styles.statLabel}>{t('guests')}</Paragraph>
                     </View>
                     <View style={styles.statItem}>
                       <MaterialCommunityIcons name="tennis-ball" size={32} color={colors.warning} />
                       <Paragraph style={styles.statValue}>{communityInfo.courtCount}</Paragraph>
-                      <Paragraph style={styles.statLabel}>Courts</Paragraph>
+                      <Paragraph style={styles.statLabel}>{t('courts')}</Paragraph>
                     </View>
                   </Animated.View>
                   
                   <Animated.View entering={FadeInUp.delay(450).duration(300)}>
-                    <Title style={styles.sectionTitle}>Booking Information</Title>
+                    <Title style={styles.sectionTitle}>{t('bookingInformation')}</Title>
                     <Card style={styles.bookingInfoContainer}>
                       <Card.Content>
                         <View style={styles.bookingInfoItem}>
                           <MaterialCommunityIcons name="clock-start" size={24} color={colors.primary} />
-                          <Text style={styles.bookingInfoText}>Start Time: {communityInfo.bookingStartTime}</Text>
+                          <Text style={styles.bookingInfoText}>{t('startTime')}: {communityInfo.bookingStartTime}</Text>
                         </View>
                         <View style={styles.bookingInfoItem}>
                           <MaterialCommunityIcons name="clock-end" size={24} color={colors.primary} />
-                          <Text style={styles.bookingInfoText}>End Time: {communityInfo.bookingEndTime}</Text>
+                          <Text style={styles.bookingInfoText}>{t('endTime')}: {communityInfo.bookingEndTime}</Text>
                         </View>
                         {communityInfo.bookingDurations.length > 0 && (
                           <View style={styles.bookingInfoItem}>
                             <MaterialCommunityIcons name="clock-outline" size={24} color={colors.primary} />
                             <Text style={styles.bookingInfoText}>
-                              Durations: {communityInfo.bookingDurations.map(d => `${d}min`).join(', ')}
+                              {t('durations')}: {communityInfo.bookingDurations.map(d => t('minutesShort', { count: d })).join(', ')}
                             </Text>
                           </View>
                         )}
                         <View style={styles.bookingInfoItem}>
                           <MaterialCommunityIcons name="clock-check" size={24} color={colors.primary} />
                           <Text style={styles.bookingInfoText}>
-                            Default Duration: {communityInfo.defaultBookingDuration}min
+                            {t('defaultDuration')}: {t('minutesShort', { count: communityInfo.defaultBookingDuration })}
                           </Text>
                         </View>
                       </Card.Content>
@@ -232,7 +234,7 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
                   </Animated.View>
                   
                   <Animated.View entering={FadeInUp.delay(600).duration(300)}>
-                    <Title style={styles.sectionTitle}>Community Rules</Title>
+                    <Title style={styles.sectionTitle}>{t('communityRules')}</Title>
                     <Card style={styles.rulesContainer}>
                       <Card.Content>
                         <Text style={styles.ruleText}>{communityInfo.rules}</Text>
@@ -248,6 +250,7 @@ export default function CommunityInfoCard({ communityId, onClose }: CommunityInf
     </TouchableWithoutFeedback>
   );
 }
+
 
 const styles = StyleSheet.create({
   overlay: {

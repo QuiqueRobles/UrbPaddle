@@ -4,6 +4,7 @@ import { TextInput, Card, Title, Paragraph, Modal, Portal, useTheme } from 'reac
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 type Community = {
   id: string;
@@ -11,6 +12,7 @@ type Community = {
 };
 
 export default function CommunitiesSection() {
+  const { t } = useTranslation();
   const [residentCommunity, setResidentCommunity] = useState<Community | null>(null);
   const [guestCommunities, setGuestCommunities] = useState<Community[]>([]);
   const [joinCode, setJoinCode] = useState('');
@@ -61,7 +63,7 @@ export default function CommunitiesSection() {
 
     } catch (error) {
       console.error('Error fetching communities:', error);
-      Alert.alert('Error', 'Failed to fetch communities');
+      Alert.alert(t('error'), t('failedFetchCommunities'));
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +71,7 @@ export default function CommunitiesSection() {
 
   const handleJoinCommunity = async () => {
     if (!joinCode.trim()) {
-      Alert.alert('Error', 'Please enter a join code');
+      Alert.alert(t('error'), t('enterJoinCode'));
       return;
     }
 
@@ -96,21 +98,21 @@ export default function CommunitiesSection() {
       if (!residentError && residentCommunityData) {
         // Code matches a resident_code
         if (profileData.resident_community_id) {
-          Alert.alert('Error', 'You are already a resident of a community. You cannot be a resident of multiple communities.');
+          Alert.alert(t('error'), t('alreadyResident'));
           return;
         }
 
         if (profileData.guest_communities && profileData.guest_communities.includes(residentCommunityData.id)) {
           Alert.alert(
-            'Confirmation',
-            'You are currently a guest in this community. Do you want to become a resident? This will remove your guest status.',
+            t('confirmation'),
+            t('becomeResidentConfirmation'),
             [
               {
-                text: 'Cancel',
+                text: t('cancel'),
                 style: 'cancel'
               },
               {
-                text: 'Confirm',
+                text: t('confirm'),
                 onPress: async () => {
                  const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== residentCommunityData.id);
                   const { error: updateError } = await supabase
@@ -123,7 +125,7 @@ export default function CommunitiesSection() {
 
                   if (updateError) throw updateError;
 
-                  Alert.alert('Success', `You are now a resident of ${residentCommunityData.name}`);
+                  Alert.alert(t('success'), t('nowResident', { communityName: residentCommunityData.name }));
                   setJoinCode('');
                   setIsJoinModalVisible(false);
                   fetchCommunities();
@@ -141,7 +143,7 @@ export default function CommunitiesSection() {
 
         if (updateError) throw updateError;
 
-        Alert.alert('Success', `You've joined ${residentCommunityData.name} as a resident`);
+        Alert.alert(t('success'), t('joinedAsResident', { communityName: residentCommunityData.name }));
         setJoinCode('');
         setIsJoinModalVisible(false);
         fetchCommunities();
@@ -156,18 +158,18 @@ export default function CommunitiesSection() {
         .single();
 
       if (guestError || !guestCommunityData) {
-        Alert.alert('Error', 'Invalid join code');
+        Alert.alert(t('error'), t('invalidJoinCode'));
         return;
       }
 
       // Code matches a guest_code
       if (profileData.resident_community_id === guestCommunityData.id) {
-        Alert.alert('Error', 'You are already a resident of this community. You cannot be a guest in your resident community.');
+        Alert.alert(t('error'), t('alreadyResidentCantBeGuest'));
         return;
       }
 
       if (profileData.guest_communities && profileData.guest_communities.includes(guestCommunityData.id)) {
-        Alert.alert('Error', 'You are already a guest in this community');
+        Alert.alert(t('error'), t('alreadyGuest'));
         return;
       }
 
@@ -183,13 +185,13 @@ export default function CommunitiesSection() {
 
       if (updateError) throw updateError;
 
-      Alert.alert('Success', `You've joined ${guestCommunityData.name} as a guest`);
+      Alert.alert(t('success'), t('joinedAsGuest', { communityName: guestCommunityData.name }));
       setJoinCode('');
       setIsJoinModalVisible(false);
       fetchCommunities();
     } catch (error) {
       console.error('Error joining community:', error);
-      Alert.alert('Error', 'Failed to join community');
+      Alert.alert(t('error'), t('failedJoinCommunity'));
     } finally {
       setIsLoading(false);
     }
@@ -205,69 +207,68 @@ export default function CommunitiesSection() {
 
   return (
     <Card style={styles.container}>
-      
-        <Card.Content>
-          <Title style={styles.sectionTitle}>Your Communities</Title>
-          
-          {residentCommunity && (
-            <View style={styles.communityItem}>
-              <MaterialCommunityIcons name="home" size={24} color={colors.background} />
-              <Paragraph style={styles.communityName}>{residentCommunity.name} (Resident)</Paragraph>
-            </View>
-          )}
+      <Card.Content>
+        <Title style={styles.sectionTitle}>{t('yourCommunities')}</Title>
+        
+        {residentCommunity && (
+          <View style={styles.communityItem}>
+            <MaterialCommunityIcons name="home" size={24} color={colors.background} />
+            <Paragraph style={styles.communityName}>{t('communityResident', { name: residentCommunity.name })}</Paragraph>
+          </View>
+        )}
 
-          {guestCommunities.map((community) => (
-            <View key={community.id} style={styles.communityItem}>
-              <MaterialCommunityIcons name="account-group" size={24} color={colors.background} />
-              <Paragraph style={styles.communityName}>{community.name} (Guest)</Paragraph>
-            </View>
-          ))}
+        {guestCommunities.map((community) => (
+          <View key={community.id} style={styles.communityItem}>
+            <MaterialCommunityIcons name="account-group" size={24} color={colors.background} />
+            <Paragraph style={styles.communityName}>{t('communityGuest', { name: community.name })}</Paragraph>
+          </View>
+        ))}
 
-          <TouchableOpacity onPress={() => setIsJoinModalVisible(true)}>
-            <LinearGradient
-              colors={['#00A86B', '#00C853']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.joinButton}
-            >
-              <Text style={styles.joinButtonText}>Join a Community</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => setIsJoinModalVisible(true)}>
+          <LinearGradient
+            colors={['#00A86B', '#00C853']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.joinButton}
+          >
+            <Text style={styles.joinButtonText}>{t('joinCommunity')}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-          <Portal>
-            <Modal visible={isJoinModalVisible} onDismiss={() => setIsJoinModalVisible(false)} contentContainerStyle={styles.modalContainer}>
-              <Card>
-                <Card.Content>
-                  <Title style={styles.joinTitle}>Join a Community</Title>
-                  <View style={styles.warningContainer}>
-                    <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#FF6B6B" />
-                    <Paragraph style={styles.warningText}>
-                      Joining as a resident is only for actual community residents. Misuse may lead to account suspension.
-                    </Paragraph>
-                  </View>
-                  <TextInput
-                    label="Community Join Code"
-                    value={joinCode}
-                    onChangeText={setJoinCode}
-                    style={styles.input}
-                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                    mode="outlined"
-                  />
-                  <TouchableOpacity onPress={handleJoinCommunity} disabled={isLoading}>
-                    <LinearGradient
-                      colors={['#00A86B', '#00C853']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.modalJoinButton}
-                    >
-                      <Text style={styles.joinButtonText}>Join</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Card.Content>
-              </Card>
-            </Modal>
-          </Portal>
-        </Card.Content>
+        <Portal>
+          <Modal visible={isJoinModalVisible} onDismiss={() => setIsJoinModalVisible(false)} contentContainerStyle={styles.modalContainer}>
+            <Card>
+              <Card.Content>
+                <Title style={styles.joinTitle}>{t('joinCommunity')}</Title>
+                <View style={styles.warningContainer}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#FF6B6B" />
+                  <Paragraph style={styles.warningText}>
+                    {t('joinWarning')}
+                  </Paragraph>
+                </View>
+                <TextInput
+                  label={t('communityJoinCode')}
+                  value={joinCode}
+                  onChangeText={setJoinCode}
+                  style={styles.input}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                  mode="outlined"
+                />
+                <TouchableOpacity onPress={handleJoinCommunity} disabled={isLoading}>
+                  <LinearGradient
+                    colors={['#00A86B', '#00C853']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.modalJoinButton}
+                  >
+                    <Text style={styles.joinButtonText}>{t('join')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Card.Content>
+            </Card>
+          </Modal>
+        </Portal>
+      </Card.Content>
     </Card>
   );
 }

@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { UpdateModal } from '../components/UpdateModal';
 import { BookingSettingsModal } from '../components/BookingSettingsModal';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ type CommunityData = {
 };
 
 export default function CommunityManagementScreen() {
+  const { t } = useTranslation();
   const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [showResidentCode, setShowResidentCode] = useState(false);
   const [showGuestCode, setShowGuestCode] = useState(false);
@@ -43,7 +45,7 @@ export default function CommunityManagementScreen() {
   const [bookingDurations, setBookingDurations] = useState<number[]>([]);
   const [defaultBookingDuration, setDefaultBookingDuration] = useState(60);
   const [maxNumberCurrentBookings, setMaxNumberCurrentBookings] = useState(1);
-   const [simultaneousBookings, setSimultaneousBookings] = useState(false);
+  const [simultaneousBookings, setSimultaneousBookings] = useState(false);
 
   const theme = useTheme();
 
@@ -84,22 +86,22 @@ export default function CommunityManagementScreen() {
       }
     } catch (error) {
       console.error('Error fetching community data:', error);
-      Alert.alert('Error', 'Failed to fetch community data');
+      Alert.alert(t('error'), t('failedToFetchCommunityData'));
     }
   };
 
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert('Copied', 'The code has been copied to clipboard');
+    Alert.alert(t('copied'), t('codeCopiedToClipboard'));
   };
 
   const handleShowCode = (type: 'resident' | 'guest') => {
     Alert.alert(
-      'Show Code',
-      'Are you sure you want to reveal this code?',
+      t('showCode'),
+      t('areYouSureRevealCode'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Show', onPress: () => type === 'resident' ? setShowResidentCode(true) : setShowGuestCode(true) }
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('show'), onPress: () => type === 'resident' ? setShowResidentCode(true) : setShowGuestCode(true) }
       ]
     );
   };
@@ -115,10 +117,10 @@ export default function CommunityManagementScreen() {
       
       fetchCommunityData();
       setShowCourtsModal(false);
-      Alert.alert('Success', 'Number of courts updated successfully');
+      Alert.alert(t('success'), t('numberOfCourtsUpdated'));
     } catch (error) {
       console.error('Error updating courts:', error);
-      Alert.alert('Error', 'Failed to update number of courts');
+      Alert.alert(t('error'), t('failedToUpdateCourts'));
     }
   };
 
@@ -133,10 +135,10 @@ export default function CommunityManagementScreen() {
       
       fetchCommunityData();
       setShowRulesModal(false);
-      Alert.alert('Success', 'Community rules updated successfully');
+      Alert.alert(t('success'), t('communityRulesUpdated'));
     } catch (error) {
       console.error('Error updating rules:', error);
-      Alert.alert('Error', 'Failed to update community rules');
+      Alert.alert(t('error'), t('failedToUpdateRules'));
     }
   };
 
@@ -158,10 +160,10 @@ export default function CommunityManagementScreen() {
       
       fetchCommunityData();
       setShowBookingSettingsModal(false);
-      Alert.alert('Success', 'Booking settings updated successfully');
+      Alert.alert(t('success'), t('bookingSettingsUpdated'));
     } catch (error) {
       console.error('Error updating booking settings:', error);
-      Alert.alert('Error', 'Failed to update booking settings');
+      Alert.alert(t('error'), t('failedToUpdateBookingSettings'));
     }
   };
 
@@ -169,7 +171,7 @@ export default function CommunityManagementScreen() {
     return (
       <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Title style={styles.loadingText}>Loading community data...</Title>
+          <Title style={styles.loadingText}>{t('loadingCommunityData')}</Title>
         </View>
       </LinearGradient>
     );
@@ -200,21 +202,20 @@ export default function CommunityManagementScreen() {
                 source={{ uri: communityData.image }} 
                 style={styles.communityImage}
               />
-              
             )}
             
             <Card.Content>
               <Title style={styles.title}>{communityData.name}</Title>
-              <Paragraph style={styles.paragraph}>Address: {communityData.address}</Paragraph>
+              <Paragraph style={styles.paragraph}>{t('address')}: {communityData.address}</Paragraph>
               <CodeDisplay
-                label="Resident Code"
+                label={t('residentCode')}
                 code={communityData.resident_code}
                 showCode={showResidentCode}
                 onToggleShow={() => showResidentCode ? setShowResidentCode(false) : handleShowCode('resident')}
                 onCopy={() => copyToClipboard(communityData.resident_code)}
               />
               <CodeDisplay
-                label="Guest Code"
+                label={t('guestCode')}
                 code={communityData.guest_code}
                 showCode={showGuestCode}
                 onToggleShow={() => showGuestCode ? setShowGuestCode(false) : handleShowCode('guest')}
@@ -222,31 +223,31 @@ export default function CommunityManagementScreen() {
               />
               <View style={styles.courtsContainer}>
                 <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.primary} />
-                <Paragraph style={styles.paragraph}>Number of Courts: {communityData.court_number}</Paragraph>
+                <Paragraph style={styles.paragraph}>{t('numberOfCourts')}: {communityData.court_number}</Paragraph>
               </View>
             </Card.Content>
           </Card>
           
           <GradientButton onPress={() => setShowCourtsModal(true)} icon="tennis-ball">
-            Update Number of Courts
+            {t('updateNumberOfCourts')}
           </GradientButton>
           
           <GradientButton onPress={() => setShowRulesModal(true)} icon="book-open-variant">
-            Update Community Rules
+            {t('updateCommunityRules')}
           </GradientButton>
 
           <GradientButton onPress={() => setShowBookingSettingsModal(true)} icon="calendar-clock">
-            Update Booking Settings
+            {t('updateBookingSettings')}
           </GradientButton>
 
           <UpdateModal
             visible={showCourtsModal}
             onClose={() => setShowCourtsModal(false)}
-            title="Update Number of Courts"
+            title={t('updateNumberOfCourts')}
             onUpdate={handleUpdateCourts}
           >
             <TextInput
-              label="Number of Courts"
+              label={t('numberOfCourts')}
               value={newCourtCount.toString()}
               onChangeText={(text) => setNewCourtCount(parseInt(text) || 1)}
               keyboardType="numeric"
@@ -258,11 +259,11 @@ export default function CommunityManagementScreen() {
           <UpdateModal
             visible={showRulesModal}
             onClose={() => setShowRulesModal(false)}
-            title="Update Community Rules"
+            title={t('updateCommunityRules')}
             onUpdate={handleUpdateRules}
           >
             <TextInput
-              label="Community Rules"
+              label={t('communityRules')}
               value={newRules}
               onChangeText={setNewRules}
               multiline
@@ -374,3 +375,4 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
 });
+

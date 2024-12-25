@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import SelectPlayers from '../components/SelectPlayers';
+import { useTranslation } from 'react-i18next';
 
 
 type Booking = {
@@ -73,6 +74,7 @@ export default function AddMatchResultScreen() {
   const [winningTeam, setWinningTeam] = useState<'1' | '2' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigation = useNavigation();
   const [winningTeamAnim] = useState(new Animated.Value(0));
@@ -474,13 +476,13 @@ export default function AddMatchResultScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card style={styles.headerCard}>
           <Card.Content>
-            <Title style={styles.title}>Add Match Result</Title>
+            <Title style={styles.title}>{t('addMatchResult')}</Title>
           </Card.Content>
         </Card>
 
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={styles.sectionTitle}>Select Completed Booking</Title>
+            <Title style={styles.sectionTitle}>{t('selectCompletedBooking')}</Title>
             {bookings.length > 0 ? (
               <FlatList
                 data={bookings}
@@ -489,7 +491,7 @@ export default function AddMatchResultScreen() {
                 style={styles.bookingList}
               />
             ) : (
-              <Paragraph style={styles.noBookingsText}>No completed bookings found.</Paragraph>
+              <Paragraph style={styles.noBookingsText}>{t('noCompletedBookings')}</Paragraph>
             )}
           </Card.Content>
         </Card>
@@ -498,7 +500,7 @@ export default function AddMatchResultScreen() {
 
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={styles.sectionTitle}>Match Score</Title>
+            <Title style={styles.sectionTitle}>{t('matchScore')}</Title>
             <View style={styles.scoreCard}>
               <View style={styles.setControlsContainer}>
                 <IconButton
@@ -507,7 +509,9 @@ export default function AddMatchResultScreen() {
                   onPress={handleRemoveSet}
                   disabled={setCount === 1}
                 />
-                <Paragraph style={styles.setCountLabel}>{setCount} {setCount === 1 ? 'Set' : 'Sets'}</Paragraph>
+                <Paragraph style={styles.setCountLabel}>
+                  {setCount} {setCount === 1 ? t('set') : t('sets')}
+                </Paragraph>
                 <IconButton
                   icon="plus-circle"
                   size={24}
@@ -519,7 +523,7 @@ export default function AddMatchResultScreen() {
                 <View key={set} style={styles.setContainer}>
                   <View style={styles.setLabelContainer}>
                     <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.primary} />
-                    <Paragraph style={styles.setLabel}>Set {index + 1}</Paragraph>
+                    <Paragraph style={styles.setLabel}>{t('set')} {index + 1}</Paragraph>
                   </View>
                   <View style={styles.scoreInputContainer}>
                     <TextInput
@@ -542,55 +546,54 @@ export default function AddMatchResultScreen() {
               ))}
             </View>
             
-            
             <Card style={styles.card}>
-      <Card.Content>
-        <Title style={styles.sectionTitle}>Select Winning Team</Title>
-        <View style={styles.winningTeamContainer}>
-          <Animated.View style={[
-            styles.winningTeamIndicator,
-            {
-              left: winningTeamAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '50%'],
-              }),
-            },
-          ]} />
-          <TouchableOpacity
-            style={[styles.teamButton, winningTeam === '1' && styles.teamButtonSelected]}
-            onPress={() => handleWinningTeamSelect('1')}
-          >
-            <MaterialCommunityIcons
-              name={winningTeam === '1' ? "trophy" : "trophy-outline"}
-              size={32}
-              color={winningTeam === '1' ? colors.trophy : colors.text}
-            />
-            <Paragraph style={[
-              styles.teamButtonText,
-              winningTeam === '1' && styles.teamButtonTextSelected
-            ]}>
-              Team 1
-            </Paragraph>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.teamButton, winningTeam === '2' && styles.teamButtonSelected]}
-            onPress={() => handleWinningTeamSelect('2')}
-          >
-            <MaterialCommunityIcons
-              name={winningTeam === '2' ? "trophy" : "trophy-outline"}
-              size={32}
-              color={winningTeam === '2' ? colors.trophy : colors.text}
-            />
-            <Paragraph style={[
-              styles.teamButtonText,
-              winningTeam === '2' && styles.teamButtonTextSelected
-            ]}>
-              Team 2
-            </Paragraph>
-          </TouchableOpacity>
-        </View>
-      </Card.Content>
-    </Card>
+              <Card.Content>
+                <Title style={styles.sectionTitle}>{t('selectWinningTeam')}</Title>
+                <View style={styles.winningTeamContainer}>
+                  <Animated.View style={[
+                    styles.winningTeamIndicator,
+                    {
+                      left: winningTeamAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '50%'],
+                      }),
+                    },
+                  ]} />
+                  <TouchableOpacity
+                    style={[styles.teamButton, winningTeam === '1' && styles.teamButtonSelected]}
+                    onPress={() => handleWinningTeamSelect('1')}
+                  >
+                    <MaterialCommunityIcons
+                      name={winningTeam === '1' ? "trophy" : "trophy-outline"}
+                      size={32}
+                      color={winningTeam === '1' ? colors.trophy : colors.text}
+                    />
+                    <Paragraph style={[
+                      styles.teamButtonText,
+                      winningTeam === '1' && styles.teamButtonTextSelected
+                    ]}>
+                      {t('team')} 1
+                    </Paragraph>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.teamButton, winningTeam === '2' && styles.teamButtonSelected]}
+                    onPress={() => handleWinningTeamSelect('2')}
+                  >
+                    <MaterialCommunityIcons
+                      name={winningTeam === '2' ? "trophy" : "trophy-outline"}
+                      size={32}
+                      color={winningTeam === '2' ? colors.trophy : colors.text}
+                    />
+                    <Paragraph style={[
+                      styles.teamButtonText,
+                      winningTeam === '2' && styles.teamButtonTextSelected
+                    ]}>
+                      {t('team')} 2
+                    </Paragraph>
+                  </TouchableOpacity>
+                </View>
+              </Card.Content>
+            </Card>
           </Card.Content>
         </Card>
 
@@ -600,7 +603,7 @@ export default function AddMatchResultScreen() {
           style={styles.submitButton}
           icon="check-circle"
         >
-          Submit Result
+          {t('submitResult')}
         </Button>
       </ScrollView>
     </LinearGradient>

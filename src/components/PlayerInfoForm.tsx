@@ -4,6 +4,7 @@ import { TextInput, HelperText, useTheme, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
+import { useTranslation } from 'react-i18next';
 
 type MaterialCommunityIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -29,6 +30,7 @@ const { width } = Dimensions.get('window');
 const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handleFieldChange, editing }) => {
   const { colors } = useTheme();
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const renderInput = (
     field: keyof typeof profile,
@@ -96,7 +98,7 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
               <MaterialCommunityIcons name={icon} size={28} color={colors.primary} />
             </View>
             <TextInput
-              label={label}
+              label={t(label)}
               value={profile[field] || ''}
               onChangeText={(text) => handleFieldChange(field, text)}
               disabled={!editing}
@@ -115,7 +117,7 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
           {!!errors[field] && (
             <TouchableOpacity onPress={startShake}>
               <HelperText type="error" visible={true} style={styles.errorText}>
-                {errors[field]}
+                {t(errors[field])}
               </HelperText>
             </TouchableOpacity>
           )}
@@ -131,12 +133,12 @@ const PlayerInfoForm: React.FC<PlayerInfoFormProps> = ({ profile, errors, handle
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', damping: 15 }}
       >
-        <Text style={styles.title}>Player Information</Text>
+        <Text style={styles.title}>{t('playerInformation')}</Text>
       </MotiView>
-      {renderInput('full_name', 'Full Name', 'account')}
-      {renderInput('apartment', 'Apartment', 'home')}
-      {renderInput('phone_number', 'Phone Number', 'phone')}
-      {renderInput('motivational_speech', 'Motivational Speech', 'format-quote-open', true)}
+      {renderInput('full_name', 'fullName', 'account')}
+      {renderInput('apartment', 'apartment', 'home')}
+      {renderInput('phone_number', 'phoneNumber', 'phone')}
+      {renderInput('motivational_speech', 'motivationalSpeech', 'format-quote-open', true)}
     </View>
   );
 };

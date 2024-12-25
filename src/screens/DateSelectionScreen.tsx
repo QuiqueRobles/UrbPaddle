@@ -7,6 +7,7 @@ import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NavigationProp;
@@ -15,6 +16,7 @@ type Props = {
 export default function DateSelectionScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState('');
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   useFocusEffect(
     useCallback(() => {
@@ -45,7 +47,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
         <View style={styles.calendarContainer}>
           <View style={styles.titleContainer}>
             <CalendarIcon size={28} color="#fff" />
-            <Title style={styles.title}>Select a Date</Title>
+            <Title style={styles.title}>{t('selectDate')}</Title>
           </View>
           <Calendar
             onDayPress={handleDateSelect}
@@ -71,15 +73,15 @@ export default function DateSelectionScreen({ navigation }: Props) {
               textMonthFontSize: 18,
               textDayHeaderFontSize: 14,
             }}
-            accessibilityLabel="Calendar for selecting date"
+            accessibilityLabel={t('calendarAccessibilityLabel')}
           />
         </View>
         
         {selectedDate && (
           <View style={styles.selectedDateContainer}>
-            <Text style={styles.selectedDateLabel}>Selected Date</Text>
+            <Text style={styles.selectedDateLabel}>{t('selectedDate')}</Text>
             <Text style={styles.selectedDateText}>
-              {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
+              {format(new Date(selectedDate), t('dateFormat'))}
             </Text>
           </View>
         )}
@@ -96,10 +98,10 @@ export default function DateSelectionScreen({ navigation }: Props) {
             icon={({ size, color }) => (
               <ArrowRight size={size} color={color} style={styles.buttonIcon} />
             )}
-            accessibilityLabel="Continue to court selection"
+            accessibilityLabel={t('continueToCourtSelectionAccessibilityLabel')}
             accessibilityState={{ disabled: !selectedDate }}
           >
-            Continue to Court Selection
+            {t('continueToCourtSelection')}
           </Button>
         </LinearGradient>
       </ScrollView>
@@ -177,4 +179,3 @@ const styles = StyleSheet.create({
   },
 });
 
-  

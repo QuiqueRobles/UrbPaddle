@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ProfileImage from './ProfileImage';
 import LevelIndicator from './LevelIndicator';
 import { gradients } from '../theme/gradients';
+import { useTranslation } from 'react-i18next';
 
 type PlayerProfile = {
   id: string;
@@ -34,6 +35,7 @@ const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
 
 export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const winRate = ((player.wins / (player.matches_played || 1)) * 100).toFixed(1);
   const setWinRate = ((player.sets_won / (player.sets_won + player.sets_lost || 1)) * 100).toFixed(1);
   const gameWinRate = ((player.games_won / (player.games_won + player.games_lost || 1)) * 100).toFixed(1);
@@ -70,31 +72,31 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
           )}
 
           <View style={styles.statsContainer}>
-            <StatItem icon="trophy" value={player.wins} label="Wins" />
-            <StatItem icon="close-circle-outline" value={player.losses} label="Losses" />
-            <StatItem icon="tennis" value={player.matches_played} label="Matches" />
+            <StatItem icon="trophy" value={player.wins} label={t('wins')} />
+            <StatItem icon="close-circle-outline" value={player.losses} label={t('losses')} />
+            <StatItem icon="tennis" value={player.matches_played} label={t('matches')} />
           </View>
 
           <View style={styles.progressContainer}>
-            <ProgressItem label="Win Rate" value={parseFloat(winRate)} color={theme.colors.primary} />
-            <ProgressItem label="Set Win Rate" value={parseFloat(setWinRate)} color={theme.colors.secondary} />
-            <ProgressItem label="Game Win Rate" value={parseFloat(gameWinRate)} color={theme.colors.tertiary} />
+            <ProgressItem label={t('winRate')} value={parseFloat(winRate)} color={theme.colors.primary} />
+            <ProgressItem label={t('setWinRate')} value={parseFloat(setWinRate)} color={theme.colors.secondary} />
+            <ProgressItem label={t('gameWinRate')} value={parseFloat(gameWinRate)} color={theme.colors.tertiary} />
           </View>
 
           <View style={styles.additionalStats}>
-            <Text style={styles.additionalStatsText}>Sets: {player.sets_won} W / {player.sets_lost} L</Text>
-            <Text style={styles.additionalStatsText}>Games: {player.games_won} W / {player.games_lost} L</Text>
+            <Text style={styles.additionalStatsText}>{t('sets')}: {player.sets_won} {t('w')} / {player.sets_lost} {t('l')}</Text>
+            <Text style={styles.additionalStatsText}>{t('games')}: {player.games_won} {t('w')} / {player.games_lost} {t('l')}</Text>
           </View>
 
           <View style={styles.hotStreakContainer}>
             <View style={styles.hotStreakItem}>
               <MaterialCommunityIcons name="fire" size={24} color="#DC3545" />
-              <Text style={styles.hotStreakLabel}>Current Hot Streak</Text>
+              <Text style={styles.hotStreakLabel}>{t('currentHotStreak')}</Text>
               <Text style={styles.hotStreakValue}>{player.hot_streak}</Text>
             </View>
             <View style={styles.hotStreakItem}>
               <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
-              <Text style={styles.hotStreakLabel}>Max Hot Streak</Text>
+              <Text style={styles.hotStreakLabel}>{t('maxHotStreak')}</Text>
               <Text style={styles.hotStreakValue}>{player.max_hot_streak}</Text>
             </View>
           </View>
@@ -105,7 +107,7 @@ export default function PlayerProfileCard({ player }: PlayerProfileCardProps) {
 }
 
 interface StatItemProps {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap; // Ensure compatibility with valid icon names
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   value: number | string;
   label: string;
 }
@@ -119,20 +121,23 @@ const StatItem = ({ icon, value, label }: StatItemProps) => (
 );
 
 interface ProgressItemProps {
-  label: string; // Label for the progress bar
-  value: number; // Progress value as a percentage (0 to 100)
-  color: string; // Color of the progress bar
+  label: string;
+  value: number;
+  color: string;
 }
 
-const ProgressItem = ({ label, value, color }: ProgressItemProps) => (
-  <View style={styles.progressItem}>
-    <View style={styles.progressLabelContainer}>
-      <Text style={styles.progressLabel}>{label}</Text>
-      <Text style={styles.progressValue}>{value.toFixed(1)}%</Text>
+const ProgressItem = ({ label, value, color }: ProgressItemProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.progressItem}>
+      <View style={styles.progressLabelContainer}>
+        <Text style={styles.progressLabel}>{label}</Text>
+        <Text style={styles.progressValue}>{value.toFixed(1)}%</Text>
+      </View>
+      <ProgressBar progress={roundToTwoDecimals(value / 100)} color={color} style={styles.progressBar} />
     </View>
-    <ProgressBar progress={roundToTwoDecimals(value / 100)} color={color} style={styles.progressBar} />
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   playerCard: {

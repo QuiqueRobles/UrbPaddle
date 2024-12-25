@@ -3,7 +3,8 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-nativ
 import { Card, Title, TextInput, useTheme, List, Chip, Avatar, Text, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import {colors} from "../theme/colors"
+import { colors } from "../theme/colors";
+import { useTranslation } from 'react-i18next';
 
 type Profile = {
   id: string;
@@ -30,8 +31,9 @@ interface SelectPlayersProps {
 }
 
 export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
+  const { t } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
-   const [players, setPlayers] = useState<Player[]>([
+  const [players, setPlayers] = useState<Player[]>([
     { id: '1', name: '', profile_id: null, isResident: false, isAnonymous: false },
     { id: '2', name: '', profile_id: null, isResident: false, isAnonymous: false },
     { id: '3', name: '', profile_id: null, isResident: false, isAnonymous: false },
@@ -87,9 +89,9 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
       }
     } catch (error) {
       console.error('Error fetching user community:', error);
-      Alert.alert('Error', 'Failed to fetch user community. Please try again.');
+      Alert.alert(t('error'), t('failedFetchUserCommunity'));
     }
-  }, []);
+  }, [t]);
 
   const fetchProfiles = useCallback(async () => {
     if (!userCommunityId) return;
@@ -105,9 +107,9 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
       setProfiles(data || []);
     } catch (error) {
       console.error('Error fetching profiles:', error);
-      Alert.alert('Error', 'Failed to fetch profiles. Please try again.');
+      Alert.alert(t('error'), t('failedFetchProfiles'));
     }
-  }, [userCommunityId]);
+  }, [userCommunityId, t]);
 
   const handlePlayerChange = useCallback((index: number, profile: Profile | null, isAnonymous: boolean = false) => {
     setPlayers(prevPlayers => {
@@ -115,7 +117,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
       if (isAnonymous) {
         newPlayers[index] = {
           ...newPlayers[index],
-          name: `Anonymous ${index + 1}`,
+          name: t('anonymousPlayer', { number: index + 1 }),
           profile_id: null,
           avatar_url: undefined,
           level: undefined,
@@ -137,8 +139,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     });
     setSearchQuery('');
     setActiveSlot(null);
-  }, [userCommunityId]);
-
+  }, [userCommunityId, t]);
 
   const renderSearchResult = useCallback(({ item }: { item: Profile }) => (
     <TouchableOpacity
@@ -150,7 +151,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     >
       <List.Item
         title={item.full_name}
-        description={`@${item.username} • Level: ${item.level || 'N/A'} • ${item.resident_community_id === userCommunityId ? 'Resident' : 'Guest'}`}
+        description={t('playerDescription', { username: item.username, level: item.level || t('na'), status: item.resident_community_id === userCommunityId ? t('resident') : t('guest') })}
         left={props => 
           item.avatar_url ? (
             <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />
@@ -158,13 +159,13 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
             <Avatar.Text {...props} size={40} label={item.full_name.substring(0, 2).toUpperCase()} />
           )
         }
-        right={props => <Text {...props} style={styles.levelText}>Lvl {item.level || 'N/A'}</Text>}
+        right={props => <Text {...props} style={styles.levelText}>{t('level', { level: item.level || t('na') })}</Text>}
         style={styles.searchResultItem}
       />
     </TouchableOpacity>
-  ), [activeSlot, handlePlayerChange, userCommunityId]);
+  ), [activeSlot, handlePlayerChange, userCommunityId, t]);
 
- const renderTeam = useCallback((teamName: string, teamIndex: number) => (
+  const renderTeam = useCallback((teamName: string, teamIndex: number) => (
     <View key={teamName} style={styles.team}>
       <Text style={styles.teamTitle}>{teamName}</Text>
       <View style={styles.playerSlots}>
@@ -201,8 +202,8 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                 <Text style={styles.playerNameInSlot}>{player.name}</Text>
                 {!player.isAnonymous && (
                   <>
-                    <Text style={styles.playerLevelInSlot}> Lvl {player.level || 'N/A'}</Text>
-                    <Text style={styles.playerTypeInSlot}> {player.isResident ? 'R' : 'G'}</Text>
+                    <Text style={styles.playerLevelInSlot}> {t('level', { level: player.level || t('na') })}</Text>
+                    <Text style={styles.playerTypeInSlot}> {player.isResident ? t('residentShort') : t('guestShort')}</Text>
                   </>
                 )}
               </Chip>
@@ -220,7 +221,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                   styles.emptySlotText,
                   activeSlot === teamIndex * 2 + index ? styles.activeEmptySlotText : {}
                 ]}>
-                  {activeSlot === teamIndex * 2 + index ? 'Select Player' : 'Add Player'}
+                  {activeSlot === teamIndex * 2 + index ? t('selectPlayer') : t('addPlayer')}
                 </Text>
               </View>
             )}
@@ -228,16 +229,16 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
         ))}
       </View>
     </View>
-  ), [players, handlePlayerChange, colors.primary, colors.secondary, activeSlot]);
+  ), [players, handlePlayerChange, colors.primary, colors.secondary, activeSlot, t]);
 
   return (
     <Card style={styles.card}>
       <Card.Content>
-        <Title style={styles.sectionTitle}>Select Players</Title>
+        <Title style={styles.sectionTitle}>{t('selectPlayers')}</Title>
         {activeSlot !== null && (
           <>
             <TextInput
-              label="Search Player (name or username)"
+              label={t('searchPlayerLabel')}
               value={searchQuery}
               onChangeText={setSearchQuery}
               style={styles.searchInput}
@@ -258,13 +259,13 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
               style={styles.anonymousButton}
               icon="account-question"
             >
-              Add Anonymous Player
+              {t('addAnonymousPlayer')}
             </Button>
           </>
         )}
         
         <View style={styles.teamsContainer}>
-          {['Team 1', 'Team 2'].map((teamName, teamIndex) => renderTeam(teamName, teamIndex))}
+          {[t('team1'), t('team2')].map((teamName, teamIndex) => renderTeam(teamName, teamIndex))}
         </View>
         
         {activeSlot !== null && (
@@ -273,7 +274,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
             onPress={() => setActiveSlot(null)} 
             style={styles.cancelButton}
           >
-            Cancel Selection
+            {t('cancelSelection')}
           </Button>
         )}
       </Card.Content>
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 4,
   },
-   anonymousChip: {
+  anonymousChip: {
     backgroundColor: 'rgba(150, 150, 150, 0.1)',
   },
   anonymousButton: {

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ProfileImage from './ProfileImage';
 import PlayerProfileCard from './PlayerProfileCard';
 import { gradients } from "../theme/gradients";
+import { useTranslation } from 'react-i18next';
 
 type PlayerStats = {
   id: string;
@@ -31,6 +32,7 @@ type HotStreaksProps = {
 };
 
 export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayers }: HotStreaksProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -110,7 +112,7 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
     <View style={styles.section}>
       <View style={styles.sectionTitleContainer}>
         <Text style={styles.sectionTitle}>
-          {isCurrentStreak ? '🔥 Current Hot Streak 🔥' : '👑 Historical Hot Streak 👑'}
+          {isCurrentStreak ? t('currentHotStreak') : t('historicalHotStreak')}
         </Text>
         <IconButton
           icon="information"
@@ -122,15 +124,15 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
       {players.length > 0 ? (
         players.map((player, index) => renderHotStreakPlayer(player, index, isCurrentStreak))
       ) : (
-        <Text style={styles.noDataText}>No players on a hot streak at the moment.</Text>
+        <Text style={styles.noDataText}>{t('noHotStreakPlayers')}</Text>
       )}
     </View>
   );
 
   return (
     <ScrollView style={styles.container}>
-      {renderSection('Historical Hot Streak', maxHotStreakPlayers, false)}
-      {renderSection('Current Hot Streak', currentHotStreakPlayers, true)}
+      {renderSection(t('historicalHotStreak'), maxHotStreakPlayers, false)}
+      {renderSection(t('currentHotStreak'), currentHotStreakPlayers, true)}
       <Modal
         animationType="slide"
         transparent={true}
@@ -148,7 +150,7 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
               }}
               style={styles.closeButton}
             >
-              Close
+              {t('close')}
             </Button>
           </View>
         </View>
@@ -161,19 +163,19 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
       >
         <View style={styles.centeredView}>
           <View style={styles.infoModalView}>
-            <Text style={styles.infoModalTitle}>Hot Streaks Explained</Text>
+            <Text style={styles.infoModalTitle}>{t('hotStreaksExplained')}</Text>
             <Text style={styles.infoModalText}>
-              🔥 Current Hot Streak: This shows the players who are currently on a winning streak. The number indicates how many consecutive matches they've won without losing. Keep an eye on these players - they're on fire!
+              {t('currentHotStreakExplanation')}
             </Text>
             <Text style={styles.infoModalText}>
-              👑 Historical Hot Streak: This displays the players who have achieved the longest winning streaks in the past. The number represents their best streak ever. These players have proven they can dominate!
+              {t('historicalHotStreakExplanation')}
             </Text>
             <Button
               mode="contained"
               onPress={() => setInfoModalVisible(false)}
               style={styles.closeButton}
             >
-              Got it!
+              {t('gotIt')}
             </Button>
           </View>
         </View>

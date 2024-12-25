@@ -24,7 +24,7 @@ export default function SearchPlayers({ communityId, onSelectPlayer }: SearchPla
   const [players, setPlayers] = useState<Player[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const animatedWidth = useRef(new Animated.Value(0)).current;
-  const { t } = useTranslation(); // <--- Add the useTranslation hook
+  const { t } = useTranslation(); 
 
   useEffect(() => {
     if (searchQuery.length > 2) {

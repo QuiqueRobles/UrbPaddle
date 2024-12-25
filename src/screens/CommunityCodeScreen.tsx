@@ -11,6 +11,7 @@ import FireText from '../components/FireText'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { ActivityIndicator } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next';
 
 type CommunityCodeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CommunityCode'>
 
@@ -28,6 +29,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false)
   const theme = useTheme()
   const { userId } = route.params
+  const { t } = useTranslation();
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -37,7 +39,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
 
   async function handleJoinCommunity() {
     if (!communityCode.trim()) {
-      Alert.alert('Error', 'Please enter a community code')
+      Alert.alert(t('error'), t('enterCommunityCode'))
       return
     }
 
@@ -62,23 +64,23 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
       if (!residentError && residentCommunityData) {
         // Code matches a resident_code
         if (profileData.resident_community_id) {
-          Alert.alert('Error', 'You are already a resident of a community. You cannot be a resident of multiple communities.')
+          Alert.alert(t('error'), t('alreadyResident'))
           setLoading(false)
           return
         }
 
         if (profileData.guest_communities && profileData.guest_communities.includes(residentCommunityData.id)) {
           Alert.alert(
-            'Confirmation',
-            'You are currently a guest in this community. Do you want to become a resident? This will remove your guest status.',
+            t('confirmation'),
+            t('becomeResidentConfirmation'),
             [
               {
-                text: 'Cancel',
+                text: t('cancel'),
                 style: 'cancel',
                 onPress: () => setLoading(false)
               },
               {
-                text: 'Confirm',
+                text: t('confirm'),
                 onPress: async () => {
                   const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== residentCommunityData.id)
                   const { error: updateError } = await supabase
@@ -91,7 +93,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
 
                   if (updateError) throw updateError
 
-                  Alert.alert('Success', `You are now a resident of ${residentCommunityData.name}`)
+                  Alert.alert(t('success'), t('nowResident', { name: residentCommunityData.name }))
                   navigation.navigate('Home')
                 }
               }
@@ -107,7 +109,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
 
         if (updateError) throw updateError
 
-        Alert.alert('Success', `You've joined ${residentCommunityData.name} as a resident`)
+        Alert.alert(t('success'), t('joinedAsResident', { name: residentCommunityData.name }))
         navigation.navigate('Home')
         return
       }
@@ -120,20 +122,20 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
         .single()
 
       if (guestError || !guestCommunityData) {
-        Alert.alert('Error', 'Invalid join code')
+        Alert.alert(t('error'), t('invalidJoinCode'))
         setLoading(false)
         return
       }
 
       // Code matches a guest_code
       if (profileData.resident_community_id === guestCommunityData.id) {
-        Alert.alert('Error', 'You are already a resident of this community. You cannot be a guest in your resident community.')
+        Alert.alert(t('error'), t('alreadyResidentCantBeGuest'))
         setLoading(false)
         return
       }
 
       if (profileData.guest_communities && profileData.guest_communities.includes(guestCommunityData.id)) {
-        Alert.alert('Error', 'You are already a guest in this community')
+        Alert.alert(t('error'), t('alreadyGuest'))
         setLoading(false)
         return
       }
@@ -150,11 +152,11 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
 
       if (updateError) throw updateError
 
-      Alert.alert('Success', `You've joined ${guestCommunityData.name} as a guest`)
+      Alert.alert(t('success'), t('joinedAsGuest', { name: guestCommunityData.name }))
       navigation.navigate('Home')
     } catch (error) {
       console.error('Error joining community:', error)
-      Alert.alert('Error', 'Failed to join community')
+      Alert.alert(t('error'), t('failedToJoin'))
     } finally {
       setLoading(false)
     }
@@ -185,7 +187,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
                 />
               </View>
               <FireText
-                text="Join a Community"
+                text={t('joinCommunity')}
                 fontSize={28}
                 intensity={1.2}
                 style={styles.fireTitle}
@@ -193,12 +195,12 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
               <View style={styles.warningContainer}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#000" />
                   <Text style={styles.warningText}>
-                    Joining as a resident is only for actual community residents. Misuse may lead to account suspension.
+                    {t('residentWarning')}
                   </Text>
                 </View>
               <View style={styles.formContainer}>
                 <TextInput
-                  label="Community Code"
+                  label={t('communityCode')}
                   value={communityCode}
                   onChangeText={setCommunityCode}
                   style={styles.input}
@@ -218,7 +220,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
                     {loading ? (
                       <ActivityIndicator color="#ffffff" />
                     ) : (
-                      <Text style={styles.buttonLabel}>Join Community</Text>
+                      <Text style={styles.buttonLabel}>{t('joinCommunity')}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -227,7 +229,7 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
                   style={styles.skipButton}
                   labelStyle={styles.skipButtonLabel}
                 >
-                  Skip for now
+                  {t('skipForNow')}
                 </Button>
               </View>
             </View>
@@ -324,3 +326,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 })
+
