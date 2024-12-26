@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar'
 import { colors } from '../theme/colors'
 import FireText from '../components/FireText'
 import { ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 type RootStackParamList = {
   Login: undefined;
@@ -27,6 +28,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const theme = useTheme()
+  const { t } = useTranslation()
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -40,7 +42,7 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('error'), error.message)
     } else {
       navigation.navigate('Home')
     }
@@ -64,14 +66,14 @@ export default function LoginScreen({ navigation }: Props) {
           />
         </View>
         <FireText
-          text="Be the king of your community!"
+          text={t('loginScreenTitle')}
           fontSize={23}
           intensity={1.2}
           style={styles.fireTitle}
         />
         <View style={styles.loginContainer}>
           <TextInput
-            label="Email"
+            label={t('email')}
             value={email}
             onChangeText={setEmail}
             style={styles.input}
@@ -82,7 +84,7 @@ export default function LoginScreen({ navigation }: Props) {
             left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
           />
           <TextInput
-            label="Password"
+            label={t('password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -109,7 +111,7 @@ export default function LoginScreen({ navigation }: Props) {
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.buttonLabel}>Login</Text>
+                <Text style={styles.buttonLabel}>{t('login')}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -118,7 +120,7 @@ export default function LoginScreen({ navigation }: Props) {
             style={styles.registerButton}
             labelStyle={styles.registerButtonText}
           >
-            Don't have an account? Register
+            {t('noAccountPrompt')}
           </Button>
         </View>
       </LinearGradient>

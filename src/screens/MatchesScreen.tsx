@@ -9,7 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSelect from 'react-native-multiple-select';
 import { Ionicons } from '@expo/vector-icons';
-import {colors} from '../theme/colors'
+import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 type Match = {
   id: string;
@@ -36,17 +37,16 @@ export default function MatchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   
-  // Filtro de fechas
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   
-  // Filtro de jugadores
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [playerOptions, setPlayerOptions] = useState<{id: string, name: string}[]>([]);
 
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchMatches();
@@ -56,7 +56,7 @@ export default function MatchesScreen() {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) throw new Error(t('noUserFound'));
 
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
@@ -85,17 +85,16 @@ export default function MatchesScreen() {
         return acc;
       }, {} as { [key: string]: Player });
 
-      // Preparar opciones de jugadores para el filtro
       const playerFilterOptions = (playersData || [])
         .map(player => ({ id: player.id, name: player.full_name }))
-        .filter(player => player.id !== user.id); // Excluir al usuario actual
+        .filter(player => player.id !== user.id);
 
       setMatches(matchesData || []);
       setAllMatches(matchesData || []);
       setPlayers(playersMap);
       setPlayerOptions(playerFilterOptions);
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error(t('errorFetchingMatches'), error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -110,7 +109,6 @@ export default function MatchesScreen() {
   const applyFilters = () => {
     let filteredMatches = [...allMatches];
 
-    // Filtro de fechas
     if (startDate && endDate) {
       filteredMatches = filteredMatches.filter(match => {
         if (!match.match_date) return false;
@@ -119,7 +117,6 @@ export default function MatchesScreen() {
       });
     }
 
-    // Filtro de jugadores
     if (selectedPlayerIds.length > 0) {
       filteredMatches = filteredMatches.filter(match => 
         selectedPlayerIds.some(playerId => 
@@ -147,10 +144,10 @@ export default function MatchesScreen() {
     return (
       <Card style={styles.matchCard}>
         <Text style={styles.matchDate}>
-          {item.match_date ? format(parseISO(item.match_date), 'MMM d, yyyy') : 'Date not available'}
+          {item.match_date ? format(parseISO(item.match_date), 'MMM d, yyyy') : t('dateNotAvailable')}
         </Text>
         <Card.Content>
-          <PaddleCourt players={matchPlayers} score={item.score || 'N/A'} winner_team={item.winner_team} />
+          <PaddleCourt players={matchPlayers} score={item.score || t('notAvailable')} winner_team={item.winner_team} />
         </Card.Content>
       </Card>
     );
@@ -178,7 +175,7 @@ export default function MatchesScreen() {
           <Surface key={playerId} elevation={1} style={styles.filterChip}>
             <Ionicons name="people" size={16} color={colors.primary} style={styles.chipIcon} />
             <Text style={styles.chipText}>
-              {players[playerId]?.full_name || 'Jugador'}
+              {players[playerId]?.full_name || t('player')}
             </Text>
             <TouchableOpacity onPress={() => {
               setSelectedPlayerIds(selectedPlayerIds.filter(id => id !== playerId));
@@ -202,7 +199,7 @@ export default function MatchesScreen() {
           >
             <Surface elevation={2} style={styles.filterButtonSurface}>
               <Ionicons name="filter" size={20} color={'white'} />
-              <Text style={styles.filterButtonText}>Filtros</Text>
+              <Text style={styles.filterButtonText}>{t('filters')}</Text>
             </Surface>
           </TouchableOpacity>
           {renderFilterChips()}
@@ -223,7 +220,7 @@ export default function MatchesScreen() {
           }
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No matches found</Text>
+              <Text style={styles.emptyText}>{t('noMatchesFound')}</Text>
             </View>
           )}
         />
@@ -237,15 +234,14 @@ export default function MatchesScreen() {
           <View style={styles.modalContainer}>
             <Surface style={styles.modalContent} elevation={5}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Filtros de Partidos</Text>
+                <Text style={styles.modalTitle}>{t('matchFilters')}</Text>
                 <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               
-              {/* Filtro de fechas */}
               <View style={styles.dateFilterContainer}>
-                <Text style={styles.filterSectionTitle}>Rango de Fechas</Text>
+                <Text style={styles.filterSectionTitle}>{t('dateRange')}</Text>
                 <View style={styles.datePickerRow}>
                   <TouchableOpacity 
                     onPress={() => setShowStartDatePicker(true)}
@@ -253,7 +249,7 @@ export default function MatchesScreen() {
                   >
                     <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                     <Text style={styles.datePickerText}>
-                      {startDate ? format(startDate, 'dd/MM/yyyy') : 'Fecha Inicial'}
+                      {startDate ? format(startDate, 'dd/MM/yyyy') : t('startDate')}
                     </Text>
                   </TouchableOpacity>
 
@@ -263,7 +259,7 @@ export default function MatchesScreen() {
                   >
                     <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                     <Text style={styles.datePickerText}>
-                      {endDate ? format(endDate, 'dd/MM/yyyy') : 'Fecha Final'}
+                      {endDate ? format(endDate, 'dd/MM/yyyy') : t('endDate')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -293,33 +289,24 @@ export default function MatchesScreen() {
                 )}
               </View>
 
-              {/* Filtro de jugadores */}
               <View style={styles.playerFilterContainer}>
-                <Text style={styles.filterSectionTitle}>Jugadores</Text>
+                <Text style={styles.filterSectionTitle}>{t('players')}</Text>
                <MultiSelect
                   hideTags
                   items={playerOptions}
                   uniqueKey="id"
                   onSelectedItemsChange={setSelectedPlayerIds}
                   selectedItems={selectedPlayerIds}
-                  selectText="Seleccionar Jugadores"
-                  searchInputPlaceholderText="Buscar jugadores..."
-                  
-                  // Mejoras de estilo
+                  selectText={t('selectPlayers')}
+                  searchInputPlaceholderText={t('searchPlayers')}
                   tagRemoveIconColor={colors.primary}
                   tagBorderColor={colors.primary}
                   tagTextColor={colors.primary}
-                  
                   selectedItemTextColor={colors.primary}
                   selectedItemIconColor={colors.primary}
-                  
-                  
                   searchInputStyle={styles.multiSelectSearchInput}
-                  
                   submitButtonColor={colors.primary}
-                  submitButtonText="Seleccionar"
-                  
-                  
+                  submitButtonText={t('select')}
                   styleDropdownMenuSubsection={styles.multiSelectDropdownMenu}
                   styleListContainer={styles.multiSelectListContainer}
                   styleRowList={styles.multiSelectRowList}
@@ -332,14 +319,14 @@ export default function MatchesScreen() {
                   onPress={resetFilters}
                   style={styles.modalButton}
                 >
-                  Limpiar
+                  {t('clear')}
                 </Button>
                 <Button 
                   mode="contained" 
                   onPress={applyFilters}
                   style={styles.modalButton}
                 >
-                  Aplicar
+                  {t('apply')}
                 </Button>
               </View>
             </Surface>
@@ -446,7 +433,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  
+  modalContent: {
+    width: width * 0.90,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    elevation: 10, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -493,64 +490,51 @@ const styles = StyleSheet.create({
   modalButton: {
     width: '48%',
   },
-  // Nuevos estilos para MultiSelect
-multiSelectMainWrapper: {
-  borderWidth: 1,
-  borderColor: colors.primary + '30', // Añade un poco de transparencia
-  borderRadius: 12,
-  backgroundColor: 'white',
-},
-multiSelectDropdownMenu: {
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  flexDirection: 'row',
-  alignItems: 'center',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: colors.primary + '30',
-  backgroundColor: 'white',
-},
-multiSelectListContainer: {
-  backgroundColor: 'white',
-  borderRadius: 12,
-  elevation: 3,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-},
-multiSelectRowList: {
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F0F0F0',
-},
-multiSelectSearchInput: {
-  color: colors.text,
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  fontSize: 16,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F0F0F0',
-},
-multiSelectTagContainer: {
-  backgroundColor: colors.primary + '20', // Fondo semi-transparente
-  borderRadius: 16,
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  marginRight: 8,
-  marginBottom: 8,
-},
-modalContent: {
-  width: width * 0.90,
-  backgroundColor: 'white',
-  borderRadius: 20,
-  padding: 20,
-  // Añadir sombra para profundidad
-  elevation: 10, 
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.1,
-  shadowRadius: 6,
-},
-  });
+  multiSelectMainWrapper: {
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
+    backgroundColor: 'white',
+  },
+  multiSelectDropdownMenu: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    backgroundColor: 'white',
+  },
+  multiSelectListContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  multiSelectRowList: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  multiSelectSearchInput: {
+    color: colors.text,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  multiSelectTagContainer: {
+    backgroundColor: colors.primary + '20',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+});

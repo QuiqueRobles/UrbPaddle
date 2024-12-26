@@ -39,6 +39,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
     </TouchableOpacity>
   );
 
+  const languages = [
+    { code: 'en', flag: 'GB' },
+    { code: 'es', flag: 'ES' },
+    { code: 'it', flag: 'IT' },
+    { code: 'fr', flag: 'FR' },
+    { code: 'de', flag: 'DE' },
+  ];
+
   return (
     <ScrollView>
       <Title style={styles.title}>{t('settings')}</Title>
@@ -64,23 +72,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
       
       <Divider style={styles.divider} />
       
-       <View style={styles.section}>
-          <Title style={styles.sectionTitle}>{t('language')}</Title>
-          <View style={styles.languageFlags}>
+      <View style={styles.section}>
+        <Title style={styles.sectionTitle}>{t('language')}</Title>
+        <View style={styles.languageFlags}>
+          {languages.map((lang) => (
             <TouchableOpacity
-              style={[styles.flagButton, i18n.language === 'en' && styles.activeLanguage]}
-              onPress={() => changeLanguage('en')}
+              key={lang.code}
+              style={[styles.flagButton, i18n.language === lang.code && styles.activeLanguage]}
+              onPress={() => changeLanguage(lang.code)}
             >
-              <Flag code="GB" size={32} />
+              <Flag code={lang.flag} size={32} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.flagButton, i18n.language === 'es' && styles.activeLanguage]}
-              onPress={() => changeLanguage('es')}
-            >
-              <Flag code="ES" size={32} />
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
+      </View>
       
       <Divider style={styles.divider} />
       
@@ -141,11 +146,13 @@ const styles = StyleSheet.create({
   languageFlags: {
     flexDirection: 'row',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     marginBottom: 12,
   },
   flagButton: {
     marginHorizontal: 10,
-    padding: 8,
+    marginVertical: 5,
+    padding: 4,
     borderRadius: 8,
   },
   activeLanguage: {

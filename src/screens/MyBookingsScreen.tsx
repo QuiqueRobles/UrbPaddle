@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 type Booking = {
   id: string;
@@ -23,12 +24,13 @@ export default function MyBookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      Alert.alert('Error', 'User not found');
+      Alert.alert(t('error'), t('userNotFound'));
       setLoading(false);
       return;
     }
@@ -36,7 +38,6 @@ export default function MyBookingsScreen() {
     const threeDaysAgo = subDays(new Date(), 3).toISOString().split('T')[0];
 
     try {
-      // First, fetch all bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
@@ -47,7 +48,6 @@ export default function MyBookingsScreen() {
 
       if (bookingsError) throw bookingsError;
 
-      // Then, fetch all matches for these bookings
       const bookingIds = bookingsData?.map(booking => booking.id) || [];
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
@@ -56,10 +56,8 @@ export default function MyBookingsScreen() {
 
       if (matchesError) throw matchesError;
 
-      // Create a Set of booking IDs that have matches for efficient lookup
       const bookingsWithMatches = new Set(matchesData?.map(match => match.booking_id));
 
-      // Combine the data
       const bookingsWithMatchStatus = bookingsData?.map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
@@ -67,12 +65,12 @@ export default function MyBookingsScreen() {
 
       setBookings(bookingsWithMatchStatus);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
-      Alert.alert('Error', 'Failed to fetch bookings');
+      console.error(t('errorFetchingBookings'), error);
+      Alert.alert(t('error'), t('failedToFetchBookings'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchBookings();
@@ -86,17 +84,17 @@ export default function MyBookingsScreen() {
 
   const handleCancelBooking = async (bookingId: string) => {
     Alert.alert(
-      "Cancel Booking",
-      "Are you sure you want to cancel this booking?",
+      t('cancelBooking'),
+      t('cancelBookingConfirmation'),
       [
-        { text: "No", style: "cancel" },
+        { text: t('no'), style: "cancel" },
         { 
-          text: "Yes", 
+          text: t('yes'), 
           style: 'destructive',
           onPress: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-              Alert.alert('Error', 'User not found');
+              Alert.alert(t('error'), t('userNotFound'));
               return;
             }
 
@@ -108,13 +106,13 @@ export default function MyBookingsScreen() {
               .select();
 
             if (error) {
-              Alert.alert('Error', 'Failed to cancel booking');
-              console.error('Error cancelling booking:', error);
+              Alert.alert(t('error'), t('failedToCancelBooking'));
+              console.error(t('errorCancellingBooking'), error);
             } else if (data && data.length > 0) {
-              Alert.alert('Success', 'Booking cancelled successfully');
+              Alert.alert(t('success'), t('bookingCancelledSuccessfully'));
               fetchBookings();
             } else {
-              Alert.alert('Error', 'Booking not found or you do not have permission to cancel it');
+              Alert.alert(t('error'), t('bookingNotFoundOrNoPermission'));
             }
           }
         }
@@ -130,9 +128,9 @@ export default function MyBookingsScreen() {
 
   const getDateLabel = (date: string) => {
     const bookingDate = parseISO(date);
-    if (isToday(bookingDate)) return 'Today';
-    if (isTomorrow(bookingDate)) return 'Tomorrow';
-    return format(bookingDate, 'EEEE, MMMM d, yyyy');
+    if (isToday(bookingDate)) return t('today');
+    if (isTomorrow(bookingDate)) return t('tomorrow');
+    return format(bookingDate, t('dateFormat'));
   };
 
   const renderBookingItem = ({ item }: { item: Booking }) => {
@@ -144,7 +142,7 @@ export default function MyBookingsScreen() {
         <Card.Content>
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="tennis" size={24} color={colors.primary} />
-            <Title style={styles.courtTitle}>Court {item.court_number}</Title>
+            <Title style={styles.courtTitle}>{t('court', { number: item.court_number })}</Title>
             {isPastBooking && (
               <Chip 
                 style={[
@@ -152,7 +150,7 @@ export default function MyBookingsScreen() {
                   item.has_match ? styles.matchAddedChip : styles.pendingResultChip
                 ]}
               >
-                {item.has_match ? 'Match Added' : 'Pending Result'}
+                {item.has_match ? t('matchAdded') : t('pendingResult')}
               </Chip>
             )}
           </View>
@@ -163,7 +161,7 @@ export default function MyBookingsScreen() {
             </View>
             <View style={styles.dateTimeContainer}>
               <MaterialCommunityIcons name="clock-outline" size={20} color={colors.primary} />
-              <Paragraph style={styles.dateTime}>{item.start_time} - {item.end_time}</Paragraph>
+              <Paragraph style={styles.dateTime}>{t('timeRange', { start: item.start_time, end: item.end_time })}</Paragraph>
             </View>
           </View>
           {!isPastBooking && (
@@ -173,7 +171,7 @@ export default function MyBookingsScreen() {
               style={styles.cancelButton}
               labelStyle={styles.cancelButtonText}
             >
-              Cancel Booking
+              {t('cancelBooking')}
             </Button>
           )}
         </Card.Content>
@@ -193,16 +191,16 @@ export default function MyBookingsScreen() {
     <LinearGradient colors={[colors.primary, "#000"]} style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
-          <Title style={styles.title}>My Bookings</Title>
+          <Title style={styles.title}>{t('myBookings')}</Title>
           {loading && <ActivityIndicator size="small" color="#ffffff" />}
         </View>
        
         {bookings.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
-            <Paragraph style={styles.noBookings}>You have no bookings in the last 3 days or upcoming.</Paragraph>
+            <Paragraph style={styles.noBookings}>{t('noBookingsMessage')}</Paragraph>
             <Button mode="contained" textColor='black' onPress={onRefresh} style={styles.refreshButton}>
-              Refresh
+              {t('refresh')}
             </Button>
           </View>
         ) : (
@@ -303,7 +301,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    paddingBottom:200,
+    paddingBottom: 200,
   },
   noBookings: {
     textAlign: 'center',
@@ -315,7 +313,6 @@ const styles = StyleSheet.create({
   refreshButton: {
     paddingHorizontal: 16,
     backgroundColor: '#ffffff',
-    
   },
   pastBooking: {
     opacity: 0.8,

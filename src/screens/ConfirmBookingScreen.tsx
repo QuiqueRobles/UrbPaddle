@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { colors } from '../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, Clock } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   ConfirmBooking: { courtId: number; date: string; startTime: string; endTime: string; communityId: string };
@@ -24,6 +25,7 @@ type Props = {
 export default function ConfirmBookingScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const theme = useTheme();
+  const { t } = useTranslation();
   const { courtId, date, startTime, endTime, communityId } = route.params;
 
   const handleConfirm = async () => {
@@ -31,12 +33,12 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
-      Alert.alert('Error', 'No se pudo obtener la información del usuario');
+      Alert.alert(t('error'), t('user_error'));
       setLoading(false);
       return;
     }
     
-    console.log(communityId)
+    console.log(communityId);
     const { error } = await supabase
       .from('bookings')
       .insert({
@@ -51,10 +53,10 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', 'No se pudo realizar la reserva. Por favor, inténtalo de nuevo.');
+      Alert.alert(t('error'), t('booking_error'));
     } else {
-      Alert.alert('Éxito', 'Reserva confirmada', [
-        { text: 'OK', onPress: () => navigation.navigate('Home') }
+      Alert.alert(t('success'), t('booking_success'), [
+        { text: t('ok'), onPress: () => navigation.navigate('Home') }
       ]);
     }
   };
@@ -72,19 +74,19 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={styles.title}>Confirmar Reserva</Title>
+            <Title style={styles.title}>{t('confirm_booking')}</Title>
             <View style={styles.detailsContainer}>
               <View style={styles.detailRow}>
                 <Calendar size={24} color={colors.primary} />
-                <Paragraph style={styles.details}>Fecha: {date}</Paragraph>
+                <Paragraph style={styles.details}>{t('date')}: {date}</Paragraph>
               </View>
               <View style={styles.detailRow}>
                 <Clock size={24} color={colors.primary} />
-                <Paragraph style={styles.details}>Hora: {startTime} - {endTime}</Paragraph>
+                <Paragraph style={styles.details}>{t('time')}: {startTime} - {endTime}</Paragraph>
               </View>
             </View>
             <View style={styles.courtContainer}>
-              <Title style={styles.courtTitle}>Pista {courtId}</Title>
+              <Title style={styles.courtTitle}>{t('court')} {courtId}</Title>
             </View>
             <Button
               mode="contained"
@@ -93,7 +95,7 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
               labelStyle={styles.buttonLabel}
               icon="check-circle"
             >
-              Confirmar Reserva
+              {t('confirm_booking_button')}
             </Button>
           </Card.Content>
         </Card>
@@ -119,7 +121,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
     elevation: 10,
-    marginBottom:150,
+    marginBottom: 150,
   },
   title: {
     fontSize: 28,

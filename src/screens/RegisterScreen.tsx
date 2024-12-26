@@ -1,16 +1,16 @@
 import React, { useState, useLayoutEffect } from 'react'
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions, Image, SafeAreaView } from 'react-native'
-import { TextInput, Button, Title, HelperText, useTheme, Text } from 'react-native-paper'
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, SafeAreaView } from 'react-native'
+import { TextInput, Button, HelperText, useTheme, Text } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { RootStackParamList } from '../navigation'
 import { LinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '../theme/colors'
 import FireText from '../components/FireText'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>
 
@@ -31,6 +31,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false)
 
   const theme = useTheme()
+  const { t } = useTranslation()
 
   const validateEmail = (email: string) => {
     const re = /\S+@\S+\.\S+/
@@ -52,12 +53,12 @@ export default function RegisterScreen({ navigation }: Props) {
     setPasswordError('')
 
     if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address')
+      setEmailError(t('invalidEmailError'))
       return
     }
 
     if (!validatePassword(password)) {
-      setPasswordError('Password must be at least 6 characters long')
+      setPasswordError(t('passwordLengthError'))
       return
     }
 
@@ -75,9 +76,9 @@ export default function RegisterScreen({ navigation }: Props) {
     if (authError) {
       setLoading(false)
       if (authError.message.includes('Email not allowed')) {
-        return Alert.alert('Error', 'This email domain is not authorized. Please contact the administrator for assistance.')
+        return Alert.alert(t('error'), t('unauthorizedEmailError'))
       }
-      return Alert.alert('Error', authError.message)
+      return Alert.alert(t('error'), authError.message)
     }
 
     if (authData.user) {
@@ -95,10 +96,10 @@ export default function RegisterScreen({ navigation }: Props) {
       setLoading(false)
 
       if (profileError) {
-        return Alert.alert('Error', profileError.message)
+        return Alert.alert(t('error'), profileError.message)
       }
 
-      Alert.alert('Success', 'Registration successful. Please check your email to verify your account.')
+      Alert.alert(t('success'), t('registrationSuccessful'))
       navigation.navigate('CommunityCode', { userId: authData.user.id })
     }
   }
@@ -130,14 +131,14 @@ export default function RegisterScreen({ navigation }: Props) {
                 />
               </View>
               <FireText
-                text="Join the Paddle Community!"
+                text={t('joinPaddleCommunity')}
                 fontSize={20}
                 intensity={1.2}
                 style={styles.fireTitle}
               />
               <View style={styles.formContainer}>
                 <TextInput
-                  label="Full Name"
+                  label={t('fullName')}
                   value={fullName}
                   onChangeText={setFullName}
                   style={styles.input}
@@ -148,7 +149,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
                 />
                 <TextInput
-                  label="Username"
+                  label={t('username')}
                   value={userName}
                   onChangeText={setUserName}
                   style={styles.input}
@@ -159,7 +160,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   left={<TextInput.Icon icon="at" color={theme.colors.primary} />}
                 />
                 <TextInput
-                  label="Email"
+                  label={t('email')}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text)
@@ -179,7 +180,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   {emailError}
                 </HelperText>
                 <TextInput
-                  label="Password"
+                  label={t('password')}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text)
@@ -205,7 +206,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   {passwordError}
                 </HelperText>
                 <TextInput
-                  label="Apartment Number"
+                  label={t('apartmentNumber')}
                   value={apartment}
                   onChangeText={setApartment}
                   style={styles.input}
@@ -216,7 +217,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   left={<TextInput.Icon icon="home" color={theme.colors.primary} />}
                 />
                 <TextInput
-                  label="Phone Number"
+                  label={t('phoneNumber')}
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
                   style={styles.input}
@@ -238,7 +239,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     {loading ? (
                       <ActivityIndicator color="#ffffff" />
                     ) : (
-                      <Text style={styles.buttonLabel}>Create Account</Text>
+                      <Text style={styles.buttonLabel}>{t('createAccount')}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -247,7 +248,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   style={styles.loginButton}
                   labelStyle={styles.loginButtonLabel}
                 >
-                  Already have an account? Log in
+                  {t('alreadyHaveAccount')}
                 </Button>
               </View>
             </ScrollView>

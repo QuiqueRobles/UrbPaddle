@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { format, addMinutes, parseISO, parse, isBefore, isAfter, set, isEqual } from 'date-fns';
 import { Calendar, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   CourtSelection: { date: string };
@@ -61,7 +62,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [community, setCommunity] = useState<Community | null>(null);
   const theme = useTheme();
   const { date } = route.params;
-
+  const { t } = useTranslation();
   const gradientStart = '#00A86B';
   const gradientMiddle = '#000';
   const gradientEnd = '#000';
@@ -103,7 +104,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
       setBookings(bookingsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      Alert.alert('Error', 'Unable to load data. Please try again.');
+      Alert.alert(t('error'), t('unableToLoadData'));
     } finally {
       setLoading(false);
     }
@@ -168,7 +169,6 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
 
-        // Check for maximum number of bookings
         const { data: userBookings, error: userBookingsError } = await supabase
           .from('bookings')
           .select('*')
@@ -178,15 +178,14 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         if (userBookingsError) throw userBookingsError;
 
         if (userBookings && userBookings.length >= community.max_number_current_bookings) {
-          Alert.alert('Booking limit reached', 'You have reached the maximum number of allowed bookings.');
+          Alert.alert(t('bookingLimitReached'), t('maxBookingsReached'));
           return;
         }
 
-        // Check for same-day booking restrictions
         if (!community.simultaneous_bookings) {
           const sameDayBooking = userBookings?.find(booking => booking.date === date);
           if (sameDayBooking) {
-            Alert.alert('Booking not allowed', 'You already have a booking for this day.');
+            Alert.alert(t('bookingNotAllowed'), t('alreadyBookedForDay'));
             return;
           }
         }
@@ -201,7 +200,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         });
       } catch (error) {
         console.error('Error checking booking restrictions:', error);
-        Alert.alert('Error', 'Unable to process your booking. Please try again.');
+        Alert.alert(t('error'), t('unableToProcessBooking'));
       }
     }
   };
@@ -245,7 +244,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const renderCourtCard = (courtId: number) => (
     <Card key={courtId} style={styles.courtCard}>
       <Card.Content>
-        <Title style={styles.courtTitle}>Court {courtId}</Title>
+        <Title style={styles.courtTitle}>{t('court_number', { number: courtId })}</Title>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeSlotContainer}>
           {renderTimeSlots(courtId)}
         </ScrollView>
@@ -265,7 +264,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     <LinearGradient colors={[gradientStart, gradientMiddle, gradientEnd]} style={styles.container} locations={[0, 0.7, 1]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Title style={styles.title}>Book a Court</Title>
+          <Title style={styles.title}>{t('bookACourt')}</Title>
           <View style={styles.dateContainer}>
             <Calendar size={24} color="#fff" />
             <Text style={styles.dateText}>{format(parseISO(date), 'MMMM d, yyyy')}</Text>
@@ -273,7 +272,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         </View>
         
         <View style={styles.durationContainer}>
-          <Text style={styles.durationLabel}>Duration:</Text>
+          <Text style={styles.durationLabel}>{t('duration')}:</Text>
           <View style={styles.durationButtons}>
             {community?.booking_duration_options.map((duration) => (
               <LinearGradient
@@ -296,7 +295,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
                     styles.durationButtonText,
                     { color: selectedDuration === duration ? '#fff' : '#000' }
                   ]}>
-                    {duration >= 60 ? `${duration / 60}h` : `${duration}m`}
+                    {duration >= 60 ? t('hours', { count: duration / 60 }) : t('minutes', { count: duration })}
                   </Text>
                 </TouchableOpacity>
               </LinearGradient>
@@ -317,27 +316,27 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
             icon="check"
             style={styles.buttonContent}
           >
-            Confirm Booking
+            {t('confirmBooking')}
           </Button>
         </LinearGradient>
         
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <LinearGradient colors={['#00A86B', '#00C853']} style={[styles.legendColor, { opacity: 0.7 }]} />
-            <Text style={styles.legendText}>Available</Text>
+            <Text style={styles.legendText}>{t('available')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
-            <Text style={styles.legendText}>Unavailable</Text>
+            <Text style={styles.legendText}>{t('unavailable')}</Text>
           </View>
           <View style={styles.legendItem}>
             <LinearGradient colors={['#00A86B', '#00C853']} style={styles.legendColor} />
-            <Text style={styles.legendText}>Selected</Text>
+            <Text style={styles.legendText}>{t('selected')}</Text>
           </View>
         </View>
         
         <HelperText type="info" style={styles.helperText}>
-          Tap on an available time slot to select it. Unavailable slots cannot be selected.
+          {t('tapToSelectHelperText')}
         </HelperText>
       </ScrollView>
     </LinearGradient>
@@ -470,4 +469,3 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
-

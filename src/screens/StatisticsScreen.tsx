@@ -12,6 +12,7 @@ import PlayerProfileCard from '../components/PlayerProfileCard';
 import { colors } from "../theme/colors";
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 type PlayerStats = {
   id: string;
@@ -49,6 +50,7 @@ export default function StatisticsScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchCommunities();
@@ -82,9 +84,9 @@ export default function StatisticsScreen() {
 
         if (communityIds.length === 0) {
           Alert.alert(
-            "No Communities",
-            "You haven't joined any communities yet. Please set up your profile first.",
-            [{ text: "OK", onPress: () => navigation.navigate('ProfileTab' as never) }]
+            t('noCommunities'),
+            t('noCommunitiesMessage'),
+            [{ text: t('ok'), onPress: () => navigation.navigate('ProfileTab' as never) }]
           );
           return;
         }
@@ -100,14 +102,14 @@ export default function StatisticsScreen() {
           setCommunities(communityData);
           setSelectedCommunity(communityData[0]);
         } else {
-          Alert.alert("No Communities Found", "The community data is empty or not structured as expected.");
+          Alert.alert(t('noCommunitiesFound'), t('communityDataEmpty'));
         }
       } else {
-        Alert.alert("Error", "User not found. Please log in.");
+        Alert.alert(t('error'), t('userNotFoundLogin'));
       }
     } catch (error) {
-      console.error('Error fetching communities:', error);
-      Alert.alert("Error", "Failed to fetch communities. Please try again.");
+      console.error(t('errorFetchingCommunities'), error);
+      Alert.alert(t('error'), t('failedToFetchCommunities'));
     }
   };
 
@@ -142,7 +144,7 @@ export default function StatisticsScreen() {
       if (error) throw error;
       if (data) setTopPlayers(data as PlayerStats[]);
     } catch (error) {
-      console.error('Error fetching top players:', error);
+      console.error(t('errorFetchingTopPlayers'), error);
     }
   }
 
@@ -203,7 +205,7 @@ export default function StatisticsScreen() {
         }
       }
     } catch (error) {
-      console.error('Error fetching monthly top players:', error);
+      console.error(t('errorFetchingMonthlyTopPlayers'), error);
     }
   }
 
@@ -219,7 +221,7 @@ export default function StatisticsScreen() {
       if (error) throw error;
       if (data) setCurrentHotStreakPlayers(data as PlayerStats[]);
     } catch (error) {
-      console.error('Error fetching current hot streak players:', error);
+      console.error(t('errorFetchingCurrentHotStreakPlayers'), error);
     }
   }
 
@@ -235,12 +237,11 @@ export default function StatisticsScreen() {
       if (error) throw error;
       if (data) setMaxHotStreakPlayers(data as PlayerStats[]);
     } catch (error) {
-      console.error('Error fetching max hot streak players:', error);
+      console.error(t('errorFetchingMaxHotStreakPlayers'), error);
     }
   }
 
- 
-const handleSelectPlayer = async (player: { id: string }) => {
+  const handleSelectPlayer = async (player: { id: string }) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     try {
       const { data, error } = await supabase
@@ -252,14 +253,15 @@ const handleSelectPlayer = async (player: { id: string }) => {
       if (error) throw error;
       setSelectedPlayer(data as PlayerStats);
     } catch (error) {
-      console.error('Error fetching player details:', error);
-      Alert.alert('Error', 'Failed to fetch player details. Please try again.');
+      console.error(t('errorFetchingPlayerDetails'), error);
+      Alert.alert(t('error'), t('failedToFetchPlayerDetails'));
     }
   };
-const renderCommunitySelector = () => (
+
+  const renderCommunitySelector = () => (
     <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.communitySelector}>
       <MaterialCommunityIcons name="map-marker" size={24} color="#fff" style={styles.communityIcon} />
-      <Text style={styles.communitySelectorText}>{selectedCommunity?.name || "Select Community"}</Text>
+      <Text style={styles.communitySelectorText}>{selectedCommunity?.name || t('selectCommunity')}</Text>
       <MaterialCommunityIcons name="chevron-down" size={24} color="#fff" style={styles.chevronIcon} />
     </TouchableOpacity>
   );
@@ -273,7 +275,7 @@ const renderCommunitySelector = () => (
           onPress={() => setActiveTab(tab)}
         >
           <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {t(tab)}
           </Text>
         </TouchableOpacity>
       ))}
@@ -283,7 +285,7 @@ const renderCommunitySelector = () => (
   const renderCommunityModal = () => (
     <BlurView intensity={15} style={styles.modalContainer}>
       <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Select Community</Text>
+        <Text style={styles.modalTitle}>{t('selectCommunity')}</Text>
         <FlatList
           data={communities}
           keyExtractor={(item) => item.id}
@@ -301,45 +303,45 @@ const renderCommunitySelector = () => (
           )}
         />
         <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
-          Close
+          {t('close')}
         </Button>
       </View>
     </BlurView>
   );
 
- const renderPlayerProfileModal = () => (
-  <Modal
-    visible={!!selectedPlayer}
-    onDismiss={() => setSelectedPlayer(null)}
-    contentContainerStyle={styles.playerProfileModalContainer}
-  >
-    <Surface style={styles.playerProfileModalContent}>
-      <ScrollView contentContainerStyle={styles.playerProfileModalScrollContent}>
-        {selectedPlayer && (
-          <PlayerProfileCard player={selectedPlayer} />
-        )}
-      </ScrollView>
-      <IconButton
-        icon="close"
-        size={24}
-        onPress={() => setSelectedPlayer(null)}
-        style={styles.closePlayerProfileButton}
-      />
-    </Surface>
-  </Modal>
-);
+  const renderPlayerProfileModal = () => (
+    <Modal
+      visible={!!selectedPlayer}
+      onDismiss={() => setSelectedPlayer(null)}
+      contentContainerStyle={styles.playerProfileModalContainer}
+    >
+      <Surface style={styles.playerProfileModalContent}>
+        <ScrollView contentContainerStyle={styles.playerProfileModalScrollContent}>
+          {selectedPlayer && (
+            <PlayerProfileCard player={selectedPlayer} />
+          )}
+        </ScrollView>
+        <IconButton
+          icon="close"
+          size={24}
+          onPress={() => setSelectedPlayer(null)}
+          style={styles.closePlayerProfileButton}
+        />
+      </Surface>
+    </Modal>
+  );
 
   if (loading) {
     return (
-       <LinearGradient
+      <LinearGradient
         colors={[colors.primary, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
       >
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       </LinearGradient>
     );
   }
@@ -360,7 +362,7 @@ const renderCommunitySelector = () => (
           }
         >
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Player Statistics</Text>
+            <Text style={styles.headerTitle}>{t('playerStatistics')}</Text>
             {renderCommunitySelector()}
           </View>
           {selectedCommunity && (
@@ -482,7 +484,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor:'transparent'
-    
   },
   modalContent: {
     backgroundColor: colors.surface,
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: 20,
   },
- playerProfileModalContainer: {
+  playerProfileModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Add a slight background for better visibility
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 20,
   },
 });

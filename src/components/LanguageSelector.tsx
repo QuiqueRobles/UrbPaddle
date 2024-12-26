@@ -9,20 +9,27 @@ const LanguageSelector: React.FC = () => {
     i18n.changeLanguage(lng);
   };
 
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+  ];
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[styles.button, i18n.language === 'en' && styles.activeButton]}
-        onPress={() => changeLanguage('en')}
-      >
-        <Text style={styles.buttonText}>English</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.button, i18n.language === 'es' && styles.activeButton]}
-        onPress={() => changeLanguage('es')}
-      >
-        <Text style={styles.buttonText}>Español</Text>
-      </TouchableOpacity>
+      {languages.map((lang) => (
+        <TouchableOpacity
+          key={lang.code}
+          style={[styles.button, i18n.language === lang.code && styles.activeButton]}
+          onPress={() => changeLanguage(lang.code)}
+        >
+          <Text style={[styles.buttonText, i18n.language === lang.code && styles.activeButtonText]}>
+            {lang.name}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };
@@ -30,12 +37,13 @@ const LanguageSelector: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     marginVertical: 10,
   },
   button: {
     padding: 10,
-    marginHorizontal: 5,
+    margin: 5,
     backgroundColor: '#e0e0e0',
     borderRadius: 5,
   },
@@ -44,6 +52,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
+    color: '#333',
+  },
+  activeButtonText: {
+    color: '#fff',
   },
 });
 
