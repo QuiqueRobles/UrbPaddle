@@ -375,6 +375,17 @@
   "apartmentNumber": "Apartment Number",
 
   "createAccount": "Create Account",
-  "alreadyHaveAccount": "Already have an account? Log in"
- 
+  "alreadyHaveAccount": "Already have an account? Log in",
+  "invalidEmail": "Invalid email",
+  "invalidPassword": "Invalid password",
+  "invalidUsername": "Invalid username",
+  "invalidApartmentNumber": "Invalid apartment number",
+  "invalidPhoneNumber": "Invalid phone number",
+  "invalidMotivationalSpeech": "Invalid motivational speech",
+  "invalidFullName": "Invalid full name",
+  "invalidAddress": "Invalid address",
+  "invalidCommunityCode": "Invalid community code",
+  "registerCommunity": "Register a Community",
+  "communityRegistration": "Community Registration"
+
 }

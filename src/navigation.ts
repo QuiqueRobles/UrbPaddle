@@ -19,6 +19,7 @@ export type RootStackParamList = {
   CommunityCode: { userId: string }
   AboutDeveloper: undefined
   Matches: undefined
+  CommunityRegistration: undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

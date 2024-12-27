@@ -25,9 +25,11 @@ import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 import MatchesScreen from './screens/MatchesScreen'
+import CommunityRegistrationScreen from './screens/CommunityRegistrationScreen'
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import { useTranslation } from 'react-i18next';
+
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
@@ -179,6 +181,7 @@ export default function App() {
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
+                  <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('communityRegistration') }} />
                 </>
               )}
             </Stack.Navigator>

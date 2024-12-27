@@ -88,15 +88,18 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
             <View style={styles.courtContainer}>
               <Title style={styles.courtTitle}>{t('court')} {courtId}</Title>
             </View>
-            <Button
-              mode="contained"
-              onPress={handleConfirm}
-              style={styles.button}
-              labelStyle={styles.buttonLabel}
-              icon="check-circle"
-            >
-              {t('confirm_booking_button')}
-            </Button>
+            <LinearGradient
+          colors={['#00A86B', '#00C853']}
+          style={styles.button}
+        >
+          <Button
+            onPress={handleConfirm}
+            labelStyle={styles.buttonLabel}
+  
+          >
+            {t('confirm_booking_button')}
+          </Button>
+        </LinearGradient>
           </Card.Content>
         </Card>
       </ScrollView>

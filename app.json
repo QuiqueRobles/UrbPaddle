@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "UrbPaddle",
-    "slug": "UrbPaddle",
+    "name": "KingOfTheCourt",
+    "slug": "KingOfTheCourt",
     "version": "1.0.0",
     "newArchEnabled": true,
     "orientation": "portrait",
@@ -16,7 +16,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.quiqueru.KingOfTheCourt"
     },
     "android": {
       "adaptiveIcon": {
@@ -38,8 +39,12 @@
           "messagingSenderId": "571200478793",
           "appId": "1:571200478793:web:5c8b933d442a1a8592a998"
         }
-        
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "602d0416-1b31-4e43-ad43-43a6828d661e"
+      }
+    }
   }
 }

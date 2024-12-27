@@ -657,7 +657,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     margin: 20,
+    marginBottom: 20,
     borderRadius: 10,
-    height: '50%',
+    height: '70%',
   },
 });

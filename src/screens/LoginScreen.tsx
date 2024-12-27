@@ -14,6 +14,7 @@ type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
+  CommunityRegistration: undefined;
 };
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -122,6 +123,19 @@ export default function LoginScreen({ navigation }: Props) {
           >
             {t('noAccountPrompt')}
           </Button>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('CommunityRegistration')} 
+            style={styles.communityButton}
+          >
+            <LinearGradient
+              colors={['#FF6B6B', '#FF8E53']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
+            >
+              <Text style={styles.buttonLabel}>{t('registerCommunity')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -189,5 +203,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
     marginBottom: 30,
+  },
+  communityButton: {
+    marginTop: 16,
+    width: '100%',
   },
 })

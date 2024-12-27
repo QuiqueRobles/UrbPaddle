@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, SafeAreaView, Image, Dimensions } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Modal, Portal } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, Image, Dimensions, StatusBar } from 'react-native';
+import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import FireText from '../components/FireText'; 
-import Animated, { 
-  FadeIn, 
-  FadeInDown, 
-  FadeInRight, 
-  useAnimatedStyle, 
-  useSharedValue, 
-  withSpring,
-  runOnJS
-} from 'react-native-reanimated';
+import FireText from '../components/FireText';
+import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { supabase } from '../lib/supabase';
-import CommunityInfoCard from '../components/CommunityInfoCard';
+import CommunityInfoModal from '../components/CommunityInfoModal';
 import { useTranslation } from 'react-i18next';
 
 type Props = {
@@ -31,10 +23,6 @@ type ActionButtonProps = {
   delay: number;
   color: string;
   shouldAnimate: boolean;
-};
-
-type ProfileData = {
-  resident_community_id: string | null;
 };
 
 type CommunityData = {
@@ -51,9 +39,6 @@ export default function HomeScreen({ navigation }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
   const [shouldAnimate, setShouldAnimate] = useState(false);
-
-  const modalY = useSharedValue(SCREEN_HEIGHT);
-  const isFirstLaunch = useRef(true);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
@@ -84,12 +69,11 @@ export default function HomeScreen({ navigation }: Props) {
 
         if (profileError) throw profileError;
 
-        const profile = profileData as ProfileData;
-        if (profile && profile.resident_community_id) {
+        if (profileData && profileData.resident_community_id) {
           const { data: communityData, error: communityError } = await supabase
             .from('community')
             .select('id, name')
-            .eq('id', profile.resident_community_id)
+            .eq('id', profileData.resident_community_id)
             .single();
 
           if (communityError) throw communityError;
@@ -104,7 +88,7 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-   const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color, shouldAnimate }) => (
+  const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, delay, color, shouldAnimate }) => (
     <Animated.View 
       entering={shouldAnimate ? FadeInRight.delay(delay).duration(400) : undefined} 
       style={styles.actionButtonContainer}
@@ -119,24 +103,15 @@ export default function HomeScreen({ navigation }: Props) {
     </Animated.View>
   );
 
-  const animatedModalStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: modalY.value }],
-    };
-  });
-
   const openCommunityInfo = useCallback(() => {
     setShowCommunityInfo(true);
-    modalY.value = withSpring(0, { damping: 15, stiffness: 90 });
   }, []);
 
   const closeCommunityInfo = useCallback(() => {
-    modalY.value = withSpring(SCREEN_HEIGHT, { damping: 15, stiffness: 90 }, () => {
-      runOnJS(setShowCommunityInfo)(false);
-    });
+    setShowCommunityInfo(false);
   }, []);
 
-   if (isLoading) {
+  if (isLoading) {
     return (
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
@@ -163,13 +138,12 @@ export default function HomeScreen({ navigation }: Props) {
             />
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
-             <FireText
+            <FireText
               text={t('Be the King of your community!')}
               fontSize={21}
               intensity={1.2}
               style={styles.fireTitle}
             />
-
             <Text style={[styles.subtitle, { color: colors.onPrimary }]}>{t('Book and Enjoy!')}</Text>
           </Animated.View>
           
@@ -218,19 +192,13 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </View>
       </SafeAreaView>
-      <Portal>
-        <Animated.View 
-          style={[styles.modalContainer, animatedModalStyle]}
-          pointerEvents={showCommunityInfo ? 'auto' : 'none'}
-        >
-          {communityData && (
-            <CommunityInfoCard
-              communityId={communityData.id}
-              onClose={closeCommunityInfo}
-            />
-          )}
-        </Animated.View>
-      </Portal>
+      {showCommunityInfo && communityData && (
+        <CommunityInfoModal
+          communityId={communityData.id}
+          isVisible={showCommunityInfo}
+          onClose={closeCommunityInfo}
+        />
+      )}
     </LinearGradient>
   );
 }
@@ -255,12 +223,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
@@ -328,15 +290,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
-  modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: SCREEN_HEIGHT * 0.8,
-  },
 });
+
