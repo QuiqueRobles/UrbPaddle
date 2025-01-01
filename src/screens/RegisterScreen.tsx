@@ -11,6 +11,8 @@ import FireText from '../components/FireText'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { ActivityIndicator } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import * as Animatable from 'react-native-animatable'
+import { gradients } from '../theme/gradients'
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>
 
@@ -104,6 +106,37 @@ export default function RegisterScreen({ navigation }: Props) {
     }
   }
 
+  const renderInput = (label: string, value: string, onChangeText: (text: string) => void, icon: string, keyboardType: any = 'default', secureTextEntry: boolean = false, error: string = '') => (
+    <Animatable.View animation="fadeInUp" duration={800} style={styles.inputContainer}>
+      <TextInput
+        label={label}
+        value={value}
+        onChangeText={onChangeText}
+        style={styles.input}
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
+        activeUnderlineColor='transparent'
+        textColor={colors.text}
+        keyboardType={keyboardType}
+        secureTextEntry={secureTextEntry && !showPassword}
+        left={<TextInput.Icon icon={icon} color={colors.primary} />}
+        right={secureTextEntry && (
+          <TextInput.Icon 
+            icon={showPassword ? "eye-off" : "eye"} 
+            color={colors.primary}
+            onPress={() => setShowPassword(!showPassword)}
+          />
+        )}
+      />
+      {error && (
+        <HelperText type="error" visible={!!error} style={styles.errorText}>
+          {error}
+        </HelperText>
+      )}
+    </Animatable.View>
+  )
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -120,118 +153,40 @@ export default function RegisterScreen({ navigation }: Props) {
             <ScrollView 
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
-              showsHorizontalScrollIndicator={false}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.logoContainer}>
+              <Animatable.View animation="fadeIn" duration={1000} style={styles.logoContainer}>
                 <Image 
                   source={require('../../assets/images/logo.png')} 
                   style={styles.logo}
                   resizeMode="contain"
                 />
-              </View>
-              <FireText
-                text={t('joinPaddleCommunity')}
-                fontSize={20}
-                intensity={1.2}
-                style={styles.fireTitle}
-              />
-              <View style={styles.formContainer}>
-                <TextInput
-                  label={t('fullName')}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
+              </Animatable.View>
+              <Animatable.View animation="fadeInUp" duration={1000} delay={500}>
+                <FireText
+                  text={t('joinPaddleCommunity')}
+                  fontSize={24}
+                  intensity={1.2}
+                  style={styles.fireTitle}
                 />
-                <TextInput
-                  label={t('username')}
-                  value={userName}
-                  onChangeText={setUserName}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="at" color={theme.colors.primary} />}
-                />
-                <TextInput
-                  label={t('email')}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text)
-                    setEmailError('')
-                  }}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  error={!!emailError}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
-                />
-                <HelperText type="error" visible={!!emailError} style={styles.errorText}>
-                  {emailError}
-                </HelperText>
-                <TextInput
-                  label={t('password')}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text)
-                    setPasswordError('')
-                  }}
-                  secureTextEntry={!showPassword}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  error={!!passwordError}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="lock" color={theme.colors.primary} />}
-                  right={
-                    <TextInput.Icon 
-                      icon={showPassword ? "eye-off" : "eye"} 
-                      color={theme.colors.primary}
-                      onPress={() => setShowPassword(!showPassword)}
-                    />
-                  }
-                />
-                <HelperText type="error" visible={!!passwordError} style={styles.errorText}>
-                  {passwordError}
-                </HelperText>
-                <TextInput
-                  label={t('apartmentNumber')}
-                  value={apartment}
-                  onChangeText={setApartment}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="home" color={theme.colors.primary} />}
-                />
-                <TextInput
-                  label={t('phoneNumber')}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  style={styles.input}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  keyboardType="phone-pad"
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                  left={<TextInput.Icon icon="phone" color={theme.colors.primary} />}
-                />
+              </Animatable.View>
+              <Animatable.View animation="fadeInUp" duration={1000} delay={1000} style={styles.formContainer}>
+                {renderInput(t('fullName'), fullName, setFullName, 'account')}
+                {renderInput(t('username'), userName, setUserName, 'at')}
+                {renderInput(t('email'), email, (text) => {
+                  setEmail(text)
+                  setEmailError('')
+                }, 'email', 'email-address', false, emailError)}
+                {renderInput(t('password'), password, (text) => {
+                  setPassword(text)
+                  setPasswordError('')
+                }, 'lock', 'default', true, passwordError)}
+                {renderInput(t('apartmentNumber'), apartment, setApartment, 'home')}
+                {renderInput(t('phoneNumber'), phoneNumber, setPhoneNumber, 'phone', 'phone-pad')}
                 
                 <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.button}>
                   <LinearGradient
-                    colors={['#00A86B', '#00C853']}
+                    colors={gradients.greenTheme}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.gradientButton}
@@ -250,7 +205,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 >
                   {t('alreadyHaveAccount')}
                 </Button>
-              </View>
+              </Animatable.View>
             </ScrollView>
           </TouchableWithoutFeedback>
         </SafeAreaView>
@@ -265,76 +220,88 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   safeArea: {
     flex: 1,
-    width: '100%',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 16,
-    paddingBottom: 32,
-    width: '100%',
+    padding: 20,
+    paddingBottom: 40,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 0,
-    width: '100%',
+    marginBottom: 20,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginTop: 40,
+    width: 120,
+    height: 120,
   },
   fireTitle: {
     textAlign: 'center',
     fontWeight: 'bold',
-    marginBottom: 20,
-    fontSize: 20,
+    marginBottom: 30,
+    color: colors.text,
   },
   formContainer: {
     width: '100%',
-    padding: 16,
+    padding: 20,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-   input: {
-    marginBottom: 16,
+  inputContainer: {
     width: '100%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    marginBottom: 16,
+  },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
   },
   errorText: {
-    color: '#FF6B6B',
-    alignSelf: 'flex-start',
+    color: colors.error,
+    marginTop: 4,
   },
   button: {
     marginTop: 24,
-    marginBottom: 16,
     width: '100%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   gradientButton: {
     height: 50,
+    padding:10,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonLabel: {
-    fontSize: 16,
+    fontSize: 18,
+    
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: 'white',
+    textTransform: 'uppercase',
   },
   loginButton: {
-    marginTop: 8,
+    marginTop: 16,
   },
   loginButtonLabel: {
-    fontSize: 14,
-    color: '#FFFFFF',
+    fontSize: 16,
+    color: 'white',
   },
 })
+

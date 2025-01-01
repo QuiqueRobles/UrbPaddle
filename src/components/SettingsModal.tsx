@@ -56,9 +56,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
         <GradientButton onPress={() => {}} icon="lock-reset">
           {t('changePassword')}
         </GradientButton>
-        <GradientButton onPress={() => {}} icon="shield-account">
-          {t('privacy')}
-        </GradientButton>
+        <GradientButton onPress={() => {
+        onClose();
+        navigation.navigate('Privacy');
+      }} icon="shield-account">
+        {t('privacy')}
+      </GradientButton>
       </View>
       
       <Divider style={styles.divider} />

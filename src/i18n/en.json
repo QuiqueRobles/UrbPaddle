@@ -209,8 +209,8 @@
   "projects": {
     "title": "Notable Projects",
     "items": {
-      "urbpaddle": {
-        "title": "Urbpaddle",
+      "KingOfTheCourt": {
+        "title": "KingOfTheCourt",
         "description": "A comprehensive mobile application for managing paddle tennis communities. Features include court booking, player matching, and community management."
       },
       "cubesat": {
@@ -386,6 +386,59 @@
   "invalidAddress": "Invalid address",
   "invalidCommunityCode": "Invalid community code",
   "registerCommunity": "Register a Community",
-  "communityRegistration": "Community Registration"
+  "communityRegistration": "Community Registration",
+  "introTitle1": "Welcome to KingOfTheCourt",
+  "introDescription1": "KingOfTheCourt is the ultimate platform for paddle tennis communities. Book, play, and grow your passion for the sport.",
+  "introTitle2": "Discover Local Courts",
+  "introDescription2": "Find and book paddle tennis courts in your area. Join matches or organize your own games with fellow enthusiasts.",
+  "introTitle3": "Register Your Community",
+  "introDescription3": "Create a profile for your paddle tennis community. Manage courts, events, and connect with players.",
+  "communityRegistrationTitle": "Register Your Community",
+  "communityName": "Community Name",
+  
+  "contactName": "Contact Name",
+  "sending": "Sending...",
+  "sendRegistration": "Send Registration",
+  "communityRegistrationSuccess": "Your community registration has been sent successfully. We'll review it and get back to you soon.",
+  "next": "Next",
+  "startRegistration": "Start Registration",
+  "privacyPolicy": "Privacy Policy",
+  "introduction": "Introduction",
+  "introductionText": "Welcome to the Padel Reservations App. We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your data when you use our app.",
 
+  "dataCollection": "Data Collection",
+  "dataCollectionText1": "We collect personal information such as your name, email address, and phone number when you register for our app. We also gather data about your padel reservations, playing preferences, and app usage patterns.",
+  "dataCollectionText2": "Additionally, we may collect technical information about your device, including IP address, operating system, and app version to improve our service and troubleshoot issues.",
+
+  "dataUse": "Use of Data",
+  "dataUseText1": "We use your data to manage reservations, improve our services, and send notifications related to your padel activities. This includes processing payments, sending booking confirmations, and providing customer support.",
+  "dataUseText2": "We may also use your data to personalize your experience, recommend courts or playing partners, and send you promotional offers related to padel.",
+
+  "dataSharing": "Data Sharing",
+  "dataSharingText": "We do not sell your personal information to third parties. However, we may share your data with trusted partners who assist us in operating our app, conducting our business, or servicing you, as long as those parties agree to keep this information confidential.",
+
+  "dataProtection": "Data Protection",
+  "dataProtectionText1": "We implement a variety of security measures to maintain the safety of your personal information. This includes using encryption for data transmission and secure servers for data storage.",
+  "dataProtectionText2": "While we strive to use commercially acceptable means to protect your personal data, we cannot guarantee its absolute security. You are responsible for maintaining the confidentiality of your account credentials.",
+
+  "userRights": "User Rights",
+  "userRightsText1": "You have the right to access, rectify, cancel, and object to the processing of your personal data. You can exercise these rights by contacting us through the information provided in the contact section.",
+  "userRightsText2": "You may also request a copy of your data or ask for it to be deleted, subject to any legal requirements that may oblige us to retain certain information.",
+
+  "cookies": "Cookies",
+  "cookiesText1": "We use cookies and similar tracking technologies to improve your browsing experience, analyze app usage, and assist in our marketing efforts.",
+  "cookiesText2": "You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our app.",
+
+  "thirdPartyServices": "Third-Party Services",
+  "thirdPartyServicesText1": "Our app may use third-party services for payment processing, analytics, or other functions. These services have their own privacy policies and may collect and use your information according to their terms.",
+  "thirdPartyServicesText2": "We recommend reviewing the privacy policies of these third-party services to understand how they handle your data.",
+
+  "minors": "Minors",
+  "minorsText": "Our app is not intended for individuals under the age of 16. We do not knowingly collect personal information from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.",
+
+  "changes": "Changes to Privacy Policy",
+  "changesText": "We reserve the right to modify this privacy policy at any time. Changes will take effect immediately upon their posting on the app. We encourage you to review this policy periodically for any changes.",
+
+  "contact": "Contact Us",
+  "contactText": "If you have any questions about this Privacy Policy, you can contact us at: privacy@padelreservationsapp.com or by mail at: Padel Reservations App, Calle Principal 123, 28001 Madrid, Spain."
 }

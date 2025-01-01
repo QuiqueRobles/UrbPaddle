@@ -20,6 +20,8 @@ export type RootStackParamList = {
   AboutDeveloper: undefined
   Matches: undefined
   CommunityRegistration: undefined
+  Privacy: undefined
+  PlayerManagement: undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

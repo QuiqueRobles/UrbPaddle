@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { RootStackParamList } from './navigation'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper'
+import { Provider as PaperProvider, DefaultTheme, IconButton } from 'react-native-paper'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { colors } from './theme/colors'
@@ -25,11 +25,11 @@ import MyStatisticsScreen from './screens/MyStatisticsScreen'
 import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 import MatchesScreen from './screens/MatchesScreen'
-import CommunityRegistrationScreen from './screens/CommunityRegistrationScreen'
+import PlayerManagementScreen from './screens/PlayerManagementScreen'
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import { useTranslation } from 'react-i18next';
-
+import { Alert } from 'react-native'
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
@@ -132,6 +132,7 @@ function MainTabs() {
 export default function App() {
   const { t } = useTranslation();
   const [session, setSession] = useState<Session | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -142,6 +143,36 @@ export default function App() {
       setSession(session)
     })
   }, [])
+
+  useEffect(() => {
+    const fetchAdminStatus = async () => {
+      const adminStatus = await checkAdminStatus()
+      setIsAdmin(adminStatus)
+    }
+    fetchAdminStatus()
+  }, [session])
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('resident_community_id')
+        .eq('id', user.id)
+        .single()
+
+    if (profileData?.resident_community_id) {
+      const { data: communityData } = await supabase
+        .from('community')
+        .select('admin')
+        .eq('id', profileData.resident_community_id)
+        .single()
+
+      return communityData?.admin === user.id
+    }
+  }
+  return false
+}
 
   return (
     <I18nextProvider i18n={i18n}>
@@ -175,13 +206,28 @@ export default function App() {
                   <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: t('myMatches') }} />
                   <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: t('paddleCourts') }} />
                   <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: t('aboutDeveloper') }} />
+                  <Stack.Screen 
+                    name="PlayerManagement" 
+                    component={PlayerManagementScreen} 
+                    options={{ 
+                      title: t('playerManagement'),
+                      headerRight: () => (
+                        isAdmin ? null : (
+                          <IconButton
+                            icon="block-helper"
+                            color={colors.onPrimary}
+                            onPress={() => Alert.alert(t('accessDenied'), t('adminOnlyFeature'))}
+                          />
+                        )
+                      )
+                    }}
+                  />
                 </>
               ) : (
                 <>
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
-                  <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('communityRegistration') }} />
                 </>
               )}
             </Stack.Navigator>

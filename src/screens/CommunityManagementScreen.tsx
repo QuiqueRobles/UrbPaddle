@@ -13,6 +13,8 @@ import { UpdateModal } from '../components/UpdateModal';
 import { BookingSettingsModal } from '../components/BookingSettingsModal';
 import { useTranslation } from 'react-i18next';
 
+import { useNavigation } from '@react-navigation/native';
+
 const { width, height } = Dimensions.get('window');
 
 type CommunityData = {
@@ -46,13 +48,16 @@ export default function CommunityManagementScreen() {
   const [defaultBookingDuration, setDefaultBookingDuration] = useState(60);
   const [maxNumberCurrentBookings, setMaxNumberCurrentBookings] = useState(1);
   const [simultaneousBookings, setSimultaneousBookings] = useState(false);
-
+  const navigation = useNavigation();
   const theme = useTheme();
 
   useEffect(() => {
     fetchCommunityData();
   }, []);
 
+   const navigateToPlayerManagement = () => {
+    navigation.navigate('PlayerManagement');
+  };
   const fetchCommunityData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -239,7 +244,9 @@ export default function CommunityManagementScreen() {
           <GradientButton onPress={() => setShowBookingSettingsModal(true)} icon="calendar-clock">
             {t('updateBookingSettings')}
           </GradientButton>
-
+           <GradientButton onPress={navigateToPlayerManagement} icon="account-group">
+            {t('managePlayersInCommunity')}
+          </GradientButton>
           <UpdateModal
             visible={showCourtsModal}
             onClose={() => setShowCourtsModal(false)}
