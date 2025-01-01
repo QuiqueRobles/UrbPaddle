@@ -441,4 +441,21 @@
 
   "contact": "Contact Us",
   "contactText": "If you have any questions about this Privacy Policy, you can contact us at: privacy@padelreservationsapp.com or by mail at: Padel Reservations App, Calle Principal 123, 28001 Madrid, Spain."
+ , 
+    "communityPlayers": "Community Players",
+    "removePlayer": "Remove Player",
+    "areYouSureRemovePlayer": "Are you sure you want to remove {{name}} from the community?",
+    "finalConfirmation": "Final Confirmation",
+    "allPlayerDataWillBeDeleted": "All player data associated with this community will be deleted. This action cannot be undone.",
+    "confirmRemove": "Yes, Remove Player",
+ 
+    "playerRemovedFromCommunity": "Player has been removed from the community",
+    
+    "failedToRemovePlayer": "Failed to remove player",
+    "failedToFetchProfiles": "Failed to fetch player profiles",
+    "loadingPlayers": "Loading players...",
+    "joinedOn": "Joined on {{date}}",
+    "managePlayersInCommunity": "Manage Players in Community",
+    "playerManagement": "Player Management",
+    "communityMap": "Map"
 }

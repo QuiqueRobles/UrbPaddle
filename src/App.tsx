@@ -26,6 +26,7 @@ import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 import MatchesScreen from './screens/MatchesScreen'
 import PlayerManagementScreen from './screens/PlayerManagementScreen'
+import CommunityMapScreen from './screens/CommunityMapScreen'
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import { useTranslation } from 'react-i18next';
@@ -86,6 +87,8 @@ function MainTabs() {
           iconName = 'account';
         } else if (route.name === 'CommunityManagementTab') {
           iconName = 'office-building';
+        } else if (route.name === 'CommunityMapTab') {
+          iconName = 'map-marker';
         } else {
           iconName = 'alert-circle'; // Default icon
         }
@@ -112,6 +115,11 @@ function MainTabs() {
         name="MyBookingsTab" 
         component={MyBookingsScreen} 
         options={{ tabBarLabel: t('myBookings') }}
+      />
+      <Tab.Screen 
+        name="CommunityMapTab" 
+        component={CommunityMapScreen} 
+        options={{ tabBarLabel: t('communityMap') }}
       />
       <Tab.Screen 
         name="ProfileTab" 
