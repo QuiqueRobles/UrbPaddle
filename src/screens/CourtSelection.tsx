@@ -145,12 +145,20 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     });
   };
 
-  const getSlotStatus = (courtId: number, time: string) => {
+ const getSlotStatus = (courtId: number, time: string) => {
     if (!selectedDuration || !community) return 'unavailable';
     
-    const slotStart = parse(time, 'HH:mm', new Date());
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selectedDate = parseISO(date);
+    const slotStart = parse(time, 'HH:mm', selectedDate);
     const slotEnd = addMinutes(slotStart, selectedDuration);
-    const communityEnd = parse(community.booking_end_time, 'HH:mm:ss', new Date());
+    const communityEnd = parse(community.booking_end_time, 'HH:mm:ss', selectedDate);
+
+    // Check if the slot is in the past
+    if (isEqual(selectedDate, today) && isBefore(slotStart, now)) {
+      return 'past';
+    }
 
     if (isAfter(slotEnd, communityEnd)) {
       return 'unavailable';
@@ -162,6 +170,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
     return 'unavailable';
   };
+
 
   const handleBooking = async () => {
     if (selectedCourt && selectedTime && selectedDuration && community) {
@@ -209,6 +218,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     return generateTimeSlots.map((time) => {
       const slotStatus = getSlotStatus(courtId, time);
       const isAvailable = slotStatus === 'available';
+      const isPast = slotStatus === 'past';
       const isSelected = selectedCourt === courtId && selectedTime === time;
       
       return (
@@ -220,10 +230,14 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
               setSelectedTime(time);
             }
           }}
-          disabled={!isAvailable}
+          disabled={!isAvailable || isPast}
         >
           <LinearGradient
-            colors={isAvailable ? (isSelected ? ['#00A86B', '#00C853'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.2)']) : ['rgba(255, 0, 0, 0.5)', 'rgba(255, 0, 0, 0.5)']}
+            colors={
+              isPast ? ['rgba(128, 128, 128, 0.5)', 'rgba(128, 128, 128, 0.5)'] :
+              isAvailable ? (isSelected ? ['#00A86B', '#00C853'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.2)']) :
+              ['rgba(255, 0, 0, 0.5)', 'rgba(255, 0, 0, 0.5)']
+            }
             style={[
               styles.timeSlot,
               { opacity: isAvailable ? (isSelected ? 1 : 0.7) : 1 }
@@ -231,7 +245,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
           >
             <Text style={[
               styles.timeSlotText,
-              { color: isAvailable ? '#fff' : '#fff' }
+              { color: isPast ? '#888' : '#fff' }
             ]}>
               {time}
             </Text>
@@ -321,19 +335,23 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
         </LinearGradient>
         
         <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <LinearGradient colors={['#00A86B', '#00C853']} style={[styles.legendColor, { opacity: 0.7 }]} />
-            <Text style={styles.legendText}>{t('available')}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
-            <Text style={styles.legendText}>{t('unavailable')}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <LinearGradient colors={['#00A86B', '#00C853']} style={styles.legendColor} />
-            <Text style={styles.legendText}>{t('selected')}</Text>
-          </View>
+        <View style={styles.legendItem}>
+          <LinearGradient colors={['#00A86B', '#00C853']} style={[styles.legendColor, { opacity: 0.7 }]} />
+          <Text style={styles.legendText}>{t('available')}</Text>
         </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 0, 0, 0.5)' }]} />
+          <Text style={styles.legendText}>{t('unavailable')}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <LinearGradient colors={['#00A86B', '#00C853']} style={styles.legendColor} />
+          <Text style={styles.legendText}>{t('selected')}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(128, 128, 128, 0.5)' }]} />
+          <Text style={styles.legendText}>{t('past')}</Text>
+        </View>
+      </View>
         
         <HelperText type="info" style={styles.helperText}>
           {t('tapToSelectHelperText')}

@@ -22,6 +22,7 @@ export type RootStackParamList = {
   CommunityRegistration: undefined
   Privacy: undefined
   PlayerManagement: undefined
+  ChangePassword: undefined
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

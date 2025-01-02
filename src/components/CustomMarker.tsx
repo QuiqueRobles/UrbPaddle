@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Marker, Callout } from 'react-native-maps';
-import { Feather } from '@expo/vector-icons';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, Animated } from 'react-native';
+import { Marker } from 'react-native-maps';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Community } from '../screens/CommunityMapScreen';
 
 interface CustomMarkerProps {
@@ -10,60 +10,75 @@ interface CustomMarkerProps {
   isSelected: boolean;
 }
 
-const CustomMarker: React.FC<CustomMarkerProps> = ({ community, onPress, isSelected }) => (
-  <Marker
-    coordinate={{ latitude: community.latitude, longitude: community.longitude }}
-    onPress={() => onPress(community)}
-  >
-    <View style={styles.markerContainer}>
-      <View style={[styles.marker, isSelected && styles.selectedMarker]}>
-        <Feather name="map-pin" size={18} color={isSelected ? "#FFFFFF" : "rgb(36, 233, 59)"} />
-      </View>
-    </View>
-    {isSelected && (
-      <Callout tooltip>
-        <View style={styles.calloutContainer}>
-          <Text style={styles.calloutText}>{community.name}</Text>
+const CustomMarker: React.FC<CustomMarkerProps> = React.memo(({ community, onPress, isSelected }) => {
+  const markerColor = useMemo(() => {
+    switch (community.user_relationship) {
+      case 'resident':
+        return '#4CAF50';
+      case 'guest':
+        return '#2196F3';
+      default:
+        return '#FF9800';
+    }
+  }, [community.user_relationship]);
+
+  const scaleAnim = useRef(new Animated.Value(isSelected ? 1.2 : 1)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: isSelected ? 1.2 : 1,
+      useNativeDriver: true,
+      friction: 5,
+    }).start();
+  }, [isSelected, scaleAnim]);
+
+  return (
+    <Marker
+      coordinate={{
+        latitude: community.latitude,
+        longitude: community.longitude,
+      }}
+      onPress={() => onPress(community)}
+      tracksViewChanges={false}
+    >
+      <Animated.View style={[styles.markerContainer, { backgroundColor: markerColor, transform: [{ scale: scaleAnim }] }]}>
+        <MaterialCommunityIcons name="office-building" size={24} color="white" />
+        <View style={styles.courtNumberContainer}>
+          <Text style={styles.courtNumberText}>{community.court_number}</Text>
         </View>
-      </Callout>
-    )}
-  </Marker>
-);
+      </Animated.View>
+    </Marker>
+  );
+});
 
 const styles = StyleSheet.create({
   markerContainer: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  marker: {
-    padding: 8,
-    backgroundColor: '#F3E8FF',
     borderRadius: 20,
-    borderWidth: 3,
-    borderColor: 'rgb(36, 233, 59)',
-  },
-  selectedMarker: {
-    backgroundColor: 'rgb(36, 233, 59)',
-    borderColor: '#F3E8FF',
-  },
-  calloutContainer: {
-    backgroundColor: 'white',
-    borderRadius: 6,
-    padding: 6,
-    maxWidth: 150,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
   },
-  calloutText: {
-    fontSize: 14,
+  courtNumberContainer: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    zIndex: 2,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  courtNumberText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#1F2937',
-    textAlign: 'center',
+    color: '#333',
   },
 });
 

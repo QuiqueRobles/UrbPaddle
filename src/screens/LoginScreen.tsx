@@ -166,18 +166,22 @@ export default function LoginScreen({ navigation }: Props) {
             handleLogin,
             t('login'),
             ['#00A86B', '#00C853'],
-            { opacity: loading ? 0.7 : 1 }
+            { marginBottom: 16, opacity: loading ? 0.7 : 1 }
           )}
-          {renderButton(
-            () => navigation.navigate('Register'),
-            t('register'),
-            gradients.forest
-          )}
-          {renderButton(
-            () => navigation.navigate('CommunityRegistration'),
-            t('registerCommunity'),
-            gradients.emerald
-          )}
+          <View style={styles.secondaryButtonsContainer}>
+            {renderButton(
+              () => navigation.navigate('Register'),
+              t('register'),
+              gradients.evergreen,
+              { flex: 1, marginRight: 8 }
+            )}
+            {renderButton(
+              () => navigation.navigate('CommunityRegistration'),
+              t('registerCommunity'),
+              gradients.evergreen,
+              { flex: 1, marginLeft: 8 }
+            )}
+          </View>
         </Animatable.View>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -225,7 +229,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   button: {
-    marginTop: 16,
     width: '100%',
     elevation: 3,
     shadowColor: '#000',
@@ -240,10 +243,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textTransform: 'uppercase',
+  },
+  secondaryButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   fireTitle: {
     textAlign: 'center',

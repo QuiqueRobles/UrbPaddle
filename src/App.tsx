@@ -26,7 +26,10 @@ import CommunityManagementScreen from './screens/CommunityManagementScreen'
 import AboutDeveloperScreen from './screens/AboutDeveloperScreen'
 import MatchesScreen from './screens/MatchesScreen'
 import PlayerManagementScreen from './screens/PlayerManagementScreen'
+import CommunityRegistrationScreen from './screens/CommunityRegistrationScreen'
 import CommunityMapScreen from './screens/CommunityMapScreen'
+import ChangePasswordScreen from './screens/ChangePasswordScreen'
+import PrivacyScreen from './screens/PrivacyScreen'
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import { useTranslation } from 'react-i18next';
@@ -214,6 +217,8 @@ export default function App() {
                   <Stack.Screen name="Matches" component={MatchesScreen} options={{ title: t('myMatches') }} />
                   <Stack.Screen name="CourtSelection" component={CourtSelectionScreen} options={{ title: t('paddleCourts') }} />
                   <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: t('aboutDeveloper') }} />
+                  <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: t('changePassword') }} />
+                  <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t('privacy') }} /> 
                   <Stack.Screen 
                     name="PlayerManagement" 
                     component={PlayerManagementScreen} 
@@ -235,6 +240,7 @@ export default function App() {
                 <>
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
+                  <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('registerCommunity') }} />
                   <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
                 </>
               )}

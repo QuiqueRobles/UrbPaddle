@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder } from 'react-native';
-import MapView from 'react-native-maps';
+import MapView, { Region } from 'react-native-maps';
 import { StatusBar } from 'expo-status-bar';
-import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomMarker from '../components/CustomMarker';
 import CommunityCard from '../components/CommunityCard';
+import { useTranslation } from 'react-i18next';
+import { useCommunities, Community } from '../hooks/useCommunities';
 
 type RootStackParamList = {
   Community: { communityId: string };
@@ -17,32 +18,15 @@ type CommunityMapScreenNavigationProp = NativeStackNavigationProp<RootStackParam
 const { width, height } = Dimensions.get('window');
 const CARD_HEIGHT = 200;
 
-export interface Community {
-  id: string;
-  name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  court_number: number;
-  image: string;
-  resident_count: number;
-  booking_start_time: string;
-  booking_end_time: string;
-}
-
 const CommunityMapScreen: React.FC = () => {
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const { t } = useTranslation();
+  const { communities, loading, error, refetch } = useCommunities();
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const mapRef = useRef<MapView>(null);
   const translateY = useRef(new Animated.Value(CARD_HEIGHT)).current;
 
   const navigation = useNavigation<CommunityMapScreenNavigationProp>();
-
-  useEffect(() => {
-    fetchCommunities();
-  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -67,43 +51,17 @@ const CommunityMapScreen: React.FC = () => {
     })
   ).current;
 
-  const fetchCommunities = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('community')
-        .select('*')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null);
-
-      if (error) throw error;
-
-      const communitiesWithCoordinates = data
-        .filter((community: any) => community.latitude && community.longitude)
-        .map((community: any) => ({
-          ...community,
-          latitude: parseFloat(community.latitude),
-          longitude: parseFloat(community.longitude),
-        }));
-
-      setCommunities(communitiesWithCoordinates);
-    } catch (error) {
-      console.error('Error fetching communities:', error);
-      setError('Failed to fetch communities. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCommunityPress = useCallback((community: Community) => {
-    setSelectedCommunity(community);
+    setSelectedCommunity((prev) => (prev?.id === community.id ? null : community));
     if (mapRef.current) {
-      mapRef.current.animateToRegion({
+      const newRegion = {
         latitude: community.latitude - 0.004,
         longitude: community.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      }, 1000);
+      };
+      mapRef.current.animateToRegion(newRegion, 1000);
+      setMapRegion(newRegion);
     }
     Animated.spring(translateY, {
       toValue: 0,
@@ -126,11 +84,26 @@ const CommunityMapScreen: React.FC = () => {
     }).start(() => setSelectedCommunity(null));
   }, [translateY]);
 
+  const handleRegionChange = useCallback((region: Region) => {
+    setMapRegion(region);
+  }, []);
+
+  const memoizedCommunities = useMemo(() => {
+    return communities.map((community) => (
+      <CustomMarker 
+        key={community.id} 
+        community={community} 
+        onPress={handleCommunityPress}
+        isSelected={selectedCommunity?.id === community.id}
+      />
+    ));
+  }, [communities, selectedCommunity, handleCommunityPress]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6D28D9" />
-        <Text>Loading communities...</Text>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text>{t('loadingCommunities')}</Text>
       </View>
     );
   }
@@ -155,15 +128,9 @@ const CommunityMapScreen: React.FC = () => {
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
+        onRegionChangeComplete={handleRegionChange}
       >
-        {communities.map((community) => (
-          <CustomMarker 
-            key={community.id} 
-            community={community} 
-            onPress={handleCommunityPress}
-            isSelected={selectedCommunity?.id === community.id}
-          />
-        ))}
+        {memoizedCommunities}
       </MapView>
       {selectedCommunity && (
         <CommunityCard

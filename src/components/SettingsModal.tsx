@@ -21,6 +21,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
     navigation.navigate('AboutDeveloper');
   };
 
+  const handleChangePassword = () => {
+    onClose();
+    navigation.navigate('ChangePassword');
+  };
+
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
   };
@@ -53,7 +58,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
       
       <View style={styles.section}>
         <Title style={styles.sectionTitle}>{t('account')}</Title>
-        <GradientButton onPress={() => {}} icon="lock-reset">
+        <GradientButton onPress={handleChangePassword} icon="lock-reset">
           {t('changePassword')}
         </GradientButton>
         <GradientButton onPress={() => {
@@ -164,3 +169,4 @@ const styles = StyleSheet.create({
 });
 
 export default SettingsModal;
+
