@@ -204,11 +204,12 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
                   value={communityCode}
                   onChangeText={setCommunityCode}
                   style={styles.input}
+                  left={<TextInput.Icon icon="home-group" color={theme.colors.primary} />}
                   contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   mode="flat"
                   underlineColor="transparent"
                   textColor='#fff'
-                  left={<TextInput.Icon icon="home-group" color={theme.colors.primary} />}
+                 
                 />
                 <TouchableOpacity onPress={handleJoinCommunity} disabled={loading} style={styles.button}>
                   <LinearGradient

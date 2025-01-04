@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Modal, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Card, ActivityIndicator, useTheme, Button, Chip, Surface } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Dimensions, Text } from 'react-native';
+import { Card, useTheme, Surface } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { PaddleCourt } from '../components/PaddleCourt';
@@ -35,7 +35,6 @@ export default function MatchesScreen() {
   const [players, setPlayers] = useState<{ [key: string]: Player }>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
   
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -48,11 +47,7 @@ export default function MatchesScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    fetchMatches();
-  }, []);
-
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,14 +94,18 @@ export default function MatchesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [t]);
 
-  const onRefresh = () => {
+  useEffect(() => {
+    fetchMatches();
+  }, [fetchMatches]);
+
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchMatches();
-  };
+  }, [fetchMatches]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filteredMatches = [...allMatches];
 
     if (startDate && endDate) {
@@ -126,18 +125,16 @@ export default function MatchesScreen() {
     }
 
     setMatches(filteredMatches);
-    setFilterModalVisible(false);
-  };
+  }, [allMatches, startDate, endDate, selectedPlayerIds]);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setStartDate(null);
     setEndDate(null);
     setSelectedPlayerIds([]);
     setMatches(allMatches);
-    setFilterModalVisible(false);
-  };
+  }, [allMatches]);
 
-  const renderMatchItem = ({ item }: { item: Match }) => {
+  const renderMatchItem = useCallback(({ item }: { item: Match }) => {
     const matchPlayers = [item.player1_id, item.player2_id, item.player3_id, item.player4_id]
       .map(id => id ? players[id] || null : null);
 
@@ -151,61 +148,103 @@ export default function MatchesScreen() {
         </Card.Content>
       </Card>
     );
-  };
+  }, [players, t]);
 
-  const renderFilterChips = () => {
+  const renderFilterSection = useCallback(() => {
     return (
-      <View style={styles.chipContainer}>
-        {startDate && endDate && (
-          <Surface elevation={1} style={styles.filterChip}>
-            <Ionicons name="calendar" size={16} color={colors.primary} style={styles.chipIcon} />
-            <Text style={styles.chipText}>
-              {`${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`}
-            </Text>
-            <TouchableOpacity onPress={() => {
-              setStartDate(null);
-              setEndDate(null);
-              setMatches(allMatches);
-            }}>
-              <Ionicons name="close" size={16} color={colors.primary} />
+      <Surface style={styles.filterSection}>
+        <View style={styles.dateFilterContainer}>
+          <Text style={styles.filterSectionTitle}>{t('dateRange')}</Text>
+          <View style={styles.datePickerRow}>
+            <TouchableOpacity 
+              onPress={() => setShowStartDatePicker(true)}
+              style={styles.datePickerButton}
+            >
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+              <Text style={styles.datePickerText}>
+                {startDate ? format(startDate, 'dd/MM/yyyy') : t('startDate')}
+              </Text>
             </TouchableOpacity>
-          </Surface>
-        )}
-        {selectedPlayerIds.map(playerId => (
-          <Surface key={playerId} elevation={1} style={styles.filterChip}>
-            <Ionicons name="people" size={16} color={colors.primary} style={styles.chipIcon} />
-            <Text style={styles.chipText}>
-              {players[playerId]?.full_name || t('player')}
-            </Text>
-            <TouchableOpacity onPress={() => {
-              setSelectedPlayerIds(selectedPlayerIds.filter(id => id !== playerId));
-              applyFilters();
-            }}>
-              <Ionicons name="close" size={16} color={colors.primary} />
+
+            <TouchableOpacity 
+              onPress={() => setShowEndDatePicker(true)}
+              style={styles.datePickerButton}
+            >
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+              <Text style={styles.datePickerText}>
+                {endDate ? format(endDate, 'dd/MM/yyyy') : t('endDate')}
+              </Text>
             </TouchableOpacity>
-          </Surface>
-        ))}
-      </View>
+          </View>
+
+          {(showStartDatePicker || showEndDatePicker) && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={showStartDatePicker ? (startDate || new Date()) : (endDate || new Date())}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                const currentDate = selectedDate || (showStartDatePicker ? startDate : endDate);
+                if (showStartDatePicker) {
+                  setShowStartDatePicker(false);
+                  setStartDate(currentDate);
+                } else {
+                  setShowEndDatePicker(false);
+                  setEndDate(currentDate);
+                }
+              }}
+            />
+          )}
+        </View>
+
+        <View style={styles.playerFilterContainer}>
+          <Text style={styles.filterSectionTitle}>{t('players')}</Text>
+          <MultiSelect
+            hideTags
+            items={playerOptions}
+            uniqueKey="id"
+            onSelectedItemsChange={setSelectedPlayerIds}
+            selectedItems={selectedPlayerIds}
+            selectText={t('selectPlayers')}
+            searchInputPlaceholderText={t('searchPlayers')}
+            tagRemoveIconColor={colors.primary}
+            tagBorderColor={colors.primary}
+            tagTextColor={colors.primary}
+            selectedItemTextColor={colors.primary}
+            selectedItemIconColor={colors.primary}
+            searchInputStyle={styles.multiSelectSearchInput}
+            submitButtonColor={colors.primary}
+            submitButtonText={t('select')}
+            styleDropdownMenuSubsection={styles.multiSelectDropdownMenu}
+            styleListContainer={styles.multiSelectListContainer}
+            styleRowList={styles.multiSelectRowList}
+          />
+        </View>
+
+        <View style={styles.filterButtonContainer}>
+          <TouchableOpacity 
+            onPress={resetFilters}
+            style={[styles.filterButton, { backgroundColor: colors.error }]}
+          >
+            <Text style={styles.filterButtonText}>{t('clear')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={applyFilters}
+            style={[styles.filterButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.filterButtonText}>{t('apply')}</Text>
+          </TouchableOpacity>
+        </View>
+      </Surface>
     );
-  };
+  }, [t, startDate, endDate, showStartDatePicker, showEndDatePicker, playerOptions, selectedPlayerIds, colors.primary, resetFilters, applyFilters]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={StyleSheet.absoluteFillObject}>
-        <View style={styles.filterContainer}>
-          <TouchableOpacity 
-            style={styles.filterButton} 
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Surface elevation={2} style={styles.filterButtonSurface}>
-              <Ionicons name="filter" size={20} color={'white'} />
-              <Text style={styles.filterButtonText}>{t('filters')}</Text>
-            </Surface>
-          </TouchableOpacity>
-          {renderFilterChips()}
-        </View>
-
         <FlatList
+          ListHeaderComponent={renderFilterSection}
           data={matches}
           renderItem={renderMatchItem}
           keyExtractor={(item) => item.id}
@@ -220,118 +259,10 @@ export default function MatchesScreen() {
           }
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{t('noMatchesFound')}</Text>
+              <Text style={styles.emptyText}>{loading ? t('loading') : t('noMatchesFound')}</Text>
             </View>
           )}
         />
-
-        <Modal
-          visible={filterModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setFilterModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <Surface style={styles.modalContent} elevation={5}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('matchFilters')}</Text>
-                <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.dateFilterContainer}>
-                <Text style={styles.filterSectionTitle}>{t('dateRange')}</Text>
-                <View style={styles.datePickerRow}>
-                  <TouchableOpacity 
-                    onPress={() => setShowStartDatePicker(true)}
-                    style={styles.datePickerButton}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                    <Text style={styles.datePickerText}>
-                      {startDate ? format(startDate, 'dd/MM/yyyy') : t('startDate')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    onPress={() => setShowEndDatePicker(true)}
-                    style={styles.datePickerButton}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                    <Text style={styles.datePickerText}>
-                      {endDate ? format(endDate, 'dd/MM/yyyy') : t('endDate')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {showStartDatePicker && (
-                  <DateTimePicker
-                    value={startDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowStartDatePicker(false);
-                      setStartDate(selectedDate || null);
-                    }}
-                  />
-                )}
-
-                {showEndDatePicker && (
-                  <DateTimePicker
-                    value={endDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowEndDatePicker(false);
-                      setEndDate(selectedDate || null);
-                    }}
-                  />
-                )}
-              </View>
-
-              <View style={styles.playerFilterContainer}>
-                <Text style={styles.filterSectionTitle}>{t('players')}</Text>
-               <MultiSelect
-                  hideTags
-                  items={playerOptions}
-                  uniqueKey="id"
-                  onSelectedItemsChange={setSelectedPlayerIds}
-                  selectedItems={selectedPlayerIds}
-                  selectText={t('selectPlayers')}
-                  searchInputPlaceholderText={t('searchPlayers')}
-                  tagRemoveIconColor={colors.primary}
-                  tagBorderColor={colors.primary}
-                  tagTextColor={colors.primary}
-                  selectedItemTextColor={colors.primary}
-                  selectedItemIconColor={colors.primary}
-                  searchInputStyle={styles.multiSelectSearchInput}
-                  submitButtonColor={colors.primary}
-                  submitButtonText={t('select')}
-                  styleDropdownMenuSubsection={styles.multiSelectDropdownMenu}
-                  styleListContainer={styles.multiSelectListContainer}
-                  styleRowList={styles.multiSelectRowList}
-                />
-              </View>
-
-              <View style={styles.modalButtonContainer}>
-                <Button 
-                  mode="outlined" 
-                  onPress={resetFilters}
-                  style={styles.modalButton}
-                >
-                  {t('clear')}
-                </Button>
-                <Button 
-                  mode="contained" 
-                  onPress={applyFilters}
-                  style={styles.modalButton}
-                >
-                  {t('apply')}
-                </Button>
-              </View>
-            </Surface>
-          </View>
-        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -343,14 +274,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   listContent: {
     padding: 16,
   },
@@ -358,7 +281,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     elevation: 4,
     borderRadius: 24,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   matchDate: {
     fontSize: 16,
@@ -385,79 +308,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'white',
   },
-   filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filterButton: {
-    marginRight: 12,
-  },
-  filterButtonSurface: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  filterSection: {
+    margin: 16,
+    padding: 16,
     borderRadius: 12,
-  },
-  filterButtonText: {
-    marginLeft: 8,
-    color:'white',
-    fontWeight: '600',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipIcon: {
-    marginRight: 6,
-  },
-  chipText: {
-    marginRight: 8,
-    fontWeight: '500',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: width * 0.90,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    elevation: 10, 
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+    color: '#333',
   },
   dateFilterContainer: {
     marginBottom: 20,
@@ -475,20 +337,28 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 12,
     width: '48%',
+    backgroundColor: 'white',
   },
   datePickerText: {
     marginLeft: 8,
-    color: '#666',
+    color: '#333',
   },
   playerFilterContainer: {
     marginBottom: 20,
   },
-  modalButtonContainer: {
+  filterButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  modalButton: {
+  filterButton: {
     width: '48%',
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  filterButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
   multiSelectMainWrapper: {
     borderWidth: 1,
@@ -522,19 +392,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   multiSelectSearchInput: {
-    color: colors.text,
+    color: '#333',
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  multiSelectTagContainer: {
-    backgroundColor: colors.primary + '20',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginRight: 8,
-    marginBottom: 8,
-  },
 });
+

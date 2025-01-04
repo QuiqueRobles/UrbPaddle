@@ -367,7 +367,7 @@
   "passwordLengthError": "Password must be at least 6 characters long",
   "unauthorizedEmailError": "This email domain is not authorized. Please contact the administrator for assistance.",
   "registrationSuccessful": "Registration successful. Please check your email to verify your account.",
-  "joinPaddleCommunity": "Join the Paddle Community!",
+  "joinPaddleCommunity": "Join KingOfTheCourt!",
  
   "username": "Username",
 
@@ -389,10 +389,10 @@
   "communityRegistration": "Community Registration",
   "introTitle1": "Welcome to KingOfTheCourt",
   "introDescription1": "KingOfTheCourt is the ultimate platform for paddle tennis communities. Book, play, and grow your passion for the sport.",
-  "introTitle2": "Discover Local Courts",
-  "introDescription2": "Find and book paddle tennis courts in your area. Join matches or organize your own games with fellow enthusiasts.",
+  "introTitle2": "Put your community on the radar",
+  "introDescription2": "Statistics, competition, and fun. KingOfTheCourt offers everything you need to take your community to the next level.",
   "introTitle3": "Register Your Community",
-  "introDescription3": "Create a profile for your paddle tennis community. Manage courts, events, and connect with players.",
+  "introDescription3": "Create a profile for your paddle tennis community. Manage courts, residents and guests.",
   "communityRegistrationTitle": "Register Your Community",
   "communityName": "Community Name",
   
@@ -457,5 +457,15 @@
     "joinedOn": "Joined on {{date}}",
     "managePlayersInCommunity": "Manage Players in Community",
     "playerManagement": "Player Management",
-    "communityMap": "Map"
+    "communityMap": "Map",
+  "currentPassword": "Current Password",
+  "newPassword": "New Password",
+  "confirmNewPassword": "Confirm New Password",
+  "passwordRequirements": "Password must be at least 8 characters long",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "passwordTooShort": "Password is too short",
+  "changing": "Changing...",
+  "passwordChangedSuccessfully": "Password changed successfully",
+  "emailAlreadyExists": "This email is already registered",
+  "usernameAlreadyExists": "This username is already taken"
 }

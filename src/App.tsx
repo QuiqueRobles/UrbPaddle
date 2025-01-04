@@ -219,6 +219,7 @@ export default function App() {
                   <Stack.Screen name="AboutDeveloper" component={AboutDeveloperScreen} options={{ title: t('aboutDeveloper') }} />
                   <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: t('changePassword') }} />
                   <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t('privacy') }} /> 
+                  <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
                   <Stack.Screen 
                     name="PlayerManagement" 
                     component={PlayerManagementScreen} 
@@ -241,7 +242,7 @@ export default function App() {
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('registerCommunity') }} />
-                  <Stack.Screen name="CommunityCode" component={CommunityCodeScreen} options={{ title: t('joinCommunity') }} />
+                  
                 </>
               )}
             </Stack.Navigator>

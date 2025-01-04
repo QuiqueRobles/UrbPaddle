@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Text, Portal, Modal, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 type LevelInfo = {
   name: string;
-  color: [string, string, ...string[]]; // Explicitly define the tuple type
+  color: [string, string, ...string[]];
   description: string;
 };
 
@@ -67,8 +67,12 @@ export default function LevelIndicator({ level }: LevelIndicatorProps) {
       </View>
 
       <Portal>
-        <Modal visible={infoModalVisible} onDismiss={() => setInfoModalVisible(false)} contentContainerStyle={styles.modalContainer}>
-          <ScrollView>
+        <Modal 
+          visible={infoModalVisible} 
+          onDismiss={() => setInfoModalVisible(false)} 
+          contentContainerStyle={styles.modalContainer}
+        >
+          <ScrollView style={styles.modalScrollView}>
             <Text style={styles.modalTitle}>{t('levelSystem')}</Text>
             <Text style={styles.modalText}>
               {t('levelSystemDescription')}
@@ -108,11 +112,14 @@ export default function LevelIndicator({ level }: LevelIndicatorProps) {
   );
 }
 
+const { width, height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   mainContainer: {
     width: '100%',
     alignItems: 'center',
     marginVertical: 10,
+    zIndex: 1,
   },
   contentContainer: {
     flexDirection: 'row',
@@ -143,10 +150,14 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: 'white',
-    padding: 20,
     margin: 20,
     borderRadius: 10,
-    maxHeight: '90%',
+    maxHeight: height * 0.8,
+    width: width * 0.9,
+    alignSelf: 'center',
+  },
+  modalScrollView: {
+    padding: 20,
   },
   modalTitle: {
     fontSize: 24,

@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect, useRef } from 'react'
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Animated } from 'react-native'
-import { TextInput, useTheme, Text } from 'react-native-paper'
+import { TextInput, useTheme, Text, Divider } from 'react-native-paper'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { supabase } from '../lib/supabase'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -168,17 +168,18 @@ export default function LoginScreen({ navigation }: Props) {
             ['#00A86B', '#00C853'],
             { marginBottom: 16, opacity: loading ? 0.7 : 1 }
           )}
+          <Divider style={styles.divider} />
           <View style={styles.secondaryButtonsContainer}>
             {renderButton(
               () => navigation.navigate('Register'),
               t('register'),
-              gradients.evergreen,
+              ['#1E3A8A', '#3B82F6'],
               { flex: 1, marginRight: 8 }
             )}
             {renderButton(
               () => navigation.navigate('CommunityRegistration'),
               t('registerCommunity'),
-              gradients.evergreen,
+              ['#7C3AED', '#A78BFA'],
               { flex: 1, marginLeft: 8 }
             )}
           </View>
@@ -258,6 +259,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 30,
     color: '#FFFFFF',
+  },
+  divider: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginVertical: 16,
   },
 })
 

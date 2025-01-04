@@ -50,61 +50,98 @@ export default function RegisterScreen({ navigation }: Props) {
     });
   }, [navigation]);
 
-  async function handleRegister() {
-    setEmailError('')
-    setPasswordError('')
+  async function checkEmailExists(email: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .single()
+  
+  return !!data
+}
 
-    if (!validateEmail(email)) {
-      setEmailError(t('invalidEmailError'))
-      return
-    }
+async function checkUsernameExists(username: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .single()
+  
+  return !!data
+}
 
-    if (!validatePassword(password)) {
-      setPasswordError(t('passwordLengthError'))
-      return
-    }
+async function handleRegister() {
+  setEmailError('')
+  setPasswordError('')
 
-    setLoading(true)
-    const { data: authData, error: authError } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        }
-      }
-    })
-    
-    if (authError) {
-      setLoading(false)
-      if (authError.message.includes('Email not allowed')) {
-        return Alert.alert(t('error'), t('unauthorizedEmailError'))
-      }
-      return Alert.alert(t('error'), authError.message)
-    }
-
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({ 
-          id: authData.user.id, 
-          full_name: fullName,
-          apartment: apartment,
-          username: userName,
-          phone_number: phoneNumber,
-          updated_at: new Date()
-        })
-
-      setLoading(false)
-
-      if (profileError) {
-        return Alert.alert(t('error'), profileError.message)
-      }
-
-      Alert.alert(t('success'), t('registrationSuccessful'))
-      navigation.navigate('CommunityCode', { userId: authData.user.id })
-    }
+  if (!validateEmail(email)) {
+    setEmailError(t('invalidEmailError'))
+    return
   }
+
+  if (!validatePassword(password)) {
+    setPasswordError(t('passwordLengthError'))
+    return
+  }
+
+  setLoading(true)
+
+  // Check if email already exists
+  const emailExists = await checkEmailExists(email)
+  if (emailExists) {
+    setLoading(false)
+    setEmailError(t('emailAlreadyExists'))
+    return
+  }
+
+  // Check if username already exists
+  const usernameExists = await checkUsernameExists(userName)
+  if (usernameExists) {
+    setLoading(false)
+    Alert.alert(t('error'), t('usernameAlreadyExists'))
+    return
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.signUp({ 
+    email, 
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+      }
+    }
+  })
+  
+  if (authError) {
+    setLoading(false)
+    if (authError.message.includes('Email not allowed')) {
+      return Alert.alert(t('error'), t('unauthorizedEmailError'))
+    }
+    return Alert.alert(t('error'), authError.message)
+  }
+
+  if (authData.user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({ 
+        id: authData.user.id, 
+        full_name: fullName,
+        apartment: apartment,
+        username: userName,
+        phone_number: phoneNumber,
+        updated_at: new Date()
+      })
+
+    setLoading(false)
+
+    if (profileError) {
+      return Alert.alert(t('error'), profileError.message)
+    }
+
+    Alert.alert(t('success'), t('registrationSuccessful'))
+    navigation.navigate('CommunityCode', { userId: authData.user.id })
+  }
+}
 
   const renderInput = (label: string, value: string, onChangeText: (text: string) => void, icon: string, keyboardType: any = 'default', secureTextEntry: boolean = false, error: string = '') => (
     <Animatable.View animation="fadeInUp" duration={800} style={styles.inputContainer}>
@@ -181,7 +218,6 @@ export default function RegisterScreen({ navigation }: Props) {
                   setPassword(text)
                   setPasswordError('')
                 }, 'lock', 'default', true, passwordError)}
-                {renderInput(t('apartmentNumber'), apartment, setApartment, 'home')}
                 {renderInput(t('phoneNumber'), phoneNumber, setPhoneNumber, 'phone', 'phone-pad')}
                 
                 <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.button}>
@@ -291,7 +327,6 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontSize: 18,
-    
     fontWeight: 'bold',
     color: 'white',
     textTransform: 'uppercase',
