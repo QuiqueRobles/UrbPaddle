@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Animated } from 'react-native';
 import { Marker } from 'react-native-maps';
@@ -8,10 +10,12 @@ interface CustomMarkerProps {
   community: Community;
   onPress: (community: Community) => void;
   isSelected: boolean;
+  isAccessible: boolean;
 }
 
-const CustomMarker: React.FC<CustomMarkerProps> = React.memo(({ community, onPress, isSelected }) => {
+const CustomMarker: React.FC<CustomMarkerProps> = React.memo(({ community, onPress, isSelected, isAccessible }) => {
   const markerColor = useMemo(() => {
+    if (!isAccessible) return '#A9A9A9'; // Grey for inaccessible communities
     switch (community.user_relationship) {
       case 'resident':
         return '#4CAF50';
@@ -20,7 +24,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = React.memo(({ community, onPre
       default:
         return '#FF9800';
     }
-  }, [community.user_relationship]);
+  }, [community.user_relationship, isAccessible]);
 
   const scaleAnim = useRef(new Animated.Value(isSelected ? 1.2 : 1)).current;
 
@@ -83,4 +87,3 @@ const styles = StyleSheet.create({
 });
 
 export default CustomMarker;
-

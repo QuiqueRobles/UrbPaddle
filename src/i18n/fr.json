@@ -204,28 +204,26 @@
       "softwareDev": "Développement logiciel"
     }
   },
-  "projects": {
-    "title": "Projets notables",
-    "items": {
-      "urbpaddle": {
-        "title": "Urbpaddle",
-        "description": "Une application mobile complète pour la gestion des communautés de paddle tennis. Les fonctionnalités incluent la réservation de terrains, le jumelage de joueurs et la gestion de la communauté."
-      },
-      "cubesat": {
-        "title": "Sous-système TMTC CubeSat",
-        "description": "Développement du sous-système de télémétrie et télécommande (TMTC) pour les missions CubeSat, assurant une communication fiable pour les systèmes satellitaires."
-      },
-      "meteoSatellite": {
-        "title": "Antenne de satellite météorologique",
-        "description": "Conception et fabrication d'antennes pour la réception d'images de satellites météorologiques à l'aide de CST Studio."
-      },
-      "postQuantum": {
-        "title": "Implémentation de cryptographie post-quantique",
-        "description": "Implémentation d'algorithmes de cryptographie post-quantique pour assurer l'intégrité et la confidentialité des communications dans les satellites européens lors d'un stage chez GMV."
-      }
+   "projects": {
+    "title": "Projets Notables",
+    "urbpaddle": {
+      "title": "KingOfTheCourt",
+      "description": "Une application mobile complète pour la gestion des communautés de padel. Comprend des fonctionnalités telles que la réservation de courts, l'appariement des joueurs et la gestion de la communauté."
+    },
+    "cubesat": {
+      "title": "Sous-système TMTC pour CubeSat",
+      "description": "Développement du sous-système de Télémétrie et Télécommande (TMTC) pour les missions CubeSat, assurant une communication fiable pour les systèmes satellitaires."
+    },
+    "meteorologicalAntenna": {
+      "title": "Antenne pour Satellites Météorologiques",
+      "description": "Conception et fabrication d'antennes pour la réception d'images de satellites météorologiques à l'aide de CST Studio."
+    },
+    "postQuantum": {
+      "title": "Implémentation de la Cryptographie Post-Quantique",
+      "description": "Implémentation d'algorithmes de cryptographie post-quantique pour assurer l'intégrité et la confidentialité des communications dans les satellites européens lors d'un stage chez GMV."
     }
   },
-  "exploreMore": "Explorer plus de projets",
+  "exploreMoreProjects": "Explorer Plus de Projets",
   "addMatchResult": "Ajouter un résultat de match",
   "selectCompletedBooking": "Sélectionner une réservation terminée",
   "noCompletedBookings": "Aucune réservation terminée trouvée.",

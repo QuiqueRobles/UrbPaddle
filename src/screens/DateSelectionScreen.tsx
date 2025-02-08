@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Calendar, DateData } from 'react-native-calendars';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { Button, Title, Text, useTheme } from 'react-native-paper';
 import { NavigationProp } from '../navigation';
 import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { format } from 'date-fns';
+import { format, getDay } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { es, enUS } from 'date-fns/locale';
 
 type Props = {
   navigation: NavigationProp;
@@ -16,13 +17,37 @@ type Props = {
 export default function DateSelectionScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState('');
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   useFocusEffect(
     useCallback(() => {
       setSelectedDate('');
     }, [])
   );
+
+  // Configure the calendar locale
+  React.useEffect(() => {
+    const currentLocale = i18n.language === 'es' ? es : enUS; // Esto debe ampliarse para más idiomas
+    const weekDays = Array.from({ length: 7 }, (_, i) =>
+      format(new Date(2021, 0, i + 4), 'EEEEEE', { locale: currentLocale })
+    );
+    // Mover el domingo (último día) al principio del array
+    weekDays.unshift(weekDays.pop()!);
+
+    LocaleConfig.locales[i18n.language] = {
+      monthNames: Array.from({ length: 12 }, (_, i) =>
+        format(new Date(2021, i, 1), 'MMMM', { locale: currentLocale })
+      ),
+      monthNamesShort: Array.from({ length: 12 }, (_, i) =>
+        format(new Date(2021, i, 1), 'MMM', { locale: currentLocale })
+      ),
+      dayNames: Array.from({ length: 7 }, (_, i) =>
+        format(new Date(2021, 0, i + 4), 'EEEE', { locale: currentLocale })
+      ),
+      dayNamesShort: weekDays,
+    };
+    LocaleConfig.defaultLocale = i18n.language;
+  }, [i18n.language]);
 
   const handleDateSelect = (day: DateData) => {
     setSelectedDate(day.dateString);
@@ -56,6 +81,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
             }}
             minDate={today}
             maxDate={maxDateString}
+            firstDay={1} // Start week on Monday
             theme={{
               backgroundColor: 'transparent',
               calendarBackground: 'transparent',
@@ -81,7 +107,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
           <View style={styles.selectedDateContainer}>
             <Text style={styles.selectedDateLabel}>{t('selectedDate')}</Text>
             <Text style={styles.selectedDateText}>
-              {format(new Date(selectedDate), t('dateFormat'))}
+              {format(new Date(selectedDate), t('dateFormat'), { locale: i18n.language === 'es' ? es : enUS })}
             </Text>
           </View>
         )}

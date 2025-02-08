@@ -208,26 +208,24 @@
   },
   "projects": {
     "title": "Notable Projects",
-    "items": {
-      "KingOfTheCourt": {
-        "title": "KingOfTheCourt",
-        "description": "A comprehensive mobile application for managing paddle tennis communities. Features include court booking, player matching, and community management."
-      },
-      "cubesat": {
-        "title": "CubeSat TMTC Subsystem",
-        "description": "Development of the Telemetry and Telecommand (TMTC) subsystem for CubeSat missions, ensuring reliable communication for satellite systems."
-      },
-      "meteoSatellite": {
-        "title": "Meteorological Satellite Antenna",
-        "description": "Design and manufacture of antennas for receiving images from meteorological satellites using CST Studio."
-      },
-      "postQuantum": {
-        "title": "Post-Quantum Cryptography Implementation",
-        "description": "Implementation of post-quantum cryptography algorithms for ensuring the integrity and confidentiality of communications in European satellites during an internship at GMV."
-      }
+    "urbpaddle": {
+      "title": "KingOfTheCourt",
+      "description": "A comprehensive mobile application for managing paddle tennis communities. Features include court booking, player matching, and community management."
+    },
+    "cubesat": {
+      "title": "CubeSat TMTC Subsystem",
+      "description": "Development of the Telemetry and Telecommand (TMTC) subsystem for CubeSat missions, ensuring reliable communication for satellite systems."
+    },
+    "meteorologicalAntenna": {
+      "title": "Meteorological Satellite Antenna",
+      "description": "Design and manufacture of antennas for receiving images from meteorological satellites using CST Studio."
+    },
+    "postQuantum": {
+      "title": "Post-Quantum Cryptography Implementation",
+      "description": "Implementation of post-quantum cryptography algorithms for ensuring the integrity and confidentiality of communications in European satellites during an internship at GMV."
     }
   },
-  "exploreMore": "Explore More Projects",
+  "exploreMoreProjects": "Explore More Projects",
   "addMatchResult": "Add Match Result",
   "selectCompletedBooking": "Select Completed Booking",
   "noCompletedBookings": "No completed bookings found.",
@@ -467,5 +465,13 @@
   "changing": "Changing...",
   "passwordChangedSuccessfully": "Password changed successfully",
   "emailAlreadyExists": "This email is already registered",
-  "usernameAlreadyExists": "This username is already taken"
+  "usernameAlreadyExists": "This username is already taken",
+  "enterApartmentInfo": "Enter Your Apartment Information",
+  "apartmentInfo": "Apartment Info",
+  "apartmentInfoPlaceholder": "e.g., Block A, Floor 3, Apartment 302",
+  "submit": "Submit",
+  "failedToUpdateProfile": "Failed to update profile. Please try again.",
+  "accessDenied": "Access Denied",
+  "communityAccessMessage": "To view more information about this community, you need to be a resident or guest. Please use a valid community code to join.",
+  
 }

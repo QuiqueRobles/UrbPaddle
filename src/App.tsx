@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
@@ -9,6 +11,13 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { colors } from './theme/colors'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import * as Localization from 'expo-localization'
+import { I18nextProvider } from 'react-i18next'
+import i18n from './i18n'
+import { useTranslation } from 'react-i18next'
+import { Alert } from 'react-native'
+
+
 import ProfileScreen from './screens/ProfileScreen'
 import LoginScreen from './screens/LoginScreen'
 import RegisterScreen from './screens/RegisterScreen'
@@ -30,10 +39,6 @@ import CommunityRegistrationScreen from './screens/CommunityRegistrationScreen'
 import CommunityMapScreen from './screens/CommunityMapScreen'
 import ChangePasswordScreen from './screens/ChangePasswordScreen'
 import PrivacyScreen from './screens/PrivacyScreen'
-import { I18nextProvider } from 'react-i18next';
-import i18n from './i18n';
-import { useTranslation } from 'react-i18next';
-import { Alert } from 'react-native'
 
 const Stack = createStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator()
@@ -44,7 +49,7 @@ const theme = {
 }
 
 function MainTabs() {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -80,23 +85,23 @@ function MainTabs() {
       screenOptions={({ route }) => ({
       headerShown: false,
       tabBarIcon: ({ color, size }) => {
-        let iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+        let iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']
 
         if (route.name === 'HomeTab') {
-          iconName = 'home';
+          iconName = 'home'
         } else if (route.name === 'MyBookingsTab') {
-          iconName = 'calendar-check';
+          iconName = 'calendar-check'
         } else if (route.name === 'ProfileTab') {
-          iconName = 'account';
+          iconName = 'account'
         } else if (route.name === 'CommunityManagementTab') {
-          iconName = 'office-building';
+          iconName = 'office-building'
         } else if (route.name === 'CommunityMapTab') {
-          iconName = 'map-marker';
+          iconName = 'map-marker'
         } else {
-          iconName = 'alert-circle'; // Default icon
+          iconName = 'alert-circle' // Default icon
         }
 
-        return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+        return <MaterialCommunityIcons name={iconName} size={size} color={color} />
       },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: 'gray',
@@ -141,11 +146,15 @@ function MainTabs() {
 }
 
 export default function App() {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
   const [session, setSession] = useState<Session | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    // Set the default language based on the device locale
+    const deviceLanguage = Localization.locale.split('-')[0] // Get the language code (e.g., 'en' from 'en-US')
+    i18n.changeLanguage(deviceLanguage)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
@@ -161,7 +170,7 @@ export default function App() {
       setIsAdmin(adminStatus)
     }
     fetchAdminStatus()
-  }, [session])
+  }, []) // Removed session from dependencies
 
   const checkAdminStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -242,7 +251,6 @@ export default function App() {
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('registerCommunity') }} />
-                  
                 </>
               )}
             </Stack.Navigator>

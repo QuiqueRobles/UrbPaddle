@@ -1,9 +1,11 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme, Chip } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { format, parseISO, isBefore, subDays, isToday, isTomorrow } from 'date-fns';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +27,7 @@ export default function MyBookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const navigation = useNavigation();
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -120,6 +123,10 @@ export default function MyBookingsScreen() {
     );
   };
 
+  const handleAddMatchResult = (booking: Booking) => {
+    navigation.navigate('AddMatchResult', { bookingId: booking.id });
+  };
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchBookings();
@@ -172,6 +179,16 @@ export default function MyBookingsScreen() {
               labelStyle={styles.cancelButtonText}
             >
               {t('cancelBooking')}
+            </Button>
+          )}
+          {isPastBooking && !item.has_match && (
+            <Button
+              mode="contained"
+              onPress={() => handleAddMatchResult(item)}
+              style={styles.addResultButton}
+              labelStyle={styles.addResultButtonText}
+            >
+              {t('addMatchResult')}
             </Button>
           )}
         </Card.Content>
@@ -289,6 +306,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cancelButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  addResultButton: {
+    marginTop: 8,
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+  },
+  addResultButtonText: {
     color: '#ffffff',
     fontWeight: 'bold',
   },

@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, Alert } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +10,7 @@ import CustomMarker from '../components/CustomMarker';
 import CommunityCard from '../components/CommunityCard';
 import { useTranslation } from 'react-i18next';
 import { useCommunities, Community } from '../hooks/useCommunities';
+import { supabase } from '../lib/supabase';
 
 type RootStackParamList = {
   Community: { communityId: string };
@@ -23,10 +26,38 @@ const CommunityMapScreen: React.FC = () => {
   const { communities, loading, error, refetch } = useCommunities();
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const [accessibleCommunities, setAccessibleCommunities] = useState<string[]>([]);
   const mapRef = useRef<MapView>(null);
   const translateY = useRef(new Animated.Value(CARD_HEIGHT)).current;
 
   const navigation = useNavigation<CommunityMapScreenNavigationProp>();
+
+  useEffect(() => {
+    const fetchAccessibleCommunities = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('resident_community_id, guest_communities')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          return;
+        }
+
+        const accessibleIds = [
+          profile.resident_community_id,
+          ...(profile.guest_communities || []),
+        ].filter(Boolean);
+
+        setAccessibleCommunities(accessibleIds);
+      }
+    };
+
+    fetchAccessibleCommunities();
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -52,22 +83,30 @@ const CommunityMapScreen: React.FC = () => {
   ).current;
 
   const handleCommunityPress = useCallback((community: Community) => {
-    setSelectedCommunity((prev) => (prev?.id === community.id ? null : community));
-    if (mapRef.current) {
-      const newRegion = {
-        latitude: community.latitude - 0.004,
-        longitude: community.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      mapRef.current.animateToRegion(newRegion, 1000);
-      setMapRegion(newRegion);
+    if (accessibleCommunities.includes(community.id)) {
+      setSelectedCommunity((prev) => (prev?.id === community.id ? null : community));
+      if (mapRef.current) {
+        const newRegion = {
+          latitude: community.latitude - 0.004,
+          longitude: community.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        mapRef.current.animateToRegion(newRegion, 1000);
+        setMapRegion(newRegion);
+      }
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Alert.alert(
+        t('accessDenied'),
+        t('communityAccessMessage'),
+        [{ text: t('ok'), onPress: () => console.log('OK Pressed') }]
+      );
     }
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-  }, [translateY]);
+  }, [translateY, accessibleCommunities, t]);
 
   const handleViewDetails = useCallback(() => {
     if (selectedCommunity) {
@@ -95,9 +134,10 @@ const CommunityMapScreen: React.FC = () => {
         community={community} 
         onPress={handleCommunityPress}
         isSelected={selectedCommunity?.id === community.id}
+        isAccessible={accessibleCommunities.includes(community.id)}
       />
     ));
-  }, [communities, selectedCommunity, handleCommunityPress]);
+  }, [communities, selectedCommunity, handleCommunityPress, accessibleCommunities]);
 
   if (loading) {
     return (
@@ -167,4 +207,3 @@ const styles = StyleSheet.create({
 });
 
 export default CommunityMapScreen;
-

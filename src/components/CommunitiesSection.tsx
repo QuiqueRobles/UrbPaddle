@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
 import { TextInput, Card, Title, Paragraph, Modal, Portal, useTheme } from 'react-native-paper';
@@ -6,6 +8,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
+import ApartmentForm from './ApartmentForm';
+
 type Community = {
   id: string;
   name: string;
@@ -18,6 +22,8 @@ export default function CommunitiesSection() {
   const [joinCode, setJoinCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isJoinModalVisible, setIsJoinModalVisible] = useState(false);
+  const [isApartmentFormVisible, setIsApartmentFormVisible] = useState(false);
+  const [pendingResidentCommunity, setPendingResidentCommunity] = useState<Community | null>(null);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -25,42 +31,40 @@ export default function CommunitiesSection() {
   }, []);
 
   const fetchCommunities = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) return;
 
-      const { data: profileData, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('resident_community_id, guest_communities')
         .eq('id', user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
-      if (profileData.resident_community_id) {
-        const { data: residentData, error: residentError } = await supabase
+      const residentCommunityId = data?.resident_community_id;
+      const guestCommunityIds = data?.guest_communities || [];
+
+      if (residentCommunityId) {
+        const { data: residentCommunityData, error: residentError } = await supabase
           .from('community')
           .select('id, name')
-          .eq('id', profileData.resident_community_id)
+          .eq('id', residentCommunityId)
           .single();
-
         if (residentError) throw residentError;
-        setResidentCommunity(residentData);
+        setResidentCommunity(residentCommunityData);
       }
 
-      if (profileData.guest_communities && profileData.guest_communities.length > 0) {
-        const { data: guestData, error: guestError } = await supabase
+      if (guestCommunityIds.length > 0) {
+        const { data: guestCommunitiesData, error: guestError } = await supabase
           .from('community')
           .select('id, name')
-          .in('id', profileData.guest_communities);
-
+          .in('id', guestCommunityIds);
         if (guestError) throw guestError;
-        setGuestCommunities(guestData || []);
-      } else {
-        setGuestCommunities([]);
+        setGuestCommunities(guestCommunitiesData);
       }
-
     } catch (error) {
       console.error('Error fetching communities:', error);
       Alert.alert(t('error'), t('failedFetchCommunities'));
@@ -102,51 +106,9 @@ export default function CommunitiesSection() {
           return;
         }
 
-        if (profileData.guest_communities && profileData.guest_communities.includes(residentCommunityData.id)) {
-          Alert.alert(
-            t('confirmation'),
-            t('becomeResidentConfirmation'),
-            [
-              {
-                text: t('cancel'),
-                style: 'cancel'
-              },
-              {
-                text: t('confirm'),
-                onPress: async () => {
-                 const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== residentCommunityData.id);
-                  const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                      resident_community_id: residentCommunityData.id,
-                      guest_communities: updatedGuestCommunities
-                    })
-                    .eq('id', user.id);
-
-                  if (updateError) throw updateError;
-
-                  Alert.alert(t('success'), t('nowResident', { communityName: residentCommunityData.name }));
-                  setJoinCode('');
-                  setIsJoinModalVisible(false);
-                  fetchCommunities();
-                }
-              }
-            ]
-          );
-          return;
-        }
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ resident_community_id: residentCommunityData.id })
-          .eq('id', user.id);
-
-        if (updateError) throw updateError;
-
-        Alert.alert(t('success'), t('joinedAsResident', { communityName: residentCommunityData.name }));
-        setJoinCode('');
+        setPendingResidentCommunity(residentCommunityData);
         setIsJoinModalVisible(false);
-        fetchCommunities();
+        setIsApartmentFormVisible(true);
         return;
       }
 
@@ -197,7 +159,35 @@ export default function CommunitiesSection() {
     }
   };
 
-   if (isLoading) {
+  const handleApartmentSubmit = async (apartmentInfo: string) => {
+    try {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          resident_community_id: pendingResidentCommunity?.id,
+          apartment: apartmentInfo
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      Alert.alert(t('success'), t('joinedAsResident', { communityName: pendingResidentCommunity?.name }));
+      setIsApartmentFormVisible(false);
+      setPendingResidentCommunity(null);
+      fetchCommunities();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert(t('error'), t('failedToUpdateProfile'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -270,9 +260,17 @@ export default function CommunitiesSection() {
                 </Card>
               </BlurView>
             </Modal>
+            <Modal visible={isApartmentFormVisible} onDismiss={() => setIsApartmentFormVisible(false)} contentContainerStyle={styles.modalContainer}>
+              <BlurView intensity={100} tint="dark" style={styles.blurView}>
+                <Card style={styles.modalCard}>
+                  <Card.Content>
+                    <ApartmentForm onSubmit={handleApartmentSubmit} />
+                  </Card.Content>
+                </Card>
+              </BlurView>
+            </Modal>
           </Portal>
         </Card.Content>
-     
     </Card>
   );
 }
@@ -328,7 +326,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     margin: 20,
-    
     borderRadius: 20,
     overflow: 'hidden',
   },

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useLayoutEffect } from 'react'
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, SafeAreaView } from 'react-native'
 import { TextInput, Button, Text, useTheme } from 'react-native-paper'
@@ -8,10 +10,12 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
 import { colors } from '../theme/colors'
 import FireText from '../components/FireText'
-import { TouchableOpacity } from 'react-native-gesture-handler'
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler'
 import { ActivityIndicator } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
+import ApartmentForm2 from '../components/ApartmentForm2'
+import { Scroll } from 'lucide-react-native';
 
 type CommunityCodeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CommunityCode'>
 
@@ -27,15 +31,17 @@ type Props = {
 export default function CommunityCodeScreen({ navigation, route }: Props) {
   const [communityCode, setCommunityCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showApartmentForm, setShowApartmentForm] = useState(false)
+  const [pendingResidentCommunity, setPendingResidentCommunity] = useState<{ id: string, name: string } | null>(null)
   const theme = useTheme()
   const { userId } = route.params
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
-    });
-  }, [navigation]);
+    })
+  }, [navigation])
 
   async function handleJoinCommunity() {
     if (!communityCode.trim()) {
@@ -81,20 +87,10 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
               },
               {
                 text: t('confirm'),
-                onPress: async () => {
-                  const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== residentCommunityData.id)
-                  const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                      resident_community_id: residentCommunityData.id,
-                      guest_communities: updatedGuestCommunities
-                    })
-                    .eq('id', userId)
-
-                  if (updateError) throw updateError
-
-                  Alert.alert(t('success'), t('nowResident', { name: residentCommunityData.name }))
-                  navigation.navigate('Home')
+                onPress: () => {
+                  setPendingResidentCommunity(residentCommunityData)
+                  setShowApartmentForm(true)
+                  setLoading(false)
                 }
               }
             ]
@@ -102,15 +98,9 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
           return
         }
 
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ resident_community_id: residentCommunityData.id })
-          .eq('id', userId)
-
-        if (updateError) throw updateError
-
-        Alert.alert(t('success'), t('joinedAsResident', { name: residentCommunityData.name }))
-        navigation.navigate('Home')
+        setPendingResidentCommunity(residentCommunityData)
+        setShowApartmentForm(true)
+        setLoading(false)
         return
       }
 
@@ -162,6 +152,49 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
     }
   }
 
+  async function handleApartmentSubmit(apartmentInfo: string) {
+    if (!pendingResidentCommunity) return
+
+    setLoading(true)
+
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (profileError) throw profileError
+
+      const updatedGuestCommunities = profileData.guest_communities.filter((id: string) => id !== pendingResidentCommunity.id)
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          resident_community_id: pendingResidentCommunity.id,
+          guest_communities: updatedGuestCommunities,
+          apartment: apartmentInfo
+        })
+        .eq('id', userId)
+
+      if (updateError) throw updateError
+
+      Alert.alert(t('success'), t('nowResident', { name: pendingResidentCommunity.name }))
+      navigation.navigate('Home')
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      Alert.alert(t('error'), t('failedToUpdateProfile'))
+    } finally {
+      setLoading(false)
+      setShowApartmentForm(false)
+      setPendingResidentCommunity(null)
+    }
+  }
+
+  function handleCancelApartmentForm() {
+    setShowApartmentForm(false)
+    setPendingResidentCommunity(null)
+  }
+
   function handleSkip() {
     navigation.navigate('Home')
   }
@@ -171,12 +204,14 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
+    
       <StatusBar style="light" />
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.gradient}
       >
         <SafeAreaView style={styles.safeArea}>
+          <ScrollView>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.content}>
               <View style={styles.logoContainer}>
@@ -193,51 +228,59 @@ export default function CommunityCodeScreen({ navigation, route }: Props) {
                 style={styles.fireTitle}
               />
               <View style={styles.warningContainer}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#000" />
-                  <Text style={styles.warningText}>
-                    {t('residentWarning')}
-                  </Text>
-                </View>
+                <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#000" />
+                <Text style={styles.warningText}>
+                  {t('residentWarning')}
+                </Text>
+              </View>
               <View style={styles.formContainer}>
-                <TextInput
-                  label={t('communityCode')}
-                  value={communityCode}
-                  onChangeText={setCommunityCode}
-                  style={styles.input}
-                  left={<TextInput.Icon icon="home-group" color={theme.colors.primary} />}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  mode="flat"
-                  underlineColor="transparent"
-                  textColor='#fff'
-                 
-                />
-                <TouchableOpacity onPress={handleJoinCommunity} disabled={loading} style={styles.button}>
-                  <LinearGradient
-                    colors={['#00A86B', '#00C853']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#ffffff" />
-                    ) : (
-                      <Text style={styles.buttonLabel}>{t('joinCommunity')}</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-                <Button 
-                  onPress={handleSkip}
-                  style={styles.skipButton}
-                  labelStyle={styles.skipButtonLabel}
-                >
-                  {t('skipForNow')}
-                </Button>
+                {!showApartmentForm ? (
+                  <>
+                    <TextInput
+                      label={t('communityCode')}
+                      value={communityCode}
+                      onChangeText={setCommunityCode}
+                      style={styles.input}
+                      left={<TextInput.Icon icon="home-group" color={theme.colors.primary} />}
+                      contentStyle={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                      mode="flat"
+                      underlineColor="transparent"
+                      textColor='#fff'
+                    />
+                    <TouchableOpacity onPress={handleJoinCommunity} disabled={loading} style={styles.button}>
+                      <LinearGradient
+                        colors={['#00A86B', '#00C853']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradientButton}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#ffffff" />
+                        ) : (
+                          <Text style={styles.buttonLabel}>{t('joinCommunity')}</Text>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <Button 
+                      onPress={handleSkip}
+                      style={styles.skipButton}
+                      labelStyle={styles.skipButtonLabel}
+                    >
+                      {t('skipForNow')}
+                    </Button>
+                  </>
+                ) : (
+                  <ApartmentForm2 onSubmit={handleApartmentSubmit} onCancel={handleCancelApartmentForm} />
+                )}
               </View>
             </View>
           </TouchableWithoutFeedback>
+          </ScrollView>
         </SafeAreaView>
       </LinearGradient>
+      
     </KeyboardAvoidingView>
+    
   )
 }
 
@@ -293,7 +336,7 @@ const styles = StyleSheet.create({
   },
   gradientButton: {
     height: 55,
-    width:200,
+    width: 200,
     borderRadius: 27.5,
     justifyContent: 'center',
     alignItems: 'center',
@@ -317,7 +360,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-    maxWidth:300,
+    maxWidth: 300,
   },
   warningText: {
     flex: 1,
@@ -327,4 +370,3 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 })
-

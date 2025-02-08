@@ -206,26 +206,24 @@
   },
   "projects": {
     "title": "Progetti Notevoli",
-    "items": {
-      "urbpaddle": {
-        "title": "Urbpaddle",
-        "description": "Un'applicazione mobile completa per la gestione delle comunità di paddle tennis. Le funzionalità includono la prenotazione dei campi, l'abbinamento dei giocatori e la gestione della comunità."
-      },
-      "cubesat": {
-        "title": "Sottosistema TMTC CubeSat",
-        "description": "Sviluppo del sottosistema di Telemetria e Telecomando (TMTC) per missioni CubeSat, garantendo una comunicazione affidabile per i sistemi satellitari."
-      },
-      "meteoSatellite": {
-        "title": "Antenna per Satellite Meteorologico",
-        "description": "Progettazione e fabbricazione di antenne per la ricezione di immagini da satelliti meteorologici utilizzando CST Studio."
-      },
-      "postQuantum": {
-        "title": "Implementazione di Crittografia Post-Quantum",
-        "description": "Implementazione di algoritmi di crittografia post-quantum per garantire l'integrità e la riservatezza delle comunicazioni nei satelliti europei durante uno stage presso GMV."
-      }
+    "urbpaddle": {
+      "title": "KingOfTheCourt",
+      "description": "Un'app mobile completa per la gestione di comunità di paddle tennis. Include funzionalità come prenotazione campi, abbinamento giocatori e gestione della comunità."
+    },
+    "cubesat": {
+      "title": "Sottosistema TMTC per CubeSat",
+      "description": "Sviluppo del sottosistema di Telemetria e Telecomando (TMTC) per missioni CubeSat, garantendo una comunicazione affidabile per i sistemi satellitari."
+    },
+    "meteorologicalAntenna": {
+      "title": "Antenna per Satelliti Meteorologici",
+      "description": "Progettazione e realizzazione di antenne per la ricezione di immagini da satelliti meteorologici utilizzando CST Studio."
+    },
+    "postQuantum": {
+      "title": "Implementazione della Crittografia Post-Quantistica",
+      "description": "Implementazione di algoritmi di crittografia post-quantistica per garantire l'integrità e la riservatezza delle comunicazioni nei satelliti europei durante uno stage presso GMV."
     }
   },
-  "exploreMore": "Esplora altri progetti",
+  "exploreMoreProjects": "Esplora Altri Progetti",
   "addMatchResult": "Aggiungi risultato partita",
   "selectCompletedBooking": "Seleziona prenotazione completata",
   "noCompletedBookings": "Nessuna prenotazione completata trovata.",

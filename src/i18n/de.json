@@ -183,5 +183,25 @@
   "acceptTerms": "Ich akzeptiere die Nutzungsbedingungen und die Datenschutzrichtlinie.",
   "failedLoadTerms": "Fehler beim Laden der Nutzungsbedingungen und Datenschutzrichtlinie. Bitte versuchen Sie es später erneut.",
   "accept": "Akzeptieren",
-  "decline": "Ablehnen"
+  "decline": "Ablehnen",
+   "projects": {
+    "title": "Bemerkenswerte Projekte",
+    "urbpaddle": {
+      "title": "KingOfTheCourt",
+      "description": "Eine umfassende mobile Anwendung zur Verwaltung von Padel-Tennis-Communities. Enthält Funktionen wie Platzbuchung, Spieler-Matching und Community-Management."
+    },
+    "cubesat": {
+      "title": "TMTC-Subsystem für CubeSat",
+      "description": "Entwicklung des Telemetrie- und Telekommando-Subsystems (TMTC) für CubeSat-Missionen, um eine zuverlässige Kommunikation für Satellitensysteme zu gewährleisten."
+    },
+    "meteorologicalAntenna": {
+      "title": "Antenne für Wettersatelliten",
+      "description": "Entwurf und Herstellung von Antennen zum Empfang von Bildern von Wettersatelliten mit CST Studio."
+    },
+    "postQuantum": {
+      "title": "Implementierung von Post-Quanten-Kryptographie",
+      "description": "Implementierung von Post-Quanten-Kryptographie-Algorithmen zur Gewährleistung der Integrität und Vertraulichkeit der Kommunikation in europäischen Satelliten während eines Praktikums bei GMV."
+    }
+  },
+  "exploreMoreProjects": "Weitere Projekte Erkunden"
 }
