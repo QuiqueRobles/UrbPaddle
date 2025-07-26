@@ -11,6 +11,7 @@ import { gradients } from '../theme/gradients'
 import { ActivityIndicator } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import * as Animatable from 'react-native-animatable'
+import LanguageSelector2 from '../components/LanguageSelector2'
 
 type RootStackParamList = {
   Login: undefined;
@@ -100,10 +101,10 @@ export default function LoginScreen({ navigation }: Props) {
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.gradient}
-      >
+      ><LanguageSelector2 />
         <Animatable.View animation="fadeIn" duration={1000} style={styles.logoContainer}>
           <Image 
-            source={require('../../assets/images/logo.png')} 
+            source={require('../../assets/images/quortify-logo.png')} 
             style={styles.logo}
             resizeMode="contain"
           />
@@ -173,13 +174,13 @@ export default function LoginScreen({ navigation }: Props) {
             {renderButton(
               () => navigation.navigate('Register'),
               t('register'),
-              ['#1E3A8A', '#3B82F6'],
+              gradients.greenTheme,
               { flex: 1, marginRight: 8 }
             )}
             {renderButton(
               () => navigation.navigate('CommunityRegistration'),
               t('registerCommunity'),
-              ['#7C3AED', '#A78BFA'],
+              gradients.greenTheme,
               { flex: 1, marginLeft: 8 }
             )}
           </View>
@@ -213,11 +214,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 300,
+    height: 300,
   },
   inputContainer: {
     width: '100%',
@@ -257,12 +258,13 @@ const styles = StyleSheet.create({
   fireTitle: {
     textAlign: 'center',
     fontWeight: 'bold',
+    marginTop: -80,
     marginBottom: 30,
     color: '#FFFFFF',
   },
   divider: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.8)',
     marginVertical: 16,
   },
 })

@@ -388,7 +388,25 @@
   "apartmentNumber": "Número de apartamento",
 
   "createAccount": "Crear cuenta",
-  "alreadyHaveAccount": "¿Ya tienes una cuenta? Inicia sesión"
+  "alreadyHaveAccount": "¿Ya tienes una cuenta? Inicia sesión",
+  "changeResidentCode": "Cambiar código residente",
+  "changeGuestCode": "Cambiar código invitado",
+  "newResidentCode": "Nuevo código residente",
+  "newGuestCode": "Nuevo código invitado",
+  "codeCannotBeEmpty": "El código no puede estar vacío",
+  "bookingHours": "Horario de reservas",
+  "rules": "Normas",
+  "generateNewCode": "Generar nuevo código",
+  "areYouSureGenerateNewCode": "¿Estás seguro de que quieres generar un nuevo código? Esto invalidará el código anterior.",
+  "accessCodes": "Códigos de acceso",
+  "facilities": "Instalaciones",
+  "bookingSettings": "Configuración de reservas",
+  "residentCodeUpdated": "Código de residente actualizado",
+  "guestCodeUpdated": "Código de invitado actualizado",
+  "failedToUpdateResidentCode": "Error al actualizar el código de residente",
+  "failedToUpdateGuestCode": "Error al actualizar el código de invitado",
+  "bookingOverlap": "Superposición de Reservas",
+  "bookingOverlapMessage": "Lo sentimos, este horario ya no está disponible. Por favor, elige otro horario."
 
 }
 

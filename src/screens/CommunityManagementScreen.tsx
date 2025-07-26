@@ -12,8 +12,8 @@ import { CodeDisplay } from '../components/CodeDisplay';
 import { UpdateModal } from '../components/UpdateModal';
 import { BookingSettingsModal } from '../components/BookingSettingsModal';
 import { useTranslation } from 'react-i18next';
-
 import { useNavigation } from '@react-navigation/native';
+import * as Crypto from 'expo-crypto';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,7 +38,7 @@ export default function CommunityManagementScreen() {
   const [showResidentCode, setShowResidentCode] = useState(false);
   const [showGuestCode, setShowGuestCode] = useState(false);
   const [showCourtsModal, setShowCourtsModal] = useState(false);
-  const [newCourtCount, setNewCourtCount] = useState(1);
+  const [newCourtCount, setNewCourtCount] = useState<string>('1');
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [newRules, setNewRules] = useState('');
   const [showBookingSettingsModal, setShowBookingSettingsModal] = useState(false);
@@ -55,9 +55,6 @@ export default function CommunityManagementScreen() {
     fetchCommunityData();
   }, []);
 
-   const navigateToPlayerManagement = () => {
-    navigation.navigate('PlayerManagement');
-  };
   const fetchCommunityData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -76,10 +73,10 @@ export default function CommunityManagementScreen() {
             .single();
 
           if (error) throw error;
-        
+
           setCommunityData(communityData);
           setNewRules(communityData.rules);
-          setNewCourtCount(communityData.court_number);
+          setNewCourtCount(communityData.court_number.toString());
           setBookingStartTime(new Date(`2000-01-01T${communityData.booking_start_time}`));
           setBookingEndTime(new Date(`2000-01-01T${communityData.booking_end_time}`));
           setBookingDurations(communityData.booking_duration_options);
@@ -87,7 +84,6 @@ export default function CommunityManagementScreen() {
           setMaxNumberCurrentBookings(communityData.max_number_current_bookings);
           setSimultaneousBookings(communityData.simultaneous_bookings);
         }
-        
       }
     } catch (error) {
       console.error('Error fetching community data:', error);
@@ -95,11 +91,42 @@ export default function CommunityManagementScreen() {
     }
   };
 
+  const generateNewCode = async (type: 'resident' | 'guest') => {
+    try {
+      const newCode =  Crypto.randomUUID();
+      const { error } = await supabase
+        .from('community')
+        .update({ [type === 'resident' ? 'resident_code' : 'guest_code']: newCode })
+        .eq('id', communityData?.id);
+
+      if (error) throw error;
+
+      await fetchCommunityData();
+      Alert.alert(t('success'), t(`${type}CodeUpdated`));
+    } catch (error) {
+      console.error(`Error generating new ${type} code:`, error);
+      Alert.alert(t('error'), t(`failedToUpdate${type.charAt(0).toUpperCase() + type.slice(1)}Code`));
+    }
+  };
+
+  const handleGenerateNewCode = (type: 'resident' | 'guest') => {
+    Alert.alert(
+      t('generateNewCode'),
+      t('areYouSureGenerateNewCode'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('generate'), onPress: () => generateNewCode(type) }
+      ]
+    );
+  };
+
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
     Alert.alert(t('copied'), t('codeCopiedToClipboard'));
   };
-
+  const navigateToPlayerManagement = () => {
+    navigation.navigate('PlayerManagement');
+  };
   const handleShowCode = (type: 'resident' | 'guest') => {
     Alert.alert(
       t('showCode'),
@@ -110,16 +137,22 @@ export default function CommunityManagementScreen() {
       ]
     );
   };
-  
+
   const handleUpdateCourts = async () => {
     try {
+      const courtCount = parseInt(newCourtCount, 10);
+      if (isNaN(courtCount) || courtCount < 1) {
+        Alert.alert(t('error'), t('invalidCourtNumber'));
+        return;
+      }
+
       const { error } = await supabase
         .from('community')
-        .update({ court_number: newCourtCount })
+        .update({ court_number: courtCount })
         .eq('id', communityData?.id);
-      
+
       if (error) throw error;
-      
+
       fetchCommunityData();
       setShowCourtsModal(false);
       Alert.alert(t('success'), t('numberOfCourtsUpdated'));
@@ -135,9 +168,9 @@ export default function CommunityManagementScreen() {
         .from('community')
         .update({ rules: newRules })
         .eq('id', communityData?.id);
-      
+
       if (error) throw error;
-      
+
       fetchCommunityData();
       setShowRulesModal(false);
       Alert.alert(t('success'), t('communityRulesUpdated'));
@@ -147,7 +180,7 @@ export default function CommunityManagementScreen() {
     }
   };
 
-   const handleUpdateBookingSettings = async (newMaxBookings: number) => {
+  const handleUpdateBookingSettings = async (newMaxBookings: number) => {
     try {
       const { error } = await supabase
         .from('community')
@@ -160,9 +193,9 @@ export default function CommunityManagementScreen() {
           simultaneous_bookings: simultaneousBookings,
         })
         .eq('id', communityData?.id);
-      
+
       if (error) throw error;
-      
+
       fetchCommunityData();
       setShowBookingSettingsModal(false);
       Alert.alert(t('success'), t('bookingSettingsUpdated'));
@@ -209,30 +242,102 @@ export default function CommunityManagementScreen() {
               />
             )}
             
-            <Card.Content>
+            <Card.Content style={styles.cardContent}>
               <Title style={styles.title}>{communityData.name}</Title>
-              <Paragraph style={styles.paragraph}>{t('address')}: {communityData.address}</Paragraph>
-              <CodeDisplay
-                label={t('residentCode')}
-                code={communityData.resident_code}
-                showCode={showResidentCode}
-                onToggleShow={() => showResidentCode ? setShowResidentCode(false) : handleShowCode('resident')}
-                onCopy={() => copyToClipboard(communityData.resident_code)}
-              />
-              <CodeDisplay
-                label={t('guestCode')}
-                code={communityData.guest_code}
-                showCode={showGuestCode}
-                onToggleShow={() => showGuestCode ? setShowGuestCode(false) : handleShowCode('guest')}
-                onCopy={() => copyToClipboard(communityData.guest_code)}
-              />
-              <View style={styles.courtsContainer}>
-                <MaterialCommunityIcons name="tennis" size={24} color={theme.colors.primary} />
-                <Paragraph style={styles.paragraph}>{t('numberOfCourts')}: {communityData.court_number}</Paragraph>
+              
+              <View style={styles.infoContainer}>
+                <MaterialCommunityIcons name="map-marker" size={20} color={theme.colors.primary} />
+                <Paragraph style={styles.infoText}>{communityData.address}</Paragraph>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('accessCodes')}</Text>
+                </View>
+
+                <View style={styles.codeSection}>
+                  <CodeDisplay
+                    label={t('residentCode')}
+                    code={communityData.resident_code}
+                    showCode={showResidentCode}
+                    onToggleShow={() => showResidentCode ? setShowResidentCode(false) : handleShowCode('resident')}
+                    onCopy={() => copyToClipboard(communityData.resident_code)}
+                  />
+                  <TouchableOpacity 
+                    style={styles.generateCodeButton}
+                    onPress={() => handleGenerateNewCode('resident')}
+                  >
+                    <Text style={styles.generateCodeText}>{t('generateNewCode')}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.codeSection}>
+                  <CodeDisplay
+                    label={t('guestCode')}
+                    code={communityData.guest_code}
+                    showCode={showGuestCode}
+                    onToggleShow={() => showGuestCode ? setShowGuestCode(false) : handleShowCode('guest')}
+                    onCopy={() => copyToClipboard(communityData.guest_code)}
+                  />
+                  <TouchableOpacity 
+                    style={styles.generateCodeButton}
+                    onPress={() => handleGenerateNewCode('guest')}
+                  >
+                    <Text style={styles.generateCodeText}>{t('generateNewCode')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('facilities')}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialCommunityIcons name="tennis" size={20} color={theme.colors.primary} />
+                  <Paragraph style={styles.infoText}>
+                    {t('numberOfCourts')}: {communityData.court_number}
+                  </Paragraph>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('bookingSettings')}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
+                  <Paragraph style={styles.infoText}>
+                    {t('bookingHours')}: {format(new Date(`2000-01-01T${communityData.booking_start_time}`), 'HH:mm')} - {format(new Date(`2000-01-01T${communityData.booking_end_time}`), 'HH:mm')}
+                  </Paragraph>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialCommunityIcons name="timer" size={20} color={theme.colors.primary} />
+                  <Paragraph style={styles.infoText}>
+                    {t('bookingDurations')}: {communityData.booking_duration_options.join(', ')} {t('minutes')}
+                  </Paragraph>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialCommunityIcons name="timer-settings" size={20} color={theme.colors.primary} />
+                  <Paragraph style={styles.infoText}>
+                    {t('defaultBookingDuration')}: {communityData.default_booking_duration} {t('minutes')}
+                  </Paragraph>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('communityRules')}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  
+                  <Paragraph style={styles.infoText}>
+                    {communityData.rules}
+                  </Paragraph>
+                </View>
               </View>
             </Card.Content>
           </Card>
-          
+
           <GradientButton onPress={() => setShowCourtsModal(true)} icon="tennis-ball">
             {t('updateNumberOfCourts')}
           </GradientButton>
@@ -244,7 +349,7 @@ export default function CommunityManagementScreen() {
           <GradientButton onPress={() => setShowBookingSettingsModal(true)} icon="calendar-clock">
             {t('updateBookingSettings')}
           </GradientButton>
-           <GradientButton onPress={navigateToPlayerManagement} icon="account-group">
+          <GradientButton onPress={navigateToPlayerManagement} icon="account-group">
             {t('managePlayersInCommunity')}
           </GradientButton>
           <UpdateModal
@@ -255,8 +360,8 @@ export default function CommunityManagementScreen() {
           >
             <TextInput
               label={t('numberOfCourts')}
-              value={newCourtCount.toString()}
-              onChangeText={(text) => setNewCourtCount(parseInt(text) || 1)}
+              value={newCourtCount}
+              onChangeText={(text) => setNewCourtCount(text)}
               keyboardType="numeric"
               style={styles.input}
               mode="outlined"
@@ -311,7 +416,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    paddingBottom: 100, // Increased padding to ensure content is above bottom tab
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -322,33 +427,62 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'white',
   },
-  logoContainer: {
-    position: 'relative',
-    top: 10,
-    right: 10,
-    zIndex: 10,
-  },
-  logo: {
-    width: 60,
-    height: 60,
-  },
   card: {
-    marginTop:60,
+    marginTop: 20,
     marginBottom: 16,
     elevation: 4,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
+  cardContent: {
+    padding: 16,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  paragraph: {
-    fontSize: 16,
-    marginBottom: 8,
+  section: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingBottom: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#333',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#555',
+    marginLeft: 8,
+    flex: 1,
+  },
+  codeSection: {
+    marginBottom: 16,
+  },
+  generateCodeButton: {
+    backgroundColor: '#E3F2FD',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  generateCodeText: {
+    color: '#1976D2',
+    fontSize: 14,
+    fontWeight: '500',
   },
   gradientButton: {
     flexDirection: 'row',
@@ -367,11 +501,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  courtsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
   input: {
     marginBottom: 16,
   },
@@ -382,4 +511,3 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
 });
-

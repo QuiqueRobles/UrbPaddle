@@ -151,8 +151,9 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    // Set the default language based on the device locale
-    const deviceLanguage = Localization.locale.split('-')[0] // Get the language code (e.g., 'en' from 'en-US')
+    // Set the default language based on the device locale with null check
+    const locale = Localization.locale || Localization.getLocales()?.[0]?.languageCode || 'en'
+    const deviceLanguage = typeof locale === 'string' ? locale.split('-')[0] : 'en'
     i18n.changeLanguage(deviceLanguage)
 
     supabase.auth.getSession().then(({ data: { session } }) => {

@@ -132,14 +132,14 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.scrollContent}>
           <Animated.View entering={shouldAnimate ? FadeIn.duration(600) : undefined} style={styles.logoContainer}>
             <Image 
-              source={require('../../assets/images/logo.png')} 
+              source={require('../../assets/images/quortify-logo.png')} 
               style={styles.logo}
               resizeMode="contain"
             />
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
             <FireText
-              text={t('Be the King of your community!')}
+              text={"Quick booking, Quality matches"}
               fontSize={21}
               intensity={1.2}
               style={styles.fireTitle}
@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 320,
+    height: 150,
   },
   fireTitle: {
     textAlign: 'center',

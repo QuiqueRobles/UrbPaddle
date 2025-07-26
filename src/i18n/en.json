@@ -473,5 +473,9 @@
   "failedToUpdateProfile": "Failed to update profile. Please try again.",
   "accessDenied": "Access Denied",
   "communityAccessMessage": "To view more information about this community, you need to be a resident or guest. Please use a valid community code to join.",
+  "confirmRemoveTitle": "Are you sure you want to confirm removal?",
+  "confirmRemoveMessage": "This action cannot be undone. All data associated with this community will be permanently deleted.",
+  "bookingOverlap": "Booking Overlap",
+  "bookingOverlapMessage": "Sorry, this time slot is no longer available. Please choose another time."
   
 }

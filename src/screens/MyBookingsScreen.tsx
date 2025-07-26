@@ -149,7 +149,7 @@ export default function MyBookingsScreen() {
         <Card.Content>
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="tennis" size={24} color={colors.primary} />
-            <Title style={styles.courtTitle}>{t('court', { number: item.court_number })}</Title>
+            <Title style={styles.courtTitle}>{t('court_number', { number: item.court_number })}</Title>
             {isPastBooking && (
               <Chip 
                 style={[

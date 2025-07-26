@@ -13,6 +13,7 @@ export const gradients = {
   peach: ['#FFB75E', '#ED8F03'],
   rose: ['#FF9A9E', '#FECFEF'],
 
+  mygreen: ['#0A1F1C', '#0A1F1C'],
   // New green gradients
   emerald: ['#43C6AC', '#191654'],
   lime: ['#A8E063', '#56AB2F'],

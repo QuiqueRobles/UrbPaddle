@@ -74,7 +74,7 @@ export default function HotStreaks({ currentHotStreakPlayers, maxHotStreakPlayer
         }}>
           <Card style={styles.hotStreakCard}>
             <LinearGradient
-              colors={gradients.obsidian}
+              colors={gradients.mygreen}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={styles.cardGradient}

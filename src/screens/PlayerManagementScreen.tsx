@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert, TouchableOpacity, Dimensions } from 'react-native';
-import { Card, Title, Paragraph, Button, Avatar, useTheme, ActivityIndicator, TextInput } from 'react-native-paper';
+import { Card, Title, Paragraph, Avatar, useTheme, ActivityIndicator, TextInput, Badge } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ type Profile = {
   full_name: string;
   avatar_url: string | null;
   joined_at: string;
+  role: 'resident' | 'guest';
 };
 
 export default function PlayerManagementScreen() {
@@ -43,22 +44,27 @@ export default function PlayerManagementScreen() {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('resident_community_id')
+          .select('resident_community_id, guest_communities')
           .eq('id', user.id)
           .single();
 
-        if (profileData?.resident_community_id) {
+        if (profileData?.resident_community_id || profileData?.guest_communities?.length) {
           const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url, created_at')
-            .eq('resident_community_id', profileData.resident_community_id)
+            .select('id, username, full_name, avatar_url, created_at, resident_community_id, guest_communities')
+            .or(
+              `resident_community_id.eq.${profileData.resident_community_id},guest_communities.cs.{${profileData.resident_community_id}}`
+            )
             .order('created_at', { ascending: false });
 
           if (error) throw error;
+
           const formattedProfiles = (data || []).map(profile => ({
             ...profile,
-            joined_at: profile.created_at
+            joined_at: profile.created_at,
+            role: profile.resident_community_id === profileData.resident_community_id ? 'resident' : 'guest'
           }));
+
           setProfiles(formattedProfiles);
           setFilteredProfiles(formattedProfiles);
         }
@@ -71,55 +77,6 @@ export default function PlayerManagementScreen() {
     }
   };
 
-  const handleRemovePlayer = async (playerId: string, playerName: string) => {
-    const confirmRemoval = () => {
-      return new Promise((resolve) => {
-        Alert.alert(
-          t('removePlayer'),
-          t('areYouSureRemovePlayer', { name: playerName }),
-          [
-            { text: t('cancel'), style: 'cancel', onPress: () => resolve(false) },
-            { text: t('remove'), onPress: () => resolve(true) }
-          ]
-        );
-      });
-    };
-
-    const confirmFinalRemoval = () => {
-      return new Promise((resolve) => {
-        Alert.alert(
-          t('finalConfirmation'),
-          t('allPlayerDataWillBeDeleted'),
-          [
-            { text: t('cancel'), style: 'cancel', onPress: () => resolve(false) },
-            { text: t('confirmRemove'), style: 'destructive', onPress: () => resolve(true) }
-          ]
-        );
-      });
-    };
-
-    const firstConfirmation = await confirmRemoval();
-    if (firstConfirmation) {
-      const finalConfirmation = await confirmFinalRemoval();
-      if (finalConfirmation) {
-        try {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ resident_community_id: null })
-            .eq('id', playerId);
-
-          if (error) throw error;
-          setProfiles(profiles.filter(profile => profile.id !== playerId));
-          setFilteredProfiles(filteredProfiles.filter(profile => profile.id !== playerId));
-          Alert.alert(t('success'), t('playerRemovedFromCommunity'));
-        } catch (error) {
-          console.error('Error removing player:', error);
-          Alert.alert(t('error'), t('failedToRemovePlayer'));
-        }
-      }
-    }
-  };
-
   const handleSearch = (query: string) => {
     const filtered = profiles.filter(profile => 
       profile.full_name.toLowerCase().includes(query.toLowerCase()) ||
@@ -128,30 +85,53 @@ export default function PlayerManagementScreen() {
     setFilteredProfiles(filtered);
   };
 
+  const removePlayer = async (player: Profile) => {
+    Alert.alert(
+      t('confirmRemoveTitle'),
+      t('confirmRemoveMessage', { name: player.full_name }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('remove'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (player.role === 'resident') {
+                await supabase.from('profiles').update({ resident_community_id: null }).eq('id', player.id);
+              } else {
+                const { data } = await supabase
+                  .from('profiles')
+                  .select('guest_communities')
+                  .eq('id', player.id)
+                  .single();
+                const updatedGuests = data.guest_communities.filter((id: string) => id !== player.id);
+                await supabase.from('profiles').update({ guest_communities: updatedGuests }).eq('id', player.id);
+              }
+              setProfiles(prev => prev.filter(p => p.id !== player.id));
+              setFilteredProfiles(prev => prev.filter(p => p.id !== player.id));
+            } catch (error) {
+              console.error('Error removing player:', error);
+              Alert.alert(t('error'), t('failedToRemovePlayer'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderItem = ({ item, index }: { item: Profile; index: number }) => (
-    <Animated.View
-      entering={FadeInRight.delay(index * 100)}
-      exiting={FadeOutLeft}
-    >
-      <Card style={styles.card}>
+    <Animated.View entering={FadeInRight.delay(index * 100)} exiting={FadeOutLeft}>
+      <Card style={[styles.card, item.role === 'resident' ? styles.residentBorder : styles.guestBorder]}>
         <Card.Content style={styles.cardContent}>
-          <Avatar.Image 
-            size={60} 
-            source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/images/logo.png')} 
-            style={styles.avatar}
-          />
+          <Avatar.Image size={60} source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/images/logo.png')} style={styles.avatar} />
           <View style={styles.playerInfo}>
             <Title style={styles.playerName}>{item.full_name}</Title>
             <Paragraph style={styles.username}>{item.username}</Paragraph>
-            <Paragraph style={styles.joinedDate}>
-              {t('joinedOn', { date: format(new Date(item.joined_at), 'PP') })}
-            </Paragraph>
+            <Paragraph style={styles.joinedDate}>{t('joinedOn', { date: format(new Date(item.joined_at), 'PP') })}</Paragraph>
           </View>
-          <TouchableOpacity 
-            onPress={() => handleRemovePlayer(item.id, item.full_name)}
-            style={styles.removeButton}
-          >
-            <Feather name="user-x" size={24} color="#FF3B30" />
+          <Badge style={item.role === 'resident' ? styles.residentBadge : styles.guestBadge}>{item.role === 'resident' ? t('resident') : t('guest')}</Badge>
+          <TouchableOpacity onPress={() => removePlayer(item)} style={styles.removeButton}>
+            <Feather name="trash-2" size={24} color="red" />
           </TouchableOpacity>
         </Card.Content>
       </Card>
@@ -163,32 +143,20 @@ export default function PlayerManagementScreen() {
       <StatusBar style="light" />
       <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
         <Title style={styles.title}>{t('communityPlayers')}</Title>
-        <TextInput
-          placeholder={t('searchPlayers')}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchInput}
-          left={<TextInput.Icon icon="magnify" color={theme.colors.primary} />}
-        />
+        <TextInput placeholder={t('searchPlayers')} value={searchQuery} onChangeText={setSearchQuery} style={styles.searchInput} left={<TextInput.Icon icon="magnify" color={theme.colors.primary} />} />
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#fff" />
             <Title style={styles.loadingText}>{t('loadingPlayers')}</Title>
           </View>
         ) : (
-          <FlatList
-            data={filteredProfiles}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <FlatList data={filteredProfiles} renderItem={renderItem} keyExtractor={(item) => item.id} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} />
         )}
       </LinearGradient>
     </SafeAreaView>
   );
 }
-
+  
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -269,4 +237,8 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 8,
   },
+  residentBorder: { borderTopWidth: 10, borderTopColor: '#00C853' },
+  guestBorder: { borderTopWidth: 10, borderTopColor: '#00C9FF' },
+  residentBadge: { backgroundColor: '#00C853', color: 'white', alignSelf: 'flex-start' },
+  guestBadge: { backgroundColor: '#00C9FF', color: 'white', alignSelf: 'flex-start' }
 });
