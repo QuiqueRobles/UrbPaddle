@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, FlatList, SafeAreaView, StatusBar, Vibration } from 'react-native';
-import { Text, Button, ActivityIndicator, useTheme, Avatar, Card, Chip, Modal, Surface, IconButton } from 'react-native-paper';
+import { View, ScrollView, Dimensions, StyleSheet, TouchableOpacity, RefreshControl, Alert, FlatList, SafeAreaView, StatusBar } from 'react-native';
+import { Text, Button, ActivityIndicator, useTheme, Avatar, Card, Chip, Modal, Surface, IconButton, Switch } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,11 +29,17 @@ type PlayerStats = {
   games_lost: number;
   hot_streak: number;
   max_hot_streak: number;
+  motivational_speech?: string;
+  is_guest: boolean;
+  resident_community_id?: string;
+  guest_communities?: string[];
+  group_owner_id?: string;
 };
 
 type Community = {
   id: string;
   name: string;
+  isResident: boolean;
 };
 
 export default function StatisticsScreen() {
@@ -47,6 +53,7 @@ export default function StatisticsScreen() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [includeGuests, setIncludeGuests] = useState(false);
   const theme = useTheme();
   const navigation = useNavigation();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStats | null>(null);
@@ -60,7 +67,7 @@ export default function StatisticsScreen() {
     if (selectedCommunity) {
       fetchData();
     }
-  }, [selectedCommunity]);
+  }, [selectedCommunity, includeGuests]);
 
   const fetchCommunities = async () => {
     try {
@@ -99,8 +106,14 @@ export default function StatisticsScreen() {
         if (communityError) throw communityError;
 
         if (Array.isArray(communityData) && communityData.length > 0) {
-          setCommunities(communityData);
-          setSelectedCommunity(communityData[0]);
+          const formattedCommunities = communityData.map((community) => ({
+            ...community,
+            isResident: community.id === profileData.resident_community_id,
+          }));
+          setCommunities(formattedCommunities);
+          
+          const residentCommunity = formattedCommunities.find((c) => c.isResident);
+          setSelectedCommunity(residentCommunity || formattedCommunities[0]);
         } else {
           Alert.alert(t('noCommunitiesFound'), t('communityDataEmpty'));
         }
@@ -134,15 +147,40 @@ export default function StatisticsScreen() {
 
   async function fetchTopPlayers() {
     try {
-      const { data, error } = await supabase
+      // Primero obtenemos los IDs de los residentes
+      const { data: residentProfiles, error: residentError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('resident_community_id', selectedCommunity?.id)
-        .order('wins', { ascending: false })
-        .limit(5);
+        .select('id')
+        .eq('resident_community_id', selectedCommunity?.id);
 
+      if (residentError) throw residentError;
+
+      const residentIds = residentProfiles.map((resident) => resident.id);
+      let query = supabase
+        .from('profiles')
+        .select('*, resident_community_id, guest_communities')
+        .order('wins', { ascending: false });
+
+      if (includeGuests) {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")}),guest_communities.cs.{"${selectedCommunity?.id}"}`
+        );
+      } else {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")})`
+        );
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      if (data) setTopPlayers(data as PlayerStats[]);
+      
+      if (data) {
+        const playersWithGuestFlag = data.map((player) => ({
+          ...player,
+          is_guest: player.resident_community_id !== selectedCommunity?.id && player.guest_communities?.includes(selectedCommunity?.id),
+        }));
+        setTopPlayers(playersWithGuestFlag as PlayerStats[]);
+      }
     } catch (error) {
       console.error(t('errorFetchingTopPlayers'), error);
     }
@@ -150,6 +188,14 @@ export default function StatisticsScreen() {
 
   async function fetchMonthlyTopPlayers() {
     try {
+      const { data: residentProfiles, error: residentError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('resident_community_id', selectedCommunity?.id);
+
+      if (residentError) throw residentError;
+
+      const residentIds = residentProfiles.map((resident) => resident.id);
       const currentDate = new Date();
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
@@ -185,12 +231,22 @@ export default function StatisticsScreen() {
             });
         });
 
-        const { data: profilesData, error: profilesError } = await supabase
+        let query = supabase
           .from('profiles')
-          .select('*')
-          .eq('resident_community_id', selectedCommunity?.id)
+          .select('*, resident_community_id, guest_communities')
           .in('id', Array.from(playerStats.keys()));
 
+        if (includeGuests) {
+          query = query.or(
+            `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")}),guest_communities.cs.{"${selectedCommunity?.id}"}`
+          );
+        } else {
+          query = query.or(
+            `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")})`
+          );
+        }
+
+        const { data: profilesData, error: profilesError } = await query;
         if (profilesError) throw profilesError;
 
         if (profilesData) {
@@ -198,6 +254,7 @@ export default function StatisticsScreen() {
             ...profile,
             matches_played: playerStats.get(profile.id)?.matches || 0,
             wins: playerStats.get(profile.id)?.wins || 0,
+            is_guest: profile.resident_community_id !== selectedCommunity?.id && profile.guest_communities?.includes(selectedCommunity?.id),
           }));
 
           monthlyTopPlayers.sort((a, b) => b.wins - a.wins);
@@ -211,15 +268,40 @@ export default function StatisticsScreen() {
 
   async function fetchCurrentHotStreakPlayers() {
     try {
-      const { data, error } = await supabase
+      const { data: residentProfiles, error: residentError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('resident_community_id', selectedCommunity?.id)
+        .select('id')
+        .eq('resident_community_id', selectedCommunity?.id);
+
+      if (residentError) throw residentError;
+
+      const residentIds = residentProfiles.map((resident) => resident.id);
+      let query = supabase
+        .from('profiles')
+        .select('*, resident_community_id, guest_communities')
         .order('hot_streak', { ascending: false })
         .limit(3);
 
+      if (includeGuests) {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")}),guest_communities.cs.{"${selectedCommunity?.id}"}`
+        );
+      } else {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")})`
+        );
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      if (data) setCurrentHotStreakPlayers(data as PlayerStats[]);
+      
+      if (data) {
+        const playersWithGuestFlag = data.map((player) => ({
+          ...player,
+          is_guest: player.resident_community_id !== selectedCommunity?.id && player.guest_communities?.includes(selectedCommunity?.id),
+        }));
+        setCurrentHotStreakPlayers(playersWithGuestFlag as PlayerStats[]);
+      }
     } catch (error) {
       console.error(t('errorFetchingCurrentHotStreakPlayers'), error);
     }
@@ -227,15 +309,40 @@ export default function StatisticsScreen() {
 
   async function fetchMaxHotStreakPlayers() {
     try {
-      const { data, error } = await supabase
+      const { data: residentProfiles, error: residentError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('resident_community_id', selectedCommunity?.id)
+        .select('id')
+        .eq('resident_community_id', selectedCommunity?.id);
+
+      if (residentError) throw residentError;
+
+      const residentIds = residentProfiles.map((resident) => resident.id);
+      let query = supabase
+        .from('profiles')
+        .select('*, resident_community_id, guest_communities')
         .order('max_hot_streak', { ascending: false })
         .limit(3);
 
+      if (includeGuests) {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")}),guest_communities.cs.{"${selectedCommunity?.id}"}`
+        );
+      } else {
+        query = query.or(
+          `resident_community_id.eq.${selectedCommunity?.id},group_owner_id.in.(${residentIds.join(",")})`
+        );
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      if (data) setMaxHotStreakPlayers(data as PlayerStats[]);
+      
+      if (data) {
+        const playersWithGuestFlag = data.map((player) => ({
+          ...player,
+          is_guest: player.resident_community_id !== selectedCommunity?.id && player.guest_communities?.includes(selectedCommunity?.id),
+        }));
+        setMaxHotStreakPlayers(playersWithGuestFlag as PlayerStats[]);
+      }
     } catch (error) {
       console.error(t('errorFetchingMaxHotStreakPlayers'), error);
     }
@@ -264,6 +371,21 @@ export default function StatisticsScreen() {
       <Text style={styles.communitySelectorText}>{selectedCommunity?.name || t('selectCommunity')}</Text>
       <MaterialCommunityIcons name="chevron-down" size={24} color="#fff" style={styles.chevronIcon} />
     </TouchableOpacity>
+  );
+
+  const renderIncludeGuestsToggle = () => (
+    <View style={styles.guestToggleContainer}>
+      <View style={styles.guestToggleContent}>
+        <MaterialCommunityIcons name="account-group" size={20} color="#fff" style={styles.guestToggleIcon} />
+        <Text style={styles.guestToggleText}>{t('includeGuests')}</Text>
+        <Switch
+          value={includeGuests}
+          onValueChange={setIncludeGuests}
+          thumbColor={includeGuests ? colors.primary : '#fff'}
+          trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.6)' }}
+        />
+      </View>
+    </View>
   );
 
   const renderTabs = () => (
@@ -297,8 +419,20 @@ export default function StatisticsScreen() {
                 setModalVisible(false);
               }}
             >
-              <MaterialCommunityIcons name="map-marker" size={24} color={colors.primary} style={styles.communityItemIcon} />
-              <Text style={styles.communityItemText}>{item.name}</Text>
+              <MaterialCommunityIcons 
+                name={item.isResident ? "home" : "map-marker"} 
+                size={24} 
+                color={colors.primary} 
+                style={styles.communityItemIcon} 
+              />
+              <View style={styles.communityItemTextContainer}>
+                <Text style={styles.communityItemText}>{item.name}</Text>
+                {item.isResident && (
+                  <Chip mode="outlined" compact style={styles.residentChip}>
+                    <Text style={styles.residentChipText}>{t('resident')}</Text>
+                  </Chip>
+                )}
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -331,6 +465,16 @@ export default function StatisticsScreen() {
     </Modal>
   );
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyStateContainer}>
+      <MaterialCommunityIcons name="chart-line" size={64} color="rgba(255,255,255,0.3)" />
+      <Text style={styles.emptyStateTitle}>{t('noDataAvailable')}</Text>
+      <Text style={styles.emptyStateMessage}>
+        {activeTab === 'monthly' ? t('noMatchesThisMonth') : t('noPlayersFound')}
+      </Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <LinearGradient
@@ -340,7 +484,8 @@ export default function StatisticsScreen() {
         style={styles.gradientBackground}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.loadingText}>{t('loadingStatistics')}</Text>
         </View>
       </LinearGradient>
     );
@@ -358,40 +503,63 @@ export default function StatisticsScreen() {
         <ScrollView 
           style={styles.container}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor="#fff"
+              colors={['#fff']}
+            />
           }
         >
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{t('playerStatistics')}</Text>
             {renderCommunitySelector()}
+            {renderIncludeGuestsToggle()}
           </View>
+
           {selectedCommunity && (
-            <SearchPlayers
-              communityId={selectedCommunity.id}
-              onSelectPlayer={handleSelectPlayer}
-            />
+            <View style={styles.searchContainer}>
+              <SearchPlayers
+                communityId={selectedCommunity.id}
+                onSelectPlayer={handleSelectPlayer}
+              />
+            </View>
           )}
+
           {renderTabs()}
           
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <TopPlayers
-                topPlayers={activeTab === 'overall' ? topPlayers : monthlyTopPlayers}
-                isMonthly={activeTab === 'monthly'}
-              />
+          <View style={styles.contentContainer}>
+            <Card style={styles.statsCard}>
+              <Card.Content>
+                {(activeTab === 'overall' ? topPlayers : monthlyTopPlayers).length > 0 ? (
+                  <TopPlayers
+                    topPlayers={activeTab === 'overall' ? topPlayers : monthlyTopPlayers}
+                    isMonthly={activeTab === 'monthly'}
+                  />
+                ) : (
+                  renderEmptyState()
+                )}
 
-              {activeTab === 'overall' && (
-                <HotStreaks
-                  currentHotStreakPlayers={currentHotStreakPlayers}
-                  maxHotStreakPlayers={maxHotStreakPlayers}
-                />
-              )}
-            </Card.Content>
-          </Card>
+                {activeTab === 'overall' && (currentHotStreakPlayers.length > 0 || maxHotStreakPlayers.length > 0) && (
+                  <HotStreaks
+                    currentHotStreakPlayers={currentHotStreakPlayers}
+                    maxHotStreakPlayers={maxHotStreakPlayers}
+                  />
+                )}
+              </Card.Content>
+            </Card>
+          </View>
         </ScrollView>
       </LinearGradient>
 
-      {modalVisible && renderCommunityModal()}
+      <Modal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        contentContainerStyle={{ flex: 1 }}
+      >
+        {renderCommunityModal()}
+      </Modal>
+
       {selectedPlayer && renderPlayerProfileModal()}
     </SafeAreaView>
   );
@@ -401,7 +569,7 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor:'black',
+    backgroundColor: 'black',
   },
   gradientBackground: {
     flex: 1,
@@ -418,7 +586,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   communitySelector: {
     flexDirection: 'row',
@@ -426,12 +594,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 30,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    marginTop: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   communityIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   communitySelectorText: {
     color: '#fff',
@@ -440,7 +613,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chevronIcon: {
-    marginLeft: 10,
+    marginLeft: 12,
+  },
+  guestToggleContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  guestToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  guestToggleIcon: {
+    marginRight: 12,
+  },
+  guestToggleText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -448,17 +646,26 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 25,
     padding: 4,
-    marginTop: 20,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     borderRadius: 21,
   },
   activeTab: {
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
   },
   tabText: {
     fontSize: 16,
@@ -467,72 +674,144 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: colors.primary,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    paddingHorizontal: 2,
+    paddingBottom: 20,
+  },
+  statsCard: {
+    borderRadius: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateMessage: {
+    fontSize: 16,
+    color: 'rgba(0,0,0,0.6)',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    paddingHorizontal: 20,
   },
-  statsCard: {
-    borderRadius: 16,
-    elevation: 4,
-    width:'100%'
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor:'transparent'
+    backgroundColor: 'transparent'
   },
   modalContent: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     width: '90%',
     maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
     color: colors.text,
   },
   communityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'white',
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   communityItemIcon: {
-    marginRight: 15,
+    marginRight: 16,
+  },
+  communityItemTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   communityItemText: {
     fontSize: 18,
     color: colors.text,
+    fontWeight: '500',
+    flex: 1,
+  },
+  residentChip: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderColor: '#4CAF50',
+  },
+  residentChipText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    fontWeight: '600',
   },
   closeButton: {
-    marginTop: 20,
+    marginTop: 24,
+    borderRadius: 12,
   },
   playerProfileModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   playerProfileModalContent: {
-    borderRadius: 20,
-    overflow: 'hidden'
+    borderRadius: 24,
+    overflow: 'hidden',
+    maxHeight: '90%',
+    width: '95%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   playerProfileModalScrollContent: {
     flexGrow: 1,
   },
   closePlayerProfileButton: {
     position: 'absolute',
-    top: 10,
-    right: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
