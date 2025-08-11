@@ -1,5 +1,5 @@
 {
-  "name": "kingofthecourt",
+  "name": "qourtify",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,12 +10,15 @@
   },
   "dependencies": {
     "@expo/metro-config": "~0.20.0",
+    "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
+    "@react-google-maps/api": "^2.20.7",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-firebase/app": "^21.0.0",
     "@react-native-firebase/firestore": "^21.0.0",
+    "@react-native-google-signin/google-signin": "^15.0.0",
     "@react-native-masked-view/masked-view": "^0.3.2",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/bottom-tabs": "^6.6.1",
@@ -24,33 +27,29 @@
     "@react-navigation/native-stack": "^6.11.0",
     "@react-navigation/stack": "^6.4.1",
     "@shopify/flash-list": "1.7.6",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.39.8",
     "@types/react-navigation": "^3.0.8",
     "@ui-kitten/components": "^5.3.1",
     "base64-arraybuffer": "^1.0.2",
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
-    "deno": "^2.1.4",
     "deprecated-react-native-prop-types": "^5.0.0",
     "eas": "^0.1.0",
     "expo": "~53.0.0",
+    "expo-auth-session": "~6.2.1",
     "expo-blur": "~14.1.5",
     "expo-clipboard": "~7.1.5",
     "expo-crypto": "~14.1.5",
     "expo-device": "~7.1.4",
-    "expo-firebase-core": "^6.0.0",
     "expo-haptics": "~14.1.4",
     "expo-image-picker": "~16.1.4",
     "expo-linear-gradient": "~14.1.5",
     "expo-localization": "~16.1.6",
     "expo-notifications": "~0.31.4",
     "expo-status-bar": "~2.2.3",
-    "firebase": "^10.14.1",
     "i18next": "^24.2.0",
     "lucide-react": "^0.454.0",
     "lucide-react-native": "^0.525.0",
-    "metro": "^0.82.0",
-    "metro-cache": "^0.80.0",
     "moti": "^0.29.0",
     "nativewind": "^4.1.23",
     "onesignal-expo-plugin": "^2.0.3",
@@ -77,8 +76,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
     "tailwindcss": "^3.4.0",
-    "victory-native": "^37.3.1",
-    "webpack": "^5.96.1"
+    "victory-native": "^37.3.1"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
@@ -86,5 +84,8 @@
     "supabase": "^2.2.1",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "@supabase/postgrest-js": "^1.15.8"
+  }
 }

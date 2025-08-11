@@ -2,7 +2,6 @@
 
 import React, { useMemo, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Animated } from 'react-native';
-import { Marker } from 'react-native-maps';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Community } from '../screens/CommunityMapScreen';
 
@@ -13,47 +12,46 @@ interface CustomMarkerProps {
   isAccessible: boolean;
 }
 
-const CustomMarker: React.FC<CustomMarkerProps> = React.memo(({ community, onPress, isSelected, isAccessible }) => {
-  const markerColor = useMemo(() => {
-    if (!isAccessible) return '#A9A9A9'; // Grey for inaccessible communities
-    switch (community.user_relationship) {
-      case 'resident':
-        return '#4CAF50';
-      case 'guest':
-        return '#2196F3';
-      default:
-        return '#FF9800';
-    }
-  }, [community.user_relationship, isAccessible]);
+const CustomMarker: React.FC<CustomMarkerProps> = React.memo(
+  ({ community, onPress, isSelected, isAccessible }) => {
+    const markerColor = useMemo(() => {
+      if (!isAccessible) return '#A9A9A9'; // Gris para comunidades inaccesibles
+      switch (community.user_relationship) {
+        case 'resident':
+          return '#4CAF50';
+        case 'guest':
+          return '#2196F3';
+        default:
+          return '#FF9800';
+      }
+    }, [community.user_relationship, isAccessible]);
 
-  const scaleAnim = useRef(new Animated.Value(isSelected ? 1.2 : 1)).current;
+    const scaleAnim = useRef(new Animated.Value(isSelected ? 1.2 : 1)).current;
 
-  useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: isSelected ? 1.2 : 1,
-      useNativeDriver: true,
-      friction: 5,
-    }).start();
-  }, [isSelected, scaleAnim]);
+    useEffect(() => {
+      Animated.spring(scaleAnim, {
+        toValue: isSelected ? 1.2 : 1,
+        useNativeDriver: true,
+        friction: 5,
+      }).start();
+    }, [isSelected, scaleAnim]);
 
-  return (
-    <Marker
-      coordinate={{
-        latitude: community.latitude,
-        longitude: community.longitude,
-      }}
-      onPress={() => onPress(community)}
-      tracksViewChanges={false}
-    >
-      <Animated.View style={[styles.markerContainer, { backgroundColor: markerColor, transform: [{ scale: scaleAnim }] }]}>
+    return (
+      <Animated.View
+        style={[
+          styles.markerContainer,
+          { backgroundColor: markerColor, transform: [{ scale: scaleAnim }] },
+        ]}
+        onClick={() => onPress(community)}
+      >
         <MaterialCommunityIcons name="office-building" size={24} color="white" />
         <View style={styles.courtNumberContainer}>
           <Text style={styles.courtNumberText}>{community.court_number}</Text>
         </View>
       </Animated.View>
-    </Marker>
-  );
-});
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   markerContainer: {
@@ -66,6 +64,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    cursor: 'pointer', // En web se ve como botón
   },
   courtNumberContainer: {
     position: 'absolute',

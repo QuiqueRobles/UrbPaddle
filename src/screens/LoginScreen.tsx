@@ -1,17 +1,20 @@
-import React, { useState, useLayoutEffect, useRef } from 'react'
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Animated } from 'react-native'
-import { TextInput, useTheme, Text, Divider } from 'react-native-paper'
-import { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { supabase } from '../lib/supabase'
-import { LinearGradient } from 'expo-linear-gradient'
-import { StatusBar } from 'expo-status-bar'
-import { colors } from '../theme/colors'
-import FireText from '../components/FireText'
-import { gradients } from '../theme/gradients'
-import { ActivityIndicator } from 'react-native'
-import { useTranslation } from 'react-i18next'
-import * as Animatable from 'react-native-animatable'
-import LanguageSelector2 from '../components/LanguageSelector2'
+import React, { useState, useLayoutEffect, useRef } from 'react';
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Animated } from 'react-native';
+import { TextInput, useTheme, Text, Divider } from 'react-native-paper';
+import type { TextInput as TextInputType } from 'react-native-paper';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { supabase } from '../lib/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '../theme/colors';
+import FireText from '../components/FireText';
+import { gradients } from '../theme/gradients';
+import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import * as Animatable from 'react-native-animatable';
+import LanguageSelector2 from '../components/LanguageSelector2';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import { signInWithGoogle } from '../lib/googleAuth';
 
 type RootStackParamList = {
   Login: undefined;
@@ -27,18 +30,19 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const theme = useTheme()
-  const { t } = useTranslation()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const theme = useTheme();
+  const { t } = useTranslation();
 
-  const emailInputRef = useRef<TextInput>(null)
-  const passwordInputRef = useRef<TextInput>(null)
+  const emailInputRef = useRef<TextInputType>(null);
+  const passwordInputRef = useRef<TextInputType>(null);
 
-  const emailAnimation = useRef(new Animated.Value(0)).current
-  const passwordAnimation = useRef(new Animated.Value(0)).current
+  const emailAnimation = useRef(new Animated.Value(0)).current;
+  const passwordAnimation = useRef(new Animated.Value(0)).current;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -51,32 +55,60 @@ export default function LoginScreen({ navigation }: Props) {
       toValue,
       duration: 200,
       useNativeDriver: false,
-    }).start()
-  }
+    }).start();
+  };
 
-  const handleEmailFocus = () => animateInput(emailAnimation, 1)
-  const handleEmailBlur = () => animateInput(emailAnimation, 0)
-  const handlePasswordFocus = () => animateInput(passwordAnimation, 1)
-  const handlePasswordBlur = () => animateInput(passwordAnimation, 0)
+  const handleEmailFocus = () => animateInput(emailAnimation, 1);
+  const handleEmailBlur = () => animateInput(emailAnimation, 0);
+  const handlePasswordFocus = () => animateInput(passwordAnimation, 1);
+  const handlePasswordBlur = () => animateInput(passwordAnimation, 0);
 
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert(t('error'), t('pleaseEnterEmailAndPassword'))
-      return
+      Alert.alert(t('error'), t('pleaseEnterEmailAndPassword'));
+      return;
     }
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
 
     if (error) {
-      Alert.alert(t('error'), error.message)
+      Alert.alert(t('error'), error.message);
     } else {
-      navigation.navigate('Home')
+      navigation.navigate('Home');
     }
   }
 
+  async function handleGoogleSignIn() {
+  console.log("🔵 Google Sign-In iniciado...");
+  setGoogleLoading(true);
+
+  try {
+    const { data, error } = await signInWithGoogle();
+
+    console.log("📤 Respuesta de signInWithGoogle:", { data, error });
+
+    if (error) {
+      console.error("❌ Error en Google Sign-In:", error);
+      if (error !== 'User cancelled the authentication') {
+        Alert.alert(t('error'), error);
+      }
+    } else if (data) {
+      console.log("✅ Google Sign-In exitoso, datos:", data);
+      navigation.navigate('Home');
+    }
+  } catch (err) {
+    console.error("🔥 Excepción no controlada en Google Sign-In:", err);
+    Alert.alert(t('error'), String(err));
+  } finally {
+    setGoogleLoading(false);
+    console.log("🔵 Google Sign-In finalizado.");
+  }
+}
+
+
   const renderButton = (onPress: () => void, label: string, colors: string[], style: object = {}) => (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]} disabled={loading}>
+    <TouchableOpacity onPress={onPress} style={[styles.button, style]} disabled={loading || googleLoading}>
       <LinearGradient
         colors={colors}
         start={{ x: 0, y: 0 }}
@@ -90,7 +122,7 @@ export default function LoginScreen({ navigation }: Props) {
         )}
       </LinearGradient>
     </TouchableOpacity>
-  )
+  );
 
   return (
     <KeyboardAvoidingView 
@@ -101,7 +133,8 @@ export default function LoginScreen({ navigation }: Props) {
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.gradient}
-      ><LanguageSelector2 />
+      >
+        <LanguageSelector2 />
         <Animatable.View animation="fadeIn" duration={1000} style={styles.logoContainer}>
           <Image 
             source={require('../../assets/images/quortify-logo.png')} 
@@ -118,6 +151,20 @@ export default function LoginScreen({ navigation }: Props) {
           />
         </Animatable.View>
         <Animatable.View animation="fadeInUp" duration={1000} delay={1000} style={styles.loginContainer}>
+          {/* Google Sign-In Button */}
+          <GoogleSignInButton
+            onPress={handleGoogleSignIn}
+            loading={googleLoading}
+            text={t('continueWithGoogle') || 'Continue with Google'}
+            style={{ marginBottom: 16 }}
+          />
+          
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('or') || 'OR'}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           <Animated.View style={[styles.inputContainer, { borderColor: emailAnimation.interpolate({
             inputRange: [0, 1],
             outputRange: ['transparent', theme.colors.primary]
@@ -167,7 +214,7 @@ export default function LoginScreen({ navigation }: Props) {
             handleLogin,
             t('login'),
             ['#00A86B', '#00C853'],
-            { marginBottom: 16, opacity: loading ? 0.7 : 1 }
+            { marginBottom: 16, opacity: (loading || googleLoading) ? 0.7 : 1 }
           )}
           <Divider style={styles.divider} />
           <View style={styles.secondaryButtonsContainer}>
@@ -187,7 +234,7 @@ export default function LoginScreen({ navigation }: Props) {
         </Animatable.View>
       </LinearGradient>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -267,5 +314,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     marginVertical: 16,
   },
-})
-
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});

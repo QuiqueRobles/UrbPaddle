@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { Button, Title, Text, useTheme } from 'react-native-paper';
 import { NavigationProp } from '../navigation';
 import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { format, getDay } from 'date-fns';
+import { format, getDay, isBefore, parseISO } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { es, enUS } from 'date-fns/locale';
@@ -27,11 +27,11 @@ export default function DateSelectionScreen({ navigation }: Props) {
 
   // Configure the calendar locale
   React.useEffect(() => {
-    const currentLocale = i18n.language === 'es' ? es : enUS; // Esto debe ampliarse para más idiomas
+    const currentLocale = i18n.language === 'es' ? es : enUS;
     const weekDays = Array.from({ length: 7 }, (_, i) =>
       format(new Date(2021, 0, i + 4), 'EEEEEE', { locale: currentLocale })
     );
-    // Mover el domingo (último día) al principio del array
+    // Move Sunday (last day) to the beginning of the array
     weekDays.unshift(weekDays.pop()!);
 
     LocaleConfig.locales[i18n.language] = {
@@ -50,11 +50,37 @@ export default function DateSelectionScreen({ navigation }: Props) {
   }, [i18n.language]);
 
   const handleDateSelect = (day: DateData) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Additional safeguard: prevent selection of past dates
+    if (isBefore(parseISO(day.dateString), parseISO(today))) {
+      Alert.alert(
+        t('pastDateError') || 'Invalid Date',
+        t('pastDateMessage') || 'You cannot select a past date for booking.',
+        [{ text: t('ok') || 'OK' }]
+      );
+      setSelectedDate('');
+      return;
+    }
+    
     setSelectedDate(day.dateString);
   };
 
   const handleContinue = () => {
     if (selectedDate) {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Final check before navigation
+      if (isBefore(parseISO(selectedDate), parseISO(today))) {
+        Alert.alert(
+          t('pastDateError') || 'Invalid Date',
+          t('pastDateMessage') || 'You cannot select a past date for booking.',
+          [{ text: t('ok') || 'OK' }]
+        );
+        setSelectedDate('');
+        return;
+      }
+      
       navigation.navigate('CourtSelection', { date: selectedDate });
     }
   };
@@ -204,4 +230,3 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
-

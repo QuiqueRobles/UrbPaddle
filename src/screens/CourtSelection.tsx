@@ -53,6 +53,14 @@ type Community = {
   court_number: number
   max_number_current_bookings: number
   simultaneous_bookings: boolean
+  manual_booking: boolean
+}
+
+type UserProfile = {
+  resident_community_id: string
+  can_book: string[]
+  group_owner_id: string | null
+  effectiveUserId: string
 }
 
 export default function CourtSelectionScreen({ navigation, route }: Props) {
@@ -62,6 +70,9 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [community, setCommunity] = useState<Community | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [canBook, setCanBook] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const theme = useTheme()
   const { date } = route.params
   const { t } = useTranslation()
@@ -70,35 +81,63 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const gradientEnd = "#000"
 
   useEffect(() => {
-    fetchCommunityAndBookings()
+    fetchUserAndCommunity()
   }, [])
 
-  const fetchCommunityAndBookings = async () => {
+  const fetchUserAndCommunity = async () => {
     setLoading(true)
     try {
+      // Get current user
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser()
       if (userError) throw userError
+      
+      setUserId(user?.id || null)
 
+      // 1) Get user profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("resident_community_id")
+        .select("resident_community_id, can_book, group_owner_id")
         .eq("id", user?.id)
         .single()
       if (profileError) throw profileError
 
+      // 2) Determine effective user ID for booking (group owner or self)
+      const effectiveUserId = profileData.group_owner_id || user?.id
+      const updatedProfile = { ...profileData, effectiveUserId }
+      setUserProfile(updatedProfile)
+
+      // 3) Get community data from the "owner" resident
+      const { data: ownerProfile, error: ownerError } = await supabase
+        .from("profiles")
+        .select("resident_community_id, can_book")
+        .eq("id", effectiveUserId)
+        .single()
+      if (ownerError) throw ownerError
+
       const { data: communityData, error: communityError } = await supabase
         .from("community")
         .select("*")
-        .eq("id", profileData.resident_community_id)
+        .eq("id", ownerProfile.resident_community_id)
         .single()
       if (communityError) throw communityError
 
       setCommunity(communityData)
       setSelectedDuration(communityData.default_booking_duration)
 
+      // 4) Check booking permissions
+      if (communityData.manual_booking) {
+        const userCanBook =
+          Array.isArray(ownerProfile.can_book) &&
+          ownerProfile.can_book.includes(communityData.id)
+        setCanBook(userCanBook)
+      } else {
+        setCanBook(true)
+      }
+
+      // 5) Fetch bookings for the selected date
       const { data: bookingsData, error: bookingsError } = await supabase
         .from("bookings")
         .select("*")
@@ -170,18 +209,29 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   }
 
   const handleBooking = async () => {
-    if (selectedCourt && selectedTime && selectedDuration && community) {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser()
-        if (userError) throw userError
+    // Check if user can book
+    if (!canBook) {
+      Alert.alert(t("bookingNotAllowed"), t("noBookingPermission"))
+      return
+    }
 
+    // Additional safeguard: prevent booking for past dates
+    const today = new Date().toISOString().split("T")[0]
+    if (isBefore(parseISO(date), parseISO(today))) {
+      Alert.alert(t("error"), t("pastDateMessage"))
+      return
+    }
+
+    if (selectedCourt && selectedTime && selectedDuration && community && userProfile) {
+      try {
+        // Use effective user ID (group owner or self)
+        const bookingUserId = userProfile.effectiveUserId
+
+        // 1) Count future bookings for the effective user
         const { data: userBookings, error: userBookingsError } = await supabase
           .from("bookings")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", bookingUserId)
           .gte("date", new Date().toISOString().split("T")[0])
 
         if (userBookingsError) throw userBookingsError
@@ -191,6 +241,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
           return
         }
 
+        // 2) Check simultaneous bookings setting
         if (!community.simultaneous_bookings) {
           const sameDayBooking = userBookings?.find((booking) => booking.date === date)
           if (sameDayBooking) {
@@ -201,7 +252,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
 
         const endTime = format(addMinutes(parseISO(`2023-01-01T${selectedTime}`), selectedDuration), "HH:mm")
 
-        // Fetch the latest bookings for this court and date
+        // 3) Fetch the latest bookings for this court and date to check for overlaps
         const { data: latestBookings, error: latestBookingsError } = await supabase
           .from("bookings")
           .select("*")
@@ -299,6 +350,27 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
     return (
       <LinearGradient colors={[gradientStart, gradientEnd]} style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#fff" />
+      </LinearGradient>
+    )
+  }
+
+  if (!canBook) {
+    return (
+      <LinearGradient
+        colors={[gradientStart, gradientMiddle, gradientEnd]}
+        style={styles.container}
+        locations={[0, 0.7, 1]}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Title style={styles.title}>{t("bookACourt")}</Title>
+          </View>
+          <Card style={styles.warningCard}>
+            <Card.Content>
+              <Text style={styles.warningText}>{t("noBookingPermission")}</Text>
+            </Card.Content>
+          </Card>
+        </ScrollView>
       </LinearGradient>
     )
   }
@@ -518,5 +590,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: "#fff",
   },
+  warningCard: {
+    backgroundColor: "rgba(255, 0, 0, 0.2)",
+    borderRadius: 12,
+    marginTop: 24,
+  },
+  warningText: {
+    color: "#fff",
+    fontSize: 16,
+    textAlign: "center",
+  },
 })
-

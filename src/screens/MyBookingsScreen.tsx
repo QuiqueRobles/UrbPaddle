@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Card, Title, Paragraph, Button, ActivityIndicator, useTheme, Chip } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
-import { format, parseISO, isBefore, subDays, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, isBefore, subDays, isToday, isTomorrow, isAfter, isEqual } from 'date-fns';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,62 +18,150 @@ type Booking = {
   start_time: string;
   end_time: string;
   user_id: string;
+  status: string;
   has_match: boolean;
 };
 
+type UserProfile = {
+  resident_community_id: string;
+  can_book: string[];
+  group_owner_id: string | null;
+  effectiveUserId: string;
+};
+
 export default function MyBookingsScreen() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
+  const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const { colors } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
 
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        Alert.alert(t('error'), t('userNotFound'));
+        return null;
+      }
+
+      setUserId(userData.user.id);
+
+      // Get user profile to determine effective user ID
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("resident_community_id, can_book, group_owner_id")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        return userData.user.id; // Fallback to current user
+      }
+
+      // Determine effective user ID (group owner or self)
+      const effectiveUserId = profileData.group_owner_id || userData.user.id;
+      const updatedProfile = { ...profileData, effectiveUserId };
+      setUserProfile(updatedProfile);
+
+      return effectiveUserId;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+  }, [t]);
+
   const fetchBookings = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      Alert.alert(t('error'), t('userNotFound'));
+    
+    const effectiveUserId = await fetchUserProfile();
+    if (!effectiveUserId) {
       setLoading(false);
       return;
     }
 
-    const threeDaysAgo = subDays(new Date(), 3).toISOString().split('T')[0];
-
     try {
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('date', threeDaysAgo)
-        .order('date', { ascending: false })
-        .order('start_time', { ascending: false });
+      // Get current date and time for filtering
+      const now = new Date();
+      const nowISODate = now.toISOString().split("T")[0]; // e.g., "2025-07-20"
+      const nowTime = now.toTimeString().slice(0, 5);     // e.g., "14:30"
 
-      if (bookingsError) throw bookingsError;
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
 
-      const bookingIds = bookingsData?.map(booking => booking.id) || [];
-      const { data: matchesData, error: matchesError } = await supabase
-        .from('matches')
-        .select('booking_id')
-        .in('booking_id', bookingIds);
+      // ✅ FUTURE BOOKINGS - bookings that haven't ended yet
+      const { data: futureData, error: futureError } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("user_id", effectiveUserId) // Use effective user ID
+        .or(
+          `date.gt.${nowISODate},and(date.eq.${nowISODate},end_time.gt.${nowTime})`
+        )
+        .order("date", { ascending: true })
+        .order("start_time", { ascending: true });
 
-      if (matchesError) throw matchesError;
+      // ✅ PAST BOOKINGS - bookings that have ended, limited to last 30 days
+      const { data: pastData, error: pastError } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("user_id", effectiveUserId) // Use effective user ID
+        .or(
+          `date.lt.${nowISODate},and(date.eq.${nowISODate},end_time.lte.${nowTime})`
+        )
+        .gte("date", thirtyDaysAgoStr)
+        .order("date", { ascending: false })
+        .order("start_time", { ascending: false });
 
-      const bookingsWithMatches = new Set(matchesData?.map(match => match.booking_id));
+      if (futureError || pastError) {
+        throw futureError || pastError;
+      }
 
-      const bookingsWithMatchStatus = bookingsData?.map(booking => ({
+      // Get booking IDs for match checking
+      const allBookings = [...(futureData || []), ...(pastData || [])];
+      const bookingIds = allBookings.map(booking => booking.id);
+      
+      let matchesData = [];
+      if (bookingIds.length > 0) {
+        const { data: matchesResult, error: matchesError } = await supabase
+          .from('matches')
+          .select('booking_id')
+          .in('booking_id', bookingIds);
+
+        if (matchesError) {
+          console.error('Error fetching matches:', matchesError);
+        } else {
+          matchesData = matchesResult || [];
+        }
+      }
+
+      const bookingsWithMatches = new Set(matchesData.map(match => match.booking_id));
+
+      // Add match status to bookings
+      const futureBookingsWithMatches = (futureData || []).map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
-      })) || [];
+      }));
 
-      setBookings(bookingsWithMatchStatus);
+      const pastBookingsWithMatches = (pastData || []).map(booking => ({
+        ...booking,
+        has_match: bookingsWithMatches.has(booking.id)
+      }));
+
+      setFutureBookings(futureBookingsWithMatches);
+      setPastBookings(pastBookingsWithMatches);
+
     } catch (error) {
       console.error(t('errorFetchingBookings'), error);
       Alert.alert(t('error'), t('failedToFetchBookings'));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, fetchUserProfile]);
 
   useEffect(() => {
     fetchBookings();
@@ -95,27 +183,32 @@ export default function MyBookingsScreen() {
           text: t('yes'), 
           style: 'destructive',
           onPress: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-              Alert.alert(t('error'), t('userNotFound'));
-              return;
-            }
+            try {
+              if (!userProfile) {
+                Alert.alert(t('error'), t('userNotFound'));
+                return;
+              }
 
-            const { data, error } = await supabase
-              .from('bookings')
-              .delete()
-              .eq('id', bookingId)
-              .eq('user_id', user.id)
-              .select();
+              // Use effective user ID for deletion (only the owner can cancel)
+              const { data, error } = await supabase
+                .from('bookings')
+                .delete()
+                .eq('id', bookingId)
+                .eq('user_id', userProfile.effectiveUserId)
+                .select();
 
-            if (error) {
+              if (error) {
+                Alert.alert(t('error'), t('failedToCancelBooking'));
+                console.error(t('errorCancellingBooking'), error);
+              } else if (data && data.length > 0) {
+                Alert.alert(t('success'), t('bookingCancelledSuccessfully'));
+                fetchBookings();
+              } else {
+                Alert.alert(t('error'), t('bookingNotFoundOrNoPermission'));
+              }
+            } catch (error) {
+              console.error('Error cancelling booking:', error);
               Alert.alert(t('error'), t('failedToCancelBooking'));
-              console.error(t('errorCancellingBooking'), error);
-            } else if (data && data.length > 0) {
-              Alert.alert(t('success'), t('bookingCancelledSuccessfully'));
-              fetchBookings();
-            } else {
-              Alert.alert(t('error'), t('bookingNotFoundOrNoPermission'));
             }
           }
         }
@@ -140,27 +233,47 @@ export default function MyBookingsScreen() {
     return format(bookingDate, t('dateFormat'));
   };
 
-  const renderBookingItem = ({ item }: { item: Booking }) => {
-    const bookingDate = parseISO(`${item.date}T${item.start_time}`);
-    const isPastBooking = isBefore(bookingDate, new Date());
+  const getStatusIcon = (status: string) => {
+    switch(status?.toLowerCase()) {
+      case 'confirmed':
+        return <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" />;
+      case 'cancelled':
+        return <MaterialCommunityIcons name="close-circle" size={16} color="#f44336" />;
+      case 'pending':
+        return <MaterialCommunityIcons name="clock-outline" size={16} color="#FF9800" />;
+      default:
+        return <MaterialCommunityIcons name="alert-circle" size={16} color="#757575" />;
+    }
+  };
 
+  const getStatusColor = (status: string) => {
+    switch(status?.toLowerCase()) {
+      case 'confirmed':
+        return '#4CAF50';
+      case 'cancelled':
+        return '#f44336';
+      case 'pending':
+        return '#FF9800';
+      default:
+        return '#757575';
+    }
+  };
+
+  const renderBookingItem = ({ item, isPast }: { item: Booking; isPast: boolean }) => {
     return (
-      <Card style={[styles.card, isPastBooking && styles.pastBooking]}>
+      <Card style={[styles.card, isPast && styles.pastBooking]}>
         <Card.Content>
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="tennis" size={24} color={colors.primary} />
             <Title style={styles.courtTitle}>{t('court_number', { number: item.court_number })}</Title>
-            {isPastBooking && (
-              <Chip 
-                style={[
-                  styles.statusChip, 
-                  item.has_match ? styles.matchAddedChip : styles.pendingResultChip
-                ]}
-              >
-                {item.has_match ? t('matchAdded') : t('pendingResult')}
-              </Chip>
-            )}
+            <View style={styles.statusContainer}>
+              {getStatusIcon(item.status)}
+              <Paragraph style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                {item.status}
+              </Paragraph>
+            </View>
           </View>
+          
           <View style={styles.cardContent}>
             <View style={styles.dateTimeContainer}>
               <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
@@ -168,29 +281,58 @@ export default function MyBookingsScreen() {
             </View>
             <View style={styles.dateTimeContainer}>
               <MaterialCommunityIcons name="clock-outline" size={20} color={colors.primary} />
-              <Paragraph style={styles.dateTime}>{t('timeRange', { start: item.start_time, end: item.end_time })}</Paragraph>
+              <Paragraph style={styles.dateTime}>
+                {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
+              </Paragraph>
             </View>
           </View>
-          {!isPastBooking && (
-            <Button
-              mode="contained"
-              onPress={() => handleCancelBooking(item.id)}
-              style={styles.cancelButton}
-              labelStyle={styles.cancelButtonText}
-            >
-              {t('cancelBooking')}
-            </Button>
+
+          {/* Show group booking indicator */}
+          {userProfile?.group_owner_id && (
+            <View style={styles.groupBookingContainer}>
+              <MaterialCommunityIcons name="account-group" size={16} color={colors.primary} />
+              <Paragraph style={styles.groupBookingText}>
+                {t('booking_for_group_member')}
+              </Paragraph>
+            </View>
           )}
-          {isPastBooking && !item.has_match && (
-            <Button
-              mode="contained"
-              onPress={() => handleAddMatchResult(item)}
-              style={styles.addResultButton}
-              labelStyle={styles.addResultButtonText}
-            >
-              {t('addMatchResult')}
-            </Button>
-          )}
+
+          {/* Action buttons */}
+          <View style={styles.buttonContainer}>
+            {!isPast && item.status !== 'cancelled' && (
+              <Button
+                mode="contained"
+                onPress={() => handleCancelBooking(item.id)}
+                style={styles.cancelButton}
+                labelStyle={styles.cancelButtonText}
+                icon="cancel"
+              >
+                {t('cancelBooking')}
+              </Button>
+            )}
+            
+            {isPast && !item.has_match && item.status !== 'cancelled' && (
+              <Button
+                mode="contained"
+                onPress={() => handleAddMatchResult(item)}
+                style={styles.addResultButton}
+                labelStyle={styles.addResultButtonText}
+                icon="plus"
+              >
+                {t('addMatchResult')}
+              </Button>
+            )}
+
+            {isPast && item.has_match && (
+              <Chip 
+                style={styles.matchAddedChip}
+                textStyle={styles.chipText}
+                icon="check"
+              >
+                {t('matchAdded')}
+              </Chip>
+            )}
+          </View>
         </Card.Content>
       </Card>
     );
@@ -204,6 +346,8 @@ export default function MyBookingsScreen() {
     );
   }
 
+  const allBookings = [...futureBookings, ...pastBookings];
+
   return (
     <LinearGradient colors={[colors.primary, "#000"]} style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -211,8 +355,28 @@ export default function MyBookingsScreen() {
           <Title style={styles.title}>{t('myBookings')}</Title>
           {loading && <ActivityIndicator size="small" color="#ffffff" />}
         </View>
+
+        {/* Upcoming Bookings Counter */}
+        {futureBookings.length > 0 && (
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="clock-outline" size={24} color="#4CAF50" />
+            <Title style={styles.sectionTitle}>
+              {t('upcomingBookings')} ({futureBookings.length})
+            </Title>
+          </View>
+        )}
+
+        {/* Past Bookings Counter */}
+        {pastBookings.length > 0 && futureBookings.length > 0 && (
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="check-circle" size={24} color="#4CAF50" />
+            <Title style={styles.sectionTitle}>
+              {t('pastBookings')} ({pastBookings.length})
+            </Title>
+          </View>
+        )}
        
-        {bookings.length === 0 ? (
+        {allBookings.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank" size={64} color="#ffffff" />
             <Paragraph style={styles.noBookings}>{t('noBookingsMessage')}</Paragraph>
@@ -222,8 +386,11 @@ export default function MyBookingsScreen() {
           </View>
         ) : (
           <FlatList
-            data={bookings}
-            renderItem={renderBookingItem}
+            data={[
+              ...futureBookings.map(booking => ({ ...booking, isPast: false })),
+              ...pastBookings.map(booking => ({ ...booking, isPast: true }))
+            ]}
+            renderItem={({ item }) => renderBookingItem({ item, isPast: item.isPast })}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             refreshControl={
@@ -234,6 +401,7 @@ export default function MyBookingsScreen() {
                 tintColor="#ffffff"
               />
             }
+            showsVerticalScrollIndicator={false}
           />
         )}
       </SafeAreaView>
@@ -268,6 +436,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginRight: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
+  },
   card: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -278,7 +458,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   courtTitle: {
     marginLeft: 8,
@@ -287,8 +467,18 @@ const styles = StyleSheet.create({
     color: '#333333',
     flex: 1,
   },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
   cardContent: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   dateTimeContainer: {
     flexDirection: 'row',
@@ -300,8 +490,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555555',
   },
-  cancelButton: {
+  groupBookingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 168, 107, 0.1)',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 12,
+  },
+  groupBookingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#00A86B',
+    fontStyle: 'italic',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     marginTop: 8,
+  },
+  cancelButton: {
     backgroundColor: '#ff6b6b',
     borderRadius: 8,
   },
@@ -310,11 +519,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   addResultButton: {
-    marginTop: 8,
     backgroundColor: '#4CAF50',
     borderRadius: 8,
   },
   addResultButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  matchAddedChip: {
+    backgroundColor: '#4CAF50',
+  },
+  chipText: {
     color: '#ffffff',
     fontWeight: 'bold',
   },
@@ -341,15 +556,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   pastBooking: {
-    opacity: 0.8,
-  },
-  statusChip: {
-    marginLeft: 'auto',
-  },
-  matchAddedChip: {
-    backgroundColor: '#4CAF50',
-  },
-  pendingResultChip: {
-    backgroundColor: '#FFA000',
+    opacity: 0.85,
   },
 });
