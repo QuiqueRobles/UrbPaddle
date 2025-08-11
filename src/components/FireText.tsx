@@ -28,40 +28,37 @@ const FireText = ({
   style,
   intensity = 1.0 
 }: FireTextProps) => {
-  // Multiple animation values for different effects
+  // Refined animation values for professional look
   const baseAnimation = useSharedValue(0);
-  const flameHeight = useSharedValue(0);
-  const sparkAnimation = useSharedValue(0);
+  const glowAnimation = useSharedValue(0);
+  const shimmerAnimation = useSharedValue(0);
 
   useEffect(() => {
-    // Base flame movement
+    // Subtle base movement - more professional
     baseAnimation.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) }),
-        withTiming(0, { duration: 1000, easing: Easing.bezier(0.25, 0.1, 0.25, 1) })
+        withTiming(1, { duration: 2000, easing: Easing.bezier(0.4, 0.0, 0.6, 1) }),
+        withTiming(0, { duration: 2000, easing: Easing.bezier(0.4, 0.0, 0.6, 1) })
       ),
       -1,
       true
     );
 
-    // Flame height variation
-    flameHeight.value = withRepeat(
+    // Gentle glow effect
+    glowAnimation.value = withRepeat(
       withSequence(
-        withSpring(1, { damping: 2, stiffness: 80 }),
-        withSpring(0.5, { damping: 2, stiffness: 80 })
+        withSpring(1, { damping: 8, stiffness: 40 }),
+        withSpring(0.3, { damping: 8, stiffness: 40 })
       ),
       -1,
       true
     );
 
-    // Spark effect
-    sparkAnimation.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 500 }),
-        withTiming(0, { duration: 500 })
-      ),
+    // Subtle shimmer effect
+    shimmerAnimation.value = withRepeat(
+      withTiming(1, { duration: 3000, easing: Easing.linear }),
       -1,
-      true
+      false
     );
   }, []);
 
@@ -72,30 +69,45 @@ const FireText = ({
           translateY: interpolate(
             baseAnimation.value,
             [0, 1],
-            [0, 3 * intensity]
+            [0, 2 * intensity] // Reduced movement for professionalism
           ),
         },
         {
           scaleY: interpolate(
-            flameHeight.value,
+            glowAnimation.value,
             [0, 1],
-            [0.95, 1.05]
+            [0.98, 1.02] // Very subtle scaling
           ),
         },
       ],
     };
   });
 
-  const sparkStyle = useAnimatedStyle(() => {
+  const shimmerStyle = useAnimatedStyle(() => {
     return {
-      opacity: interpolate(sparkAnimation.value, [0, 1], [0, 0.8]),
       transform: [
         {
-          translateY: interpolate(
-            sparkAnimation.value,
+          translateX: interpolate(
+            shimmerAnimation.value,
             [0, 1],
-            [0, -20 * intensity]
+            [-width, width]
           ),
+        },
+      ],
+      opacity: interpolate(
+        shimmerAnimation.value,
+        [0, 0.5, 1],
+        [0, 0.3, 0] // Very subtle shimmer
+      ),
+    };
+  });
+
+  const glowStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(glowAnimation.value, [0, 1], [0.2, 0.6]),
+      transform: [
+        {
+          scale: interpolate(glowAnimation.value, [0, 1], [1, 1.05]),
         },
       ],
     };
@@ -112,46 +124,47 @@ const FireText = ({
         }
       >
         <Animated.View style={[styles.gradientContainer, animatedGradientStyle]}>
-         <LinearGradient
+          {/* Main gradient - professional green theme */}
+          <LinearGradient
             colors={[
-                '#008000',  // Green
-                '#32CD32',  // Lime Green
-                '#00FF00',  // Bright Green
-                '#7CFC00',  // Lawn Green
-                '#ADFF2F',  // Green Yellow
-                'transparent'
+              '#00A86B',  // Deep Green
+              '#00C853',  // Bright Green  
+              '#4CAF50',  // Material Green
+              '#8BC34A',  // Light Green
+              '#C8E6C9',  // Very Light Green
+              'transparent'
             ]}
             style={styles.gradient}
             start={{ x: 0, y: 1 }}
             end={{ x: 0, y: 0 }}
-            locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-        />
-
-        </Animated.View>
-        
-        {/* Sparks Layer */}
-        <Animated.View style={[styles.sparksContainer, sparkStyle]}>
-          <LinearGradient
-            colors={['transparent', '#FFD700', 'transparent']}
-            style={styles.sparks}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 0, y: 0 }}
+            locations={[0, 0.25, 0.45, 0.65, 0.85, 1]}
           />
+
+          {/* Subtle shimmer effect */}
+          <Animated.View style={[styles.shimmerContainer, shimmerStyle]}>
+            <LinearGradient
+              colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+              style={styles.shimmer}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </Animated.View>
         </Animated.View>
       </MaskedView>
 
-      {/* Glow Effect */}
-      <Text 
+      {/* Professional glow effect */}
+      <Animated.Text 
         style={[
           styles.glowText, 
           { 
             fontSize,
-            textShadowRadius: 10 * intensity,
-          }
+            textShadowRadius: 8 * intensity,
+          },
+          glowStyle
         ]}
       >
         {text}
-      </Text>
+      </Animated.Text>
     </View>
   );
 };
@@ -162,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   maskedContainer: {
-    height: 40,
+    height: 50, // Slightly taller for better text rendering
     width: width,
   },
   maskContainer: {
@@ -172,34 +185,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontWeight: 'bold',
+    fontWeight: '700', // More professional weight
     textAlign: 'center',
     color: '#000',
-    fontFamily: 'Firestarter',
+    letterSpacing: 0.5, // Better letter spacing
   },
   gradientContainer: {
     flex: 1,
     flexDirection: 'column',
   },
   gradient: {
-    flex: 2,
+    flex: 1,
     width: '100%',
   },
-  sparksContainer: {
+  shimmerContainer: {
     ...StyleSheet.absoluteFillObject,
-    transform: [{ translateY: -20 }],
+    overflow: 'hidden',
   },
-  sparks: {
+  shimmer: {
     flex: 1,
-    opacity: 0.5,
+    width: 100, // Narrow shimmer band
   },
   glowText: {
     position: 'absolute',
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
-    color: 'rgba(255, 100, 0, 0.3)',
-    textShadowColor: '#FF4500',
+    color: 'rgba(0, 200, 83, 0.15)', // Very subtle green glow
+    textShadowColor: '#00C853',
     textShadowOffset: { width: 0, height: 0 },
+    letterSpacing: 0.5,
   },
 });
 
