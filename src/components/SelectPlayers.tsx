@@ -16,130 +16,97 @@ type Profile = {
   guest_communities?: string[];
 };
 
-type Player = {
-  id: string;
-  name: string;
-  profile_id: string | null;
-  avatar_url?: string;
-  level?: number;
-  isResident: boolean;
-  isAnonymous: boolean;
-};
-
-interface SelectPlayersProps {
-  onPlayersChange: (players: Player[]) => void;
+interface SelectedPlayers {
+  player1: Profile | null;
+  player2: Profile | null;
+  player3: Profile | null;
+  player4: Profile | null;
 }
 
-export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
+interface SelectPlayersProps {
+  communityId: string;
+  onPlayersChange: (players: SelectedPlayers) => void;
+}
+
+export default function SelectPlayers({ communityId, onPlayersChange }: SelectPlayersProps) {
   const { t } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: '', profile_id: null, isResident: false, isAnonymous: false },
-    { id: '2', name: '', profile_id: null, isResident: false, isAnonymous: false },
-    { id: '3', name: '', profile_id: null, isResident: false, isAnonymous: false },
-    { id: '4', name: '', profile_id: null, isResident: false, isAnonymous: false },
-  ]);
+  const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayers>({
+    player1: null,
+    player2: null,
+    player3: null,
+    player4: null,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const [activeSlot, setActiveSlot] = useState<number | null>(null);
-  const [userCommunityId, setUserCommunityId] = useState<string | null>(null);
+  const [activeSlot, setActiveSlot] = useState<keyof SelectedPlayers | null>(null);
+  const [user, setUser] = useState<any>(null);
   const theme = useTheme();
 
   useEffect(() => {
-    fetchUserCommunity();
+    getCurrentUser();
   }, []);
 
   useEffect(() => {
-    if (userCommunityId) {
+    if (communityId) {
       fetchProfiles();
     }
-  }, [userCommunityId]);
+  }, [communityId]);
 
   useEffect(() => {
-    if (searchQuery.length > 1 && activeSlot !== null && userCommunityId) {
+    if (searchQuery.length > 1 && activeSlot !== null && communityId) {
+      const selectedProfileIds = Object.values(selectedPlayers)
+        .filter(Boolean)
+        .map(profile => profile.id);
+
       const filteredProfiles = profiles.filter(profile => 
         (profile.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         profile.username.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        !players.some(player => player.profile_id === profile.id) &&
-        (profile.resident_community_id === userCommunityId || 
-         (profile.guest_communities && profile.guest_communities.includes(userCommunityId)))
+        !selectedProfileIds.includes(profile.id) &&
+        (profile.resident_community_id === communityId || 
+         (profile.guest_communities && profile.guest_communities.includes(communityId)))
       );
       setSearchResults(filteredProfiles);
     } else {
       setSearchResults([]);
     }
-  }, [searchQuery, profiles, players, activeSlot, userCommunityId]);
+  }, [searchQuery, profiles, selectedPlayers, activeSlot, communityId]);
 
   useEffect(() => {
-    onPlayersChange(players);
-  }, [players, onPlayersChange]);
+    onPlayersChange(selectedPlayers);
+  }, [selectedPlayers, onPlayersChange]);
 
-  const fetchUserCommunity = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('resident_community_id')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setUserCommunityId(data?.resident_community_id || null);
-      }
-    } catch (error) {
-      console.error('Error fetching user community:', error);
-      Alert.alert(t('error'), t('failedFetchUserCommunity'));
-    }
-  }, [t]);
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
 
   const fetchProfiles = useCallback(async () => {
-    if (!userCommunityId) return;
+    if (!communityId) return;
 
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, username, avatar_url, level, resident_community_id, guest_communities')
-        .or(`resident_community_id.eq.${userCommunityId},guest_communities.cs.{${userCommunityId}}`)
+        .or(`resident_community_id.eq.${communityId},guest_communities.cs.{${communityId}}`)
         .order('full_name', { ascending: true });
 
       if (error) throw error;
       setProfiles(data || []);
     } catch (error) {
       console.error('Error fetching profiles:', error);
-      Alert.alert(t('error'), t('failedFetchProfiles'));
+      Alert.alert(t('error') || 'Error', t('failedFetchProfiles') || 'Failed to fetch profiles');
     }
-  }, [userCommunityId, t]);
+  }, [communityId, t]);
 
-  const handlePlayerChange = useCallback((index: number, profile: Profile | null, isAnonymous: boolean = false) => {
-    setPlayers(prevPlayers => {
-      const newPlayers = [...prevPlayers];
-      if (isAnonymous) {
-        newPlayers[index] = {
-          ...newPlayers[index],
-          name: t('anonymousPlayer', { number: index + 1 }),
-          profile_id: null,
-          avatar_url: undefined,
-          level: undefined,
-          isResident: false,
-          isAnonymous: true
-        };
-      } else {
-        newPlayers[index] = { 
-          ...newPlayers[index], 
-          name: profile ? profile.full_name : '', 
-          profile_id: profile ? profile.id : null,
-          avatar_url: profile ? profile.avatar_url : undefined,
-          level: profile ? profile.level : undefined,
-          isResident: profile ? profile.resident_community_id === userCommunityId : false,
-          isAnonymous: false
-        };
-      }
-      return newPlayers;
-    });
+  const handlePlayerChange = useCallback((slot: keyof SelectedPlayers, profile: Profile | null) => {
+    setSelectedPlayers(prev => ({
+      ...prev,
+      [slot]: profile
+    }));
     setSearchQuery('');
     setActiveSlot(null);
-  }, [userCommunityId, t]);
+  }, []);
 
   const renderSearchResult = useCallback(({ item }: { item: Profile }) => (
     <TouchableOpacity
@@ -151,7 +118,7 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
     >
       <List.Item
         title={item.full_name}
-        description={t('playerDescription', { username: item.username, level: item.level || t('na'), status: item.resident_community_id === userCommunityId ? t('resident') : t('guest') })}
+        description={`@${item.username} • Level: ${item.level || 'N/A'} • ${item.resident_community_id === communityId ? 'Resident' : 'Guest'}`}
         left={props => 
           item.avatar_url ? (
             <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />
@@ -159,86 +126,124 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
             <Avatar.Text {...props} size={40} label={item.full_name.substring(0, 2).toUpperCase()} />
           )
         }
-        right={props => <Text {...props} style={styles.levelText}>{t('level', { level: item.level || t('na') })}</Text>}
+        right={props => <Text {...props} style={styles.levelText}>Level {item.level || 'N/A'}</Text>}
         style={styles.searchResultItem}
       />
     </TouchableOpacity>
-  ), [activeSlot, handlePlayerChange, userCommunityId, t]);
+  ), [activeSlot, handlePlayerChange, communityId]);
 
-  const renderTeam = useCallback((teamName: string, teamIndex: number) => (
-    <View key={teamName} style={styles.team}>
-      <Text style={styles.teamTitle}>{teamName}</Text>
-      <View style={styles.playerSlots}>
-        {players.slice(teamIndex * 2, teamIndex * 2 + 2).map((player, index) => (
-          <TouchableOpacity
-            key={player.id}
-            style={[
-              styles.playerSlot, 
-              player.name ? styles.playerSlotFilled : {},
-              activeSlot === teamIndex * 2 + index ? styles.activeSlot : {}
-            ]}
-            onPress={() => {
-              setActiveSlot(teamIndex * 2 + index);
-              setSearchQuery('');
-            }}
-          >
-            {player.name ? (
-              <Chip
-                avatar={
-                  player.isAnonymous ? (
-                    <Avatar.Icon size={24} icon="account-question" />
-                  ) : player.avatar_url ? (
-                    <Avatar.Image size={24} source={{ uri: player.avatar_url }} />
-                  ) : (
-                    <Avatar.Text size={24} label={player.name.substring(0, 2).toUpperCase()} />
-                  )
-                }
-                onClose={() => handlePlayerChange(teamIndex * 2 + index, null)}
-                style={[
-                  styles.playerChip, 
-                  player.isAnonymous ? styles.anonymousChip : player.isResident ? styles.residentChip : styles.guestChip
-                ]}
-              >
-                <Text style={styles.playerNameInSlot}>{player.name}</Text>
-                {!player.isAnonymous && (
-                  <>
-                    <Text style={styles.playerLevelInSlot}> {t('level', { level: player.level || t('na') })}</Text>
-                    <Text style={styles.playerTypeInSlot}> {player.isResident ? t('residentShort') : t('guestShort')}</Text>
-                  </>
-                )}
-              </Chip>
-            ) : (
-              <View style={[
-                styles.emptySlot,
-                activeSlot === teamIndex * 2 + index ? styles.activeEmptySlot : {}
-              ]}>
-                <MaterialCommunityIcons 
-                  name="account-plus" 
-                  size={24} 
-                  color={activeSlot === teamIndex * 2 + index ? colors.primary : colors.secondary} 
-                />
-                <Text style={[
-                  styles.emptySlotText,
-                  activeSlot === teamIndex * 2 + index ? styles.activeEmptySlotText : {}
-                ]}>
-                  {activeSlot === teamIndex * 2 + index ? t('selectPlayer') : t('addPlayer')}
+  const renderPlayerSlot = useCallback((
+    slot: keyof SelectedPlayers, 
+    label: string, 
+    teamColor: string
+  ) => {
+    const player = selectedPlayers[slot];
+    const isActive = activeSlot === slot;
+    const isCurrentUser = player && user && player.id === user.id;
+
+    return (
+      <TouchableOpacity
+        key={slot}
+        style={[
+          styles.playerSlot, 
+          player ? styles.playerSlotFilled : {},
+          isActive ? styles.activeSlot : {},
+          { borderLeftColor: teamColor, borderLeftWidth: 4 }
+        ]}
+        onPress={() => {
+          setActiveSlot(slot);
+          setSearchQuery('');
+        }}
+      >
+        {player ? (
+          <View style={styles.playerInfo}>
+            <View style={styles.playerMainInfo}>
+              {player.avatar_url ? (
+                <Avatar.Image size={40} source={{ uri: player.avatar_url }} />
+              ) : (
+                <Avatar.Text size={40} label={player.full_name.substring(0, 2).toUpperCase()} />
+              )}
+              <View style={styles.playerDetails}>
+                <Text style={[styles.playerName, isCurrentUser && styles.currentUserName]}>
+                  {player.full_name} {isCurrentUser && '(You)'}
+                </Text>
+                <Text style={styles.playerMeta}>
+                  @{player.username} • Level {player.level || 'N/A'} • 
+                  {player.resident_community_id === communityId ? ' Resident' : ' Guest'}
                 </Text>
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
+            </View>
+            <TouchableOpacity 
+              onPress={() => handlePlayerChange(slot, null)}
+              style={styles.removeButton}
+            >
+              <MaterialCommunityIcons name="close-circle" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[
+            styles.emptySlot,
+            isActive ? styles.activeEmptySlot : {}
+          ]}>
+            <MaterialCommunityIcons 
+              name="account-plus" 
+              size={32} 
+              color={isActive ? colors.primary : colors.secondary} 
+            />
+            <Text style={[
+              styles.emptySlotText,
+              isActive ? styles.activeEmptySlotText : {}
+            ]}>
+              {label}
+            </Text>
+            <Text style={styles.slotHint}>
+              {isActive ? 'Search above or tap to browse' : 'Tap to select'}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  }, [selectedPlayers, handlePlayerChange, activeSlot, user, communityId]);
+
+  const renderTeam = useCallback((teamName: string, teamColor: string, slots: [keyof SelectedPlayers, keyof SelectedPlayers]) => (
+    <View key={teamName} style={styles.team}>
+      <Text style={[styles.teamTitle, { color: teamColor }]}>{teamName}</Text>
+      <View style={styles.playerSlots}>
+        {slots.map((slot, index) => 
+          renderPlayerSlot(slot, `Player ${index + 1}`, teamColor)
+        )}
       </View>
     </View>
-  ), [players, handlePlayerChange, colors.primary, colors.secondary, activeSlot, t]);
+  ), [renderPlayerSlot]);
+
+  const getSelectedCount = () => {
+    return Object.values(selectedPlayers).filter(Boolean).length;
+  };
+
+  const getCurrentUserSelected = () => {
+    return Object.values(selectedPlayers).some(player => player && user && player.id === user.id);
+  };
 
   return (
     <Card style={styles.card}>
       <Card.Content>
-        <Title style={styles.sectionTitle}>{t('selectPlayers')}</Title>
+        <Title style={styles.sectionTitle}>
+          Select Players ({getSelectedCount()}/4)
+        </Title>
+        
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>
+            {getCurrentUserSelected() ? 
+              '✓ You are selected as a player' : 
+              '⚠ You must be one of the players'
+            }
+          </Text>
+        </View>
+
         {activeSlot !== null && (
-          <>
+          <View style={styles.searchContainer}>
             <TextInput
-              label={t('searchPlayerLabel')}
+              label={`Search for ${activeSlot}`}
               value={searchQuery}
               onChangeText={setSearchQuery}
               style={styles.searchInput}
@@ -251,32 +256,39 @@ export default function SelectPlayers({ onPlayersChange }: SelectPlayersProps) {
                 keyExtractor={(item) => item.id}
                 renderItem={renderSearchResult}
                 style={styles.searchResults}
+                nestedScrollEnabled={true}
               />
             )}
-            <Button 
-              mode="outlined" 
-              onPress={() => handlePlayerChange(activeSlot, null, true)} 
-              style={styles.anonymousButton}
-              icon="account-question"
-            >
-              {t('addAnonymousPlayer')}
-            </Button>
-          </>
+          </View>
         )}
         
         <View style={styles.teamsContainer}>
-          {[t('team1'), t('team2')].map((teamName, teamIndex) => renderTeam(teamName, teamIndex))}
+          {renderTeam('Team 1', '#FF6B6B', ['player1', 'player2'])}
+          {renderTeam('Team 2', '#4ECDC4', ['player3', 'player4'])}
         </View>
         
         {activeSlot !== null && (
           <Button 
-            mode="contained" 
-            onPress={() => setActiveSlot(null)} 
+            mode="outlined" 
+            onPress={() => {
+              setActiveSlot(null);
+              setSearchQuery('');
+            }} 
             style={styles.cancelButton}
           >
-            {t('cancelSelection')}
+            Cancel Selection
           </Button>
         )}
+
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryTitle}>Match Summary:</Text>
+          <Text style={styles.summaryText}>
+            Team 1: {selectedPlayers.player1?.full_name || 'Empty'} & {selectedPlayers.player2?.full_name || 'Empty'}
+          </Text>
+          <Text style={styles.summaryText}>
+            Team 2: {selectedPlayers.player3?.full_name || 'Empty'} & {selectedPlayers.player4?.full_name || 'Empty'}
+          </Text>
+        </View>
       </Card.Content>
     </Card>
   );
@@ -288,18 +300,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 4,
   },
-  anonymousChip: {
-    backgroundColor: 'rgba(150, 150, 150, 0.1)',
-  },
-  anonymousButton: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 20,
     marginBottom: 16,
     fontWeight: 'bold',
     color: "#fff"
+  },
+  statusContainer: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  statusText: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  searchContainer: {
+    marginBottom: 16,
   },
   searchInput: {
     marginBottom: 8,
@@ -307,7 +325,6 @@ const styles = StyleSheet.create({
   },
   searchResults: {
     maxHeight: 200,
-    marginBottom: 16,
     backgroundColor: '#ffffff',
     borderRadius: 8,
   },
@@ -316,88 +333,116 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   teamsContainer: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   team: {
     flex: 1,
-    marginHorizontal: 8,
-    marginBottom: 16,
+    marginHorizontal: 4,
   },
   teamTitle: {
     fontWeight: 'bold',
-    marginBottom: 8,
-    fontSize: 16,
-    color: "#fff"
+    marginBottom: 12,
+    fontSize: 18,
+    textAlign: 'center',
   },
   playerSlots: {
     flexDirection: 'column',
   },
   playerSlot: {
-    marginBottom: 8,
+    marginBottom: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
     overflow: 'hidden',
+    minHeight: 80,
   },
   playerSlotFilled: {
-    borderColor: 'transparent',
-  },
-  playerChip: {
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  residentChip: {
-    backgroundColor: 'rgba(255, 0, 255, 0.1)',
-  },
-  guestChip: {
-    backgroundColor: 'rgba(100, 255, 100, 0.1)',
-  },
-  playerNameInSlot: {
-    color: "#fff",
-    marginRight: 4,
-    fontWeight: 'bold',
-  },
-  playerLevelInSlot: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 12,
-  },
-  playerTypeInSlot: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptySlot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-  },
-  activeEmptySlot: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  emptySlotText: {
-    marginLeft: 8,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '500',
-  },
-  activeEmptySlotText: {
-    color: '#fff',
-  },
-  levelText: {
-    fontSize: 14,
-    color: '#666',
+    borderColor: '#4CAF50',
   },
   activeSlot: {
-    borderColor: '#4CAF50',
+    borderColor: colors.primary,
     borderWidth: 2,
   },
+  playerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  playerMainInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  playerDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  currentUserName: {
+    color: colors.primary,
+  },
+  playerMeta: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  removeButton: {
+    padding: 4,
+  },
+  emptySlot: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    minHeight: 80,
+  },
+  activeEmptySlot: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  },
+  emptySlotText: {
+    marginTop: 8,
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  activeEmptySlotText: {
+    color: colors.primary,
+  },
+  slotHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  levelText: {
+    fontSize: 12,
+    color: '#666',
+  },
   cancelButton: {
-    marginTop: 16,
+    marginBottom: 16,
+  },
+  summaryContainer: {
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  summaryTitle: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  summaryText: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 4,
   },
 });
