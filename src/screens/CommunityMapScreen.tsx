@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, Alert } from 'react-native';
+import MapView, { Region } from 'react-native-maps';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import CustomMarker from '../components/CustomMarker';
 import CommunityCard from '../components/CommunityCard';
 import { useTranslation } from 'react-i18next';
 import { useCommunities, Community } from '../hooks/useCommunities';
@@ -16,15 +18,18 @@ type RootStackParamList = {
 
 type CommunityMapScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Community'>;
 
-const { height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const CARD_HEIGHT = 200;
 
 const CommunityMapScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { communities, loading, error } = useCommunities();
+  const { communities, loading, error, refetch } = useCommunities();
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const [accessibleCommunities, setAccessibleCommunities] = useState<string[]>([]);
+  const mapRef = useRef<MapView>(null);
   const translateY = useRef(new Animated.Value(CARD_HEIGHT)).current;
+
   const navigation = useNavigation<CommunityMapScreenNavigationProp>();
 
   useEffect(() => {
@@ -77,25 +82,35 @@ const CommunityMapScreen: React.FC = () => {
     })
   ).current;
 
-  const handleCommunityPress = useCallback(
-    (community: Community) => {
-      if (accessibleCommunities.includes(community.id)) {
-        setSelectedCommunity((prev) => (prev?.id === community.id ? null : community));
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      } else {
-        Alert.alert(t('accessDenied'), t('communityAccessMessage'), [
-          { text: t('ok'), onPress: () => console.log('OK Pressed') },
-        ]);
+  const handleCommunityPress = useCallback((community: Community) => {
+    if (accessibleCommunities.includes(community.id)) {
+      setSelectedCommunity((prev) => (prev?.id === community.id ? null : community));
+      if (mapRef.current) {
+        const newRegion = {
+          latitude: community.latitude - 0.004,
+          longitude: community.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        mapRef.current.animateToRegion(newRegion, 1000);
+        setMapRegion(newRegion);
       }
-    },
-    [translateY, accessibleCommunities, t]
-  );
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Alert.alert(
+        t('accessDenied'),
+        t('communityAccessMessage'),
+        [{ text: t('ok'), onPress: () => console.log('OK Pressed') }]
+      );
+    }
+  }, [translateY, accessibleCommunities, t]);
 
   const handleViewDetails = useCallback(() => {
     if (selectedCommunity) {
+      console.log('Navigating to community:', selectedCommunity.id);
       navigation.navigate('Community', { communityId: selectedCommunity.id });
     }
   }, [selectedCommunity, navigation]);
@@ -108,27 +123,21 @@ const CommunityMapScreen: React.FC = () => {
     }).start(() => setSelectedCommunity(null));
   }, [translateY]);
 
+  const handleRegionChange = useCallback((region: Region) => {
+    setMapRegion(region);
+  }, []);
+
   const memoizedCommunities = useMemo(() => {
     return communities.map((community) => (
-      <View
-        key={community.id}
-        style={[
-          styles.communityItem,
-          {
-            backgroundColor: accessibleCommunities.includes(community.id)
-              ? '#4CAF50'
-              : '#A9A9A9',
-          },
-        ]}
-        onClick={() => handleCommunityPress(community)}
-      >
-        <Text style={styles.communityName}>{community.name}</Text>
-        <Text style={styles.communityCoords}>
-          ({community.latitude.toFixed(3)}, {community.longitude.toFixed(3)})
-        </Text>
-      </View>
+      <CustomMarker 
+        key={community.id} 
+        community={community} 
+        onPress={handleCommunityPress}
+        isSelected={selectedCommunity?.id === community.id}
+        isAccessible={accessibleCommunities.includes(community.id)}
+      />
     ));
-  }, [communities, accessibleCommunities, handleCommunityPress]);
+  }, [communities, selectedCommunity, handleCommunityPress, accessibleCommunities]);
 
   if (loading) {
     return (
@@ -150,9 +159,19 @@ const CommunityMapScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.listContainer}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        initialRegion={{
+          latitude: communities[0]?.latitude || 0,
+          longitude: communities[0]?.longitude || 0,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        onRegionChangeComplete={handleRegionChange}
+      >
         {memoizedCommunities}
-      </ScrollView>
+      </MapView>
       {selectedCommunity && (
         <CommunityCard
           community={selectedCommunity}
@@ -167,25 +186,24 @@ const CommunityMapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  listContainer: { padding: 16, gap: 10 },
-  communityItem: {
-    padding: 12,
-    borderRadius: 8,
-    cursor: 'pointer',
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  communityName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
+  map: {
+    width: width,
+    height: height,
   },
-  communityCoords: {
-    fontSize: 12,
-    color: '#fff',
-    opacity: 0.8,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default CommunityMapScreen;

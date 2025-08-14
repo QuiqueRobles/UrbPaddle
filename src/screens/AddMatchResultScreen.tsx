@@ -543,6 +543,14 @@ export default function AddMatchResultScreen() {
     }
   };
 
+  const getRemainingTimeColor = (deadline?: string) => {
+    if (!deadline) return colors.primary;
+    const now = new Date();
+    const end = new Date(deadline);
+    const diff = Math.floor((end.getTime() - now.getTime()) / 1000 / 60 / 60);
+    return diff < 12 ? '#F44336' : colors.primary;
+  };
+
   const renderPendingMatch = ({ item: match }: { item: Match }) => {
     const team1Players = [match.player1, match.player2].filter(Boolean).map(p => p.full_name).join(' & ');
     const team2Players = [match.player3, match.player4].filter(Boolean).map(p => p.full_name).join(' & ');
@@ -559,7 +567,9 @@ export default function AddMatchResultScreen() {
             </View>
             <View style={styles.matchTimestamps}>
               <Paragraph style={styles.timeAgo}>{getTimeAgo(match.created_at)}</Paragraph>
-              <Paragraph style={styles.timeRemaining}>{getRemainingTime(match.validation_deadline)}</Paragraph>
+              <Paragraph style={[styles.timeRemaining, { color: getRemainingTimeColor(match.validation_deadline) }]}>
+                {getRemainingTime(match.validation_deadline)}
+              </Paragraph>
             </View>
           </View>
 
@@ -572,6 +582,7 @@ export default function AddMatchResultScreen() {
               </View>
               <Paragraph style={styles.playerName}>{team1Players}</Paragraph>
             </View>
+            <Paragraph style={styles.vs}>VS</Paragraph>
             <View style={styles.teamSection}>
               <View style={styles.teamHeader}>
                 <MaterialCommunityIcons name="account-group" size={20} color="#333" />
@@ -590,6 +601,7 @@ export default function AddMatchResultScreen() {
             <Button 
               mode="contained" 
               style={[styles.actionButton, styles.validateButton]}
+              icon="check"
               onPress={() => handleValidateMatch(match.id)}
             >
               Validate
@@ -597,6 +609,8 @@ export default function AddMatchResultScreen() {
             <Button 
               mode="outlined" 
               style={[styles.actionButton, styles.refuteButton]}
+              labelStyle={styles.refuteButtonLabel}
+              icon="close"
               onPress={() => {
                 setSelectedMatchForRefute(match);
                 setShowRefuteModal(true);
@@ -789,7 +803,7 @@ export default function AddMatchResultScreen() {
                 />
               ) : (
                 <View style={styles.noMatchesContainer}>
-                  <MaterialCommunityIcons name="clock" size={48} color={colors.text} />
+                  <MaterialCommunityIcons name="clock" size={48} color={'white'} />
                   <Paragraph style={styles.noMatchesText}>{t('noPendingValidations') || 'No pending match validations'}</Paragraph>
                 </View>
               )}
@@ -845,9 +859,7 @@ export default function AddMatchResultScreen() {
                       style={styles.scoreRefuteInput}
                     />
                   </View>
-                </View>
-
-                <View style={styles.modalActions}>
+                  <View style={styles.modalActions}>
                   <Button
                     mode="outlined"
                     onPress={() => setShowRefuteModal(false)}
@@ -864,6 +876,9 @@ export default function AddMatchResultScreen() {
                     {t('submitRefutation') || 'Submit Refutation'}
                   </Button>
                 </View>
+                </View>
+
+                
               </Card.Content>
             </Card>
           </Modal>
@@ -934,7 +949,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#ffffffff', // Changed to dark color for better visibility on light card background
   },
   bookingList: {
     maxHeight: 200,
@@ -970,7 +985,7 @@ const styles = StyleSheet.create({
   noBookingsText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#fff',
+    color: '#b7b7b7ff', // Changed to visible color
     marginTop: 16,
   },
   scoreCard: {
@@ -1053,6 +1068,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     elevation: 2,
+    backgroundColor: '#fff', // Ensure light background for dark text
   },
   matchContent: {
     padding: 16,
@@ -1061,7 +1077,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16, // Increased spacing
   },
   matchInfo: {
     flexDirection: 'row',
@@ -1075,10 +1091,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   courtChip: {
-    height: 24,
+    height: 30,
+    backgroundColor: '#e0f0ff', // Softer color for chip
   },
   matchTimestamps: {
     alignItems: 'flex-end',
+    marginTop: 4, 
   },
   timeAgo: {
     fontSize: 12,
@@ -1086,17 +1104,39 @@ const styles = StyleSheet.create({
   },
   timeRemaining: {
     fontSize: 12,
-    color: colors.primary,
     fontWeight: 'bold',
+  },
+  teamsContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 6, // Increased vertical margin
+    paddingHorizontal: 8, // Added padding
+  },
+  vs: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginHorizontal: 16, // Increased spacing around VS
   },
   teamSection: {
     flex: 1,
     marginHorizontal: 8,
+    padding: 12, // Added padding for better touch area
+    backgroundColor: '#f8f8f8', // Light background to distinguish teams
+    borderRadius: 8, // Rounded corners
+    elevation: 1, // Subtle shadow
   },
   teamHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  teamTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+    color: '#333',
   },
   playerName: {
     fontSize: 14,
@@ -1104,11 +1144,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   scoreSection: {
-    marginVertical: 12,
-    paddingVertical: 8,
+    marginVertical: 16, // Increased margin
+    paddingVertical: 12, // Increased padding
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#e0e0e0',
+    alignItems: 'center', // Center score for better visibility
   },
   scoreLabel: {
     fontSize: 16,
@@ -1118,16 +1159,22 @@ const styles = StyleSheet.create({
   matchActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
+    marginTop: 16, // Increased top margin
   },
   actionButton: {
     flex: 0.48,
+    borderRadius: 8, // Rounded buttons
+  
   },
   validateButton: {
     backgroundColor: '#4CAF50',
   },
   refuteButton: {
-    borderColor: '#F44336',
+    backgroundColor: 'red', // Transparent background for outlined button
+    outlineColor: 'red', // White outline for better visibility
+  },
+  refuteButtonLabel: {
+  color: 'white', // Texto blanco
   },
   noMatchesContainer: {
     alignItems: 'center',
@@ -1135,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   noMatchesText: {
     fontSize: 16,
-    color: '#fff',
+    color: '#b4b4b4ff', // Changed to visible color
     marginTop: 16,
     textAlign: 'center',
   },
@@ -1143,8 +1190,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
+    paddingBottom: 16,
+    backgroundColor: 'blur', // Semi-transparent background
   },
   modalCard: {
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 100,
+    paddingBottom: 200,
+    elevation: 4,
+    backgroundColor: '#fff',
     maxHeight: '80%',
   },
   modalTitle: {
