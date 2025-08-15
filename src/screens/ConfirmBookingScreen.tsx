@@ -27,11 +27,14 @@ type UserProfile = {
   can_book: string[];
   group_owner_id: string | null;
   effectiveUserId: string;
+  full_name: string;
+  username: string;
 };
 
 export default function ConfirmBookingScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const theme = useTheme();
   const { t } = useTranslation();
   const { courtId, date, startTime, endTime, communityId } = route.params;
@@ -52,7 +55,7 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
       // Get user profile to determine effective user ID
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("resident_community_id, can_book, group_owner_id")
+        .select("resident_community_id, can_book, group_owner_id, full_name, username")
         .eq("id", userData.user.id)
         .single();
 
@@ -65,6 +68,19 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
       const effectiveUserId = profileData.group_owner_id || userData.user.id;
       const updatedProfile = { ...profileData, effectiveUserId };
       setUserProfile(updatedProfile);
+
+      // If booking for a group owner, fetch owner's info
+      if (profileData.group_owner_id) {
+        const { data: ownerData, error: ownerError } = await supabase
+          .from("profiles")
+          .select("full_name, username")
+          .eq("id", profileData.group_owner_id)
+          .single();
+
+        if (!ownerError && ownerData) {
+          setOwnerProfile(ownerData);
+        }
+      }
 
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -89,10 +105,12 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
         return;
       }
 
-      // Use effective user ID for the booking
+      // Use effective user ID for the booking, but store who actually made it
       const bookingUserId = userProfile.effectiveUserId;
+      const bookedByUserId = userData.user.id; // Who actually made the booking
       
       console.log('Booking for user:', bookingUserId);
+      console.log('Booked by user:', bookedByUserId);
       console.log('Community ID:', communityId);
       
       const { error } = await supabase
@@ -102,7 +120,8 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
           date: date,
           start_time: startTime,
           end_time: endTime,
-          user_id: bookingUserId, // Use effective user ID
+          user_id: bookingUserId, // Effective owner
+          booked_by_user_id: bookedByUserId, // Who actually booked
           community_id: communityId,
           status: 'pending'
         });
@@ -132,6 +151,9 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
     );
   }
 
+  const isGroupBooking = userProfile?.group_owner_id;
+  const displayName = ownerProfile?.full_name || ownerProfile?.username || t('group_owner');
+
   return (
     <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -157,10 +179,13 @@ export default function ConfirmBookingScreen({ navigation, route }: Props) {
             </View>
 
             {/* Group Booking Information */}
-            {userProfile?.group_owner_id && (
+            {isGroupBooking && (
               <View style={styles.groupBookingContainer}>
                 <Paragraph style={styles.groupBookingText}>
-                  {t('booking_for_group_member')}
+                  {t('booking_on_behalf_of')} {displayName}
+                </Paragraph>
+                <Paragraph style={styles.groupBookingSubtext}>
+                  {t('you_are_booking_as_group_member')}
                 </Paragraph>
               </View>
             )}
@@ -247,7 +272,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.primary,
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  groupBookingSubtext: {
+    fontSize: 14,
+    color: colors.primary,
+    textAlign: 'center',
     fontStyle: 'italic',
+    marginTop: 4,
   },
   button: {
     marginTop: 8,

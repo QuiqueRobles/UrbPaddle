@@ -476,6 +476,8 @@
   "confirmRemoveTitle": "Are you sure you want to confirm removal?",
   "confirmRemoveMessage": "This action cannot be undone. All data associated with this community will be permanently deleted.",
   "bookingOverlap": "Booking Overlap",
-  "bookingOverlapMessage": "Sorry, this time slot is no longer available. Please choose another time."
-  
+  "bookingOverlapMessage": "Sorry, this time slot is no longer available. Please choose another time.",
+  "booked_by": "Booked by {{name}}",
+  "booked_for": "Group of {{name}}",
+  "unknown": "unknown"
 }

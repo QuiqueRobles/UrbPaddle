@@ -20,6 +20,15 @@ type Booking = {
   user_id: string;
   status: string;
   has_match: boolean;
+  booked_by_user_id?: string | null;
+  booked_by_profile?: {
+    full_name: string;
+    username: string;
+  } | null;
+  booking_owner_profile?: {
+    full_name: string;
+    username: string;
+  } | null;
 };
 
 type UserProfile = {
@@ -27,6 +36,8 @@ type UserProfile = {
   can_book: string[];
   group_owner_id: string | null;
   effectiveUserId: string;
+  full_name: string;
+  username: string;
 };
 
 export default function MyBookingsScreen() {
@@ -36,6 +47,7 @@ export default function MyBookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isGroupOwner, setIsGroupOwner] = useState(false);
   const { colors } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -54,7 +66,7 @@ export default function MyBookingsScreen() {
       // Get user profile to determine effective user ID
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("resident_community_id, can_book, group_owner_id")
+        .select("resident_community_id, can_book, group_owner_id, full_name, username")
         .eq("id", userData.user.id)
         .single();
 
@@ -68,7 +80,16 @@ export default function MyBookingsScreen() {
       const updatedProfile = { ...profileData, effectiveUserId };
       setUserProfile(updatedProfile);
 
-      return effectiveUserId;
+      // Check if current user is a group owner (has people booking for them)
+      const { data: groupMembers } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("group_owner_id", userData.user.id)
+        .limit(1);
+
+      setIsGroupOwner(groupMembers && groupMembers.length > 0);
+
+      return { effectiveUserId, currentUserId: userData.user.id };
     } catch (error) {
       console.error("Error fetching user profile:", error);
       return null;
@@ -78,38 +99,66 @@ export default function MyBookingsScreen() {
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     
-    const effectiveUserId = await fetchUserProfile();
-    if (!effectiveUserId) {
+    const result = await fetchUserProfile();
+    if (!result) {
       setLoading(false);
       return;
     }
 
+    const { effectiveUserId, currentUserId } = result;
+
     try {
       // Get current date and time for filtering
       const now = new Date();
-      const nowISODate = now.toISOString().split("T")[0]; // e.g., "2025-07-20"
-      const nowTime = now.toTimeString().slice(0, 5);     // e.g., "14:30"
+      const nowISODate = now.toISOString().split("T")[0];
+      const nowTime = now.toTimeString().slice(0, 5);
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
 
-      // ✅ FUTURE BOOKINGS - bookings that haven't ended yet
-      const { data: futureData, error: futureError } = await supabase
+      // Build the query conditions based on user type
+      let userConditions: string;
+      
+      if (isGroupOwner) {
+        // Group owner: show bookings where user_id is them OR booked_by_user_id is someone in their group
+        userConditions = `user_id.eq.${currentUserId}`;
+      } else {
+        // Regular user or group member: show their own bookings (booked_by_user_id = currentUserId)
+        // OR bookings made on behalf of their group owner (user_id = effectiveUserId AND booked_by_user_id = currentUserId)
+        if (effectiveUserId === currentUserId) {
+          // Regular user without group
+          userConditions = `user_id.eq.${currentUserId}`;
+        } else {
+          // Group member: show bookings they made on behalf of group owner
+          userConditions = `and(user_id.eq.${effectiveUserId},booked_by_user_id.eq.${currentUserId})`;
+        }
+      }
+
+      // ✅ FUTURE BOOKINGS
+      const futureQuery = supabase
         .from("bookings")
-        .select("*")
-        .eq("user_id", effectiveUserId) // Use effective user ID
+        .select(`
+          *,
+          booked_by_profile:booked_by_user_id(full_name, username),
+          booking_owner_profile:user_id(full_name, username)
+        `)
+        .or(userConditions)
         .or(
           `date.gt.${nowISODate},and(date.eq.${nowISODate},end_time.gt.${nowTime})`
         )
         .order("date", { ascending: true })
         .order("start_time", { ascending: true });
 
-      // ✅ PAST BOOKINGS - bookings that have ended, limited to last 30 days
-      const { data: pastData, error: pastError } = await supabase
+      // ✅ PAST BOOKINGS
+      const pastQuery = supabase
         .from("bookings")
-        .select("*")
-        .eq("user_id", effectiveUserId) // Use effective user ID
+        .select(`
+          *,
+          booked_by_profile:booked_by_user_id(full_name, username),
+          booking_owner_profile:user_id(full_name, username)
+        `)
+        .or(userConditions)
         .or(
           `date.lt.${nowISODate},and(date.eq.${nowISODate},end_time.lte.${nowTime})`
         )
@@ -117,12 +166,17 @@ export default function MyBookingsScreen() {
         .order("date", { ascending: false })
         .order("start_time", { ascending: false });
 
-      if (futureError || pastError) {
-        throw futureError || pastError;
+      const [futureResult, pastResult] = await Promise.all([
+        futureQuery,
+        pastQuery
+      ]);
+
+      if (futureResult.error || pastResult.error) {
+        throw futureResult.error || pastResult.error;
       }
 
       // Get booking IDs for match checking
-      const allBookings = [...(futureData || []), ...(pastData || [])];
+      const allBookings = [...(futureResult.data || []), ...(pastResult.data || [])];
       const bookingIds = allBookings.map(booking => booking.id);
       
       let matchesData = [];
@@ -142,12 +196,12 @@ export default function MyBookingsScreen() {
       const bookingsWithMatches = new Set(matchesData.map(match => match.booking_id));
 
       // Add match status to bookings
-      const futureBookingsWithMatches = (futureData || []).map(booking => ({
+      const futureBookingsWithMatches = (futureResult.data || []).map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
       }));
 
-      const pastBookingsWithMatches = (pastData || []).map(booking => ({
+      const pastBookingsWithMatches = (pastResult.data || []).map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
       }));
@@ -161,7 +215,7 @@ export default function MyBookingsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [t, fetchUserProfile]);
+  }, [t, fetchUserProfile, isGroupOwner]);
 
   useEffect(() => {
     fetchBookings();
@@ -184,17 +238,19 @@ export default function MyBookingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              if (!userProfile) {
+              if (!userProfile || !userId) {
                 Alert.alert(t('error'), t('userNotFound'));
                 return;
               }
 
-              // Use effective user ID for deletion (only the owner can cancel)
+              // Allow cancellation if:
+              // 1. User is the booking owner (user_id matches)
+              // 2. User is the one who made the booking (booked_by_user_id matches)
               const { data, error } = await supabase
                 .from('bookings')
                 .delete()
                 .eq('id', bookingId)
-                .eq('user_id', userProfile.effectiveUserId)
+                .or(`user_id.eq.${userId},booked_by_user_id.eq.${userId}`)
                 .select();
 
               if (error) {
@@ -259,6 +315,37 @@ export default function MyBookingsScreen() {
     }
   };
 
+  const renderBookingInfo = (item: Booking) => {
+    const isOwnBooking = item.user_id === userId;
+    const isBookedByMe = item.booked_by_user_id === userId;
+    const bookerName = item.booked_by_profile?.full_name || item.booked_by_profile?.username || t('unknown');
+    const ownerName = item.booking_owner_profile?.full_name || item.booking_owner_profile?.username || t('unknown');
+    
+    if (isGroupOwner && !isOwnBooking) {
+      // Group owner viewing a booking made by a group member
+      return (
+        <View style={styles.bookingInfoContainer}>
+          <MaterialCommunityIcons name="account" size={16} color={colors.primary} />
+          <Paragraph style={styles.bookingInfoText}>
+            {t('booked_by', { name: bookerName })}
+          </Paragraph>
+        </View>
+      );
+    } else if (!isOwnBooking && isBookedByMe) {
+      // Group member viewing their booking made on behalf of group owner
+      return (
+        <View style={styles.bookingInfoContainer}>
+          <MaterialCommunityIcons name="account-supervisor" size={16} color={colors.primary} />
+          <Paragraph style={styles.bookingInfoText}>
+            {t('booked_for', { name: ownerName })}
+          </Paragraph>
+        </View>
+      );
+    }
+    
+    return null;
+  };
+
   const renderBookingItem = ({ item, isPast }: { item: Booking; isPast: boolean }) => {
     return (
       <Card style={[styles.card, isPast && styles.pastBooking]}>
@@ -287,15 +374,8 @@ export default function MyBookingsScreen() {
             </View>
           </View>
 
-          {/* Show group booking indicator */}
-          {userProfile?.group_owner_id && (
-            <View style={styles.groupBookingContainer}>
-              <MaterialCommunityIcons name="account-group" size={16} color={colors.primary} />
-              <Paragraph style={styles.groupBookingText}>
-                {t('booking_for_group_member')}
-              </Paragraph>
-            </View>
-          )}
+          {/* Show booking info (who booked for whom) */}
+          {renderBookingInfo(item)}
 
           {/* Action buttons */}
           <View style={styles.buttonContainer}>
@@ -490,7 +570,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555555',
   },
-  groupBookingContainer: {
+  bookingInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 168, 107, 0.1)',
@@ -498,7 +578,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 12,
   },
-  groupBookingText: {
+  bookingInfoText: {
     marginLeft: 8,
     fontSize: 14,
     color: '#00A86B',
