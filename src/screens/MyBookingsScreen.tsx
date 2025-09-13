@@ -48,6 +48,8 @@ export default function MyBookingsScreen() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isGroupOwner, setIsGroupOwner] = useState(false);
+  const [maxBookings, setMaxBookings] = useState<number | null>(null);
+  const [currentBookingsCount, setCurrentBookingsCount] = useState(0);
   const { colors } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -72,7 +74,10 @@ export default function MyBookingsScreen() {
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
-        return userData.user.id; // Fallback to current user
+        // Set basic profile to allow bookings fetch
+        setUserProfile({ effectiveUserId: userData.user.id } as UserProfile);
+        setIsGroupOwner(false);
+        return { effectiveUserId: userData.user.id, currentUserId: userData.user.id };
       }
 
       // Determine effective user ID (group owner or self)
@@ -87,14 +92,54 @@ export default function MyBookingsScreen() {
         .eq("group_owner_id", userData.user.id)
         .limit(1);
 
-      setIsGroupOwner(groupMembers && groupMembers.length > 0);
+      const isOwner = groupMembers && groupMembers.length > 0;
+      setIsGroupOwner(isOwner);
+
+      // Fetch community max bookings limit
+      await fetchCommunityLimits(effectiveUserId);
 
       return { effectiveUserId, currentUserId: userData.user.id };
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      return null;
+      // Fallback: set basic profile
+      setUserProfile({ effectiveUserId: userData.user.id } as UserProfile);
+      setIsGroupOwner(false);
+      return { effectiveUserId: userData.user.id, currentUserId: userData.user.id };
     }
   }, [t]);
+
+  const fetchCommunityLimits = async (effectiveUserId: string) => {
+    try {
+      console.log("Fetching community limits for user:", effectiveUserId);
+      
+      // Get the resident's community information
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("resident_community_id")
+        .eq("id", effectiveUserId)
+        .single();
+
+      if (profileError || !profileData?.resident_community_id) {
+        console.error("Error fetching resident community:", profileError);
+        return;
+      }
+
+      // Get community max bookings limit
+      const { data: communityData, error: communityError } = await supabase
+        .from("community")
+        .select("max_number_current_bookings")
+        .eq("id", profileData.resident_community_id)
+        .single();
+
+      if (communityError) {
+        console.error("Error fetching community limits:", communityError);
+      } else {
+        setMaxBookings(communityData?.max_number_current_bookings || null);
+      }
+    } catch (error) {
+      console.error("Error fetching community limits:", error);
+    }
+  };
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -117,48 +162,30 @@ export default function MyBookingsScreen() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
 
-      // Build the query conditions based on user type
-      let userConditions: string;
-      
-      if (isGroupOwner) {
-        // Group owner: show bookings where user_id is them OR booked_by_user_id is someone in their group
-        userConditions = `user_id.eq.${currentUserId}`;
-      } else {
-        // Regular user or group member: show their own bookings (booked_by_user_id = currentUserId)
-        // OR bookings made on behalf of their group owner (user_id = effectiveUserId AND booked_by_user_id = currentUserId)
-        if (effectiveUserId === currentUserId) {
-          // Regular user without group
-          userConditions = `user_id.eq.${currentUserId}`;
-        } else {
-          // Group member: show bookings they made on behalf of group owner
-          userConditions = `and(user_id.eq.${effectiveUserId},booked_by_user_id.eq.${currentUserId})`;
-        }
-      }
-
-      // ✅ FUTURE BOOKINGS
-      const futureQuery = supabase
+      // ✅ FUTURE BOOKINGS - simplified approach like web
+      const { data: futureData, error: futureError } = await supabase
         .from("bookings")
         .select(`
           *,
           booked_by_profile:booked_by_user_id(full_name, username),
           booking_owner_profile:user_id(full_name, username)
         `)
-        .or(userConditions)
+        .or(`user_id.eq.${currentUserId},booked_by_user_id.eq.${currentUserId}`)
         .or(
           `date.gt.${nowISODate},and(date.eq.${nowISODate},end_time.gt.${nowTime})`
         )
         .order("date", { ascending: true })
         .order("start_time", { ascending: true });
 
-      // ✅ PAST BOOKINGS
-      const pastQuery = supabase
+      // ✅ PAST BOOKINGS - simplified approach like web
+      const { data: pastData, error: pastError } = await supabase
         .from("bookings")
         .select(`
           *,
           booked_by_profile:booked_by_user_id(full_name, username),
           booking_owner_profile:user_id(full_name, username)
         `)
-        .or(userConditions)
+        .or(`user_id.eq.${currentUserId},booked_by_user_id.eq.${currentUserId}`)
         .or(
           `date.lt.${nowISODate},and(date.eq.${nowISODate},end_time.lte.${nowTime})`
         )
@@ -166,17 +193,15 @@ export default function MyBookingsScreen() {
         .order("date", { ascending: false })
         .order("start_time", { ascending: false });
 
-      const [futureResult, pastResult] = await Promise.all([
-        futureQuery,
-        pastQuery
-      ]);
-
-      if (futureResult.error || pastResult.error) {
-        throw futureResult.error || pastResult.error;
+      if (futureError || pastError) {
+        throw futureError || pastError;
       }
 
+      console.log("Future bookings:", futureData?.length || 0);
+      console.log("Past bookings:", pastData?.length || 0);
+
       // Get booking IDs for match checking
-      const allBookings = [...(futureResult.data || []), ...(pastResult.data || [])];
+      const allBookings = [...(futureData || []), ...(pastData || [])];
       const bookingIds = allBookings.map(booking => booking.id);
       
       let matchesData = [];
@@ -196,18 +221,21 @@ export default function MyBookingsScreen() {
       const bookingsWithMatches = new Set(matchesData.map(match => match.booking_id));
 
       // Add match status to bookings
-      const futureBookingsWithMatches = (futureResult.data || []).map(booking => ({
+      const futureBookingsWithMatches = (futureData || []).map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
       }));
 
-      const pastBookingsWithMatches = (pastResult.data || []).map(booking => ({
+      const pastBookingsWithMatches = (pastData || []).map(booking => ({
         ...booking,
         has_match: bookingsWithMatches.has(booking.id)
       }));
 
       setFutureBookings(futureBookingsWithMatches);
       setPastBookings(pastBookingsWithMatches);
+      
+      // Count current bookings for quota display
+      setCurrentBookingsCount(futureData?.length || 0);
 
     } catch (error) {
       console.error(t('errorFetchingBookings'), error);
@@ -215,7 +243,7 @@ export default function MyBookingsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [t, fetchUserProfile, isGroupOwner]);
+  }, [t, fetchUserProfile]);
 
   useEffect(() => {
     fetchBookings();
@@ -243,9 +271,7 @@ export default function MyBookingsScreen() {
                 return;
               }
 
-              // Allow cancellation if:
-              // 1. User is the booking owner (user_id matches)
-              // 2. User is the one who made the booking (booked_by_user_id matches)
+              // Allow cancellation if user is the booking owner OR the one who made the booking
               const { data, error } = await supabase
                 .from('bookings')
                 .delete()
@@ -315,31 +341,111 @@ export default function MyBookingsScreen() {
     }
   };
 
+  // Enhanced function to get booking information (who made the booking)
+  const getBookedByInfo = (booking: Booking) => {
+    // If there's booked_by_user_id, it means someone else made the booking
+    if (booking.booked_by_user_id && booking.booked_by_user_id !== booking.user_id) {
+      const bookerName = booking.booked_by_profile?.full_name || 
+                        booking.booked_by_profile?.username || 
+                        t('unknown') || "Unknown";
+      return {
+        name: bookerName,
+        isProxy: true // Booking made by another person
+      };
+    } else {
+      // Booking was made by the owner
+      const ownerName = booking.booking_owner_profile?.full_name || 
+                       booking.booking_owner_profile?.username || 
+                       t('unknown') || "Unknown";
+      return {
+        name: ownerName,
+        isProxy: false // Booking made by the owner
+      };
+    }
+  };
+
+  const renderBookingQuota = () => {
+    if (maxBookings === null) {
+      return null;
+    }
+
+    const isOverLimit = currentBookingsCount > maxBookings;
+    const isNearLimit = currentBookingsCount === maxBookings;
+
+    return (
+      <View style={styles.quotaContainer}>
+        <MaterialCommunityIcons name="information-outline" size={16} color="#9CA3AF" />
+        <View style={[
+          styles.quotaBadge,
+          isOverLimit 
+            ? styles.quotaOverLimit 
+            : isNearLimit 
+            ? styles.quotaNearLimit 
+            : styles.quotaNormal
+        ]}>
+          <Paragraph style={[
+            styles.quotaText,
+            isOverLimit 
+              ? styles.quotaOverLimitText 
+              : isNearLimit 
+              ? styles.quotaNearLimitText 
+              : styles.quotaNormalText
+          ]}>
+            {currentBookingsCount}/{maxBookings} {t('bookingsUsed') || 'bookings used'}
+          </Paragraph>
+        </View>
+      </View>
+    );
+  };
+
+  const renderUniversalBookedByBadge = (booking: Booking) => {
+    const bookedByInfo = getBookedByInfo(booking);
+    
+    return (
+      <Chip
+        style={[
+          styles.universalBookedByChip,
+          bookedByInfo.isProxy ? styles.proxyBookingChip : styles.ownerBookingChip
+        ]}
+        textStyle={[
+          styles.chipText,
+          bookedByInfo.isProxy ? styles.proxyBookingText : styles.ownerBookingText
+        ]}
+        icon="account"
+      >
+        {t('bookedBy', { name: bookedByInfo.name }) || `Booked by ${bookedByInfo.name}`}
+      </Chip>
+    );
+  };
+
   const renderBookingInfo = (item: Booking) => {
     const isOwnBooking = item.user_id === userId;
     const isBookedByMe = item.booked_by_user_id === userId;
     const bookerName = item.booked_by_profile?.full_name || item.booked_by_profile?.username || t('unknown');
     const ownerName = item.booking_owner_profile?.full_name || item.booking_owner_profile?.username || t('unknown');
     
+    // Special cases for additional context
     if (isGroupOwner && !isOwnBooking) {
       // Group owner viewing a booking made by a group member
       return (
-        <View style={styles.bookingInfoContainer}>
-          <MaterialCommunityIcons name="account" size={16} color={colors.primary} />
-          <Paragraph style={styles.bookingInfoText}>
-            {t('booked_by', { name: bookerName })}
-          </Paragraph>
-        </View>
+        <Chip
+          style={styles.specialInfoChip}
+          textStyle={styles.specialInfoText}
+          icon="account-supervisor"
+        >
+          {t('bookedBy', { name: bookerName }) || `Booked by ${bookerName}`}
+        </Chip>
       );
     } else if (!isOwnBooking && isBookedByMe) {
       // Group member viewing their booking made on behalf of group owner
       return (
-        <View style={styles.bookingInfoContainer}>
-          <MaterialCommunityIcons name="account-supervisor" size={16} color={colors.primary} />
-          <Paragraph style={styles.bookingInfoText}>
-            {t('booked_for', { name: ownerName })}
-          </Paragraph>
-        </View>
+        <Chip
+          style={styles.specialInfoChip}
+          textStyle={styles.specialInfoText}
+          icon="account-group"
+        >
+          {t('bookedFor', { name: ownerName }) || `Booked for ${ownerName}`}
+        </Chip>
       );
     }
     
@@ -374,8 +480,12 @@ export default function MyBookingsScreen() {
             </View>
           </View>
 
-          {/* Show booking info (who booked for whom) */}
-          {renderBookingInfo(item)}
+          {/* Universal "Booked by" badge - shown on ALL bookings */}
+          <View style={styles.badgeContainer}>
+            {renderUniversalBookedByBadge(item)}
+            {/* Keep existing logic for special cases */}
+            {renderBookingInfo(item)}
+          </View>
 
           {/* Action buttons */}
           <View style={styles.buttonContainer}>
@@ -436,23 +546,28 @@ export default function MyBookingsScreen() {
           {loading && <ActivityIndicator size="small" color="#ffffff" />}
         </View>
 
-        {/* Upcoming Bookings Counter */}
+        {/* Upcoming Bookings Counter with Quota */}
         {futureBookings.length > 0 && (
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="clock-outline" size={24} color="#4CAF50" />
-            <Title style={styles.sectionTitle}>
-              {t('upcomingBookings')} ({futureBookings.length})
-            </Title>
+            <View style={styles.sectionTitleContainer}>
+              <MaterialCommunityIcons name="clock-outline" size={24} color="#4CAF50" />
+              <Title style={styles.sectionTitle}>
+                {t('upcomingBookings')} ({futureBookings.length})
+              </Title>
+            </View>
+            {renderBookingQuota()}
           </View>
         )}
 
         {/* Past Bookings Counter */}
-        {pastBookings.length > 0 && futureBookings.length > 0 && (
+        {pastBookings.length > 0 && (
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="check-circle" size={24} color="#4CAF50" />
-            <Title style={styles.sectionTitle}>
-              {t('pastBookings')} ({pastBookings.length})
-            </Title>
+            <View style={styles.sectionTitleContainer}>
+              <MaterialCommunityIcons name="check-circle" size={24} color="#4CAF50" />
+              <Title style={styles.sectionTitle}>
+                {t('pastBookings')} ({pastBookings.length})
+              </Title>
+            </View>
           </View>
         )}
        
@@ -518,15 +633,57 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     marginLeft: 8,
+  },
+  quotaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quotaBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  quotaNormal: {
+    backgroundColor: 'rgba(107, 114, 128, 0.2)',
+    borderColor: 'rgba(107, 114, 128, 0.3)',
+  },
+  quotaNearLimit: {
+    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+    borderColor: 'rgba(255, 152, 0, 0.3)',
+  },
+  quotaOverLimit: {
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+    borderColor: 'rgba(244, 67, 54, 0.3)',
+  },
+  quotaText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  quotaNormalText: {
+    color: '#9CA3AF',
+  },
+  quotaNearLimitText: {
+    color: '#FFC107',
+  },
+  quotaOverLimitText: {
+    color: '#F44336',
   },
   card: {
     marginHorizontal: 16,
@@ -570,19 +727,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555555',
   },
-  bookingInfoContainer: {
+  badgeContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 168, 107, 0.1)',
-    borderRadius: 8,
-    padding: 8,
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 12,
   },
-  bookingInfoText: {
-    marginLeft: 8,
-    fontSize: 14,
+  universalBookedByChip: {
+    alignSelf: 'flex-start',
+  },
+  proxyBookingChip: {
+    backgroundColor: 'rgba(156, 39, 176, 0.2)',
+  },
+  ownerBookingChip: {
+    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+  },
+  proxyBookingText: {
+    color: '#9C27B0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ownerBookingText: {
+    color: '#2196F3',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  specialInfoChip: {
+    backgroundColor: 'rgba(0, 168, 107, 0.2)',
+    alignSelf: 'flex-start',
+  },
+  specialInfoText: {
     color: '#00A86B',
-    fontStyle: 'italic',
+    fontSize: 12,
+    fontWeight: '600',
   },
   buttonContainer: {
     flexDirection: 'row',

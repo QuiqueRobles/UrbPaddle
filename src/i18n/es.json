@@ -377,7 +377,6 @@
   "selectCommunity": "Seleccionar Comunidad",
   "overall": "General",
   "monthly": "Mensual",
-  "close": "Cerrar",
   "playerStatistics": "Estadísticas de Jugadores",
   "invalidEmailError": "Por favor, introduce una dirección de correo electrónico válida",
   "passwordLengthError": "La contraseña debe tener al menos 6 caracteres",
@@ -406,7 +405,13 @@
   "failedToUpdateResidentCode": "Error al actualizar el código de residente",
   "failedToUpdateGuestCode": "Error al actualizar el código de invitado",
   "bookingOverlap": "Superposición de Reservas",
-  "bookingOverlapMessage": "Lo sentimos, este horario ya no está disponible. Por favor, elige otro horario."
+  "bookingOverlapMessage": "Lo sentimos, este horario ya no está disponible. Por favor, elige otro horario.",
+  "bookingsUsed": "reservas utilizadas",
+    "bookedBy": "Reservado por {{name}}",
+    "bookedFor": "Reservado para {{name}}",
+    "unknown": "Desconocido",
+    "upcomingBookings": "Próximas Reservas",
+    "pastBookings": "Reservas Pasadas"
 
 }
 
