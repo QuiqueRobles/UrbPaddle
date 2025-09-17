@@ -45,9 +45,12 @@ const getRedirectUri = () => {
     return redirectUri;
   }
   
-  // Para producción, usar dominio propio o universal links
-  const redirectUri = 'https://tu-dominio.com/auth/callback';
-  console.log('Generated redirect URI for production:', redirectUri);
+  // Para builds de producción (TestFlight/Play Store)
+  const redirectUri = makeRedirectUri({
+    native: 'qourtify://auth/callback',
+    useProxy: false
+  });
+  console.log('Generated redirect URI for production build:', redirectUri);
   return redirectUri;
 };
 
@@ -59,6 +62,7 @@ export const signInWithGoogle = async () => {
     console.log('=== Google Auth Debug ===');
     console.log('Platform:', Platform.OS);
     console.log('Environment:', isExpoGo ? 'Expo Go' : 'Standalone/Web');
+    console.log('App Ownership:', Constants.appOwnership);
     console.log('Redirect URI:', redirectTo);
     console.log('Client ID:', clientId?.substring(0, 20) + '...');
     console.log('========================');
@@ -82,7 +86,8 @@ export const signInWithGoogle = async () => {
         redirectTo,
         skipBrowserRedirect: true,
         queryParams: {
-          client_id: clientId,
+          access_type: 'offline',
+          prompt: 'consent',
         },
       },
     });
@@ -102,8 +107,7 @@ export const signInWithGoogle = async () => {
       data.url, 
       redirectTo,
       {
-        // Configuración adicional para mejorar la experiencia
-        preferEphemeralSession: true,
+        preferEphemeralSession: Platform.OS === 'ios',
         showInRecents: false,
       }
     );
@@ -111,50 +115,8 @@ export const signInWithGoogle = async () => {
     console.log('WebBrowser result:', result);
 
     if (result.type === 'success' && result.url) {
-      // Extraer parámetros de la URL de respuesta
-      let urlParams: string;
-      if (result.url.includes('#')) {
-        urlParams = result.url.split('#')[1];
-      } else if (result.url.includes('?')) {
-        urlParams = result.url.split('?')[1];
-      } else {
-        console.error('No parameters found in result URL');
-        return { data: null, error: 'No parameters in response URL' };
-      }
-
-      const params = new URLSearchParams(urlParams);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      const errorParam = params.get('error');
-      const errorDescription = params.get('error_description');
-
-      if (errorParam) {
-        console.error('OAuth error in callback:', errorParam, errorDescription);
-        return { data: null, error: errorDescription || errorParam };
-      }
-
-      if (accessToken && refreshToken) {
-        console.log('Setting session with tokens:', { 
-          accessToken: accessToken.substring(0, 20) + '...', 
-          refreshToken: refreshToken.substring(0, 20) + '...' 
-        });
-        
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          return { data: null, error: sessionError.message };
-        }
-        
-        console.log('Session set successfully');
-        return { data: sessionData, error: null };
-      }
-      
-      console.error('No tokens found in result URL:', result.url);
-      return { data: null, error: 'No authentication tokens received' };
+      console.log('Processing success result URL:', result.url);
+      return await handleAuthResult(result.url);
     }
 
     if (result.type === 'cancel') {
@@ -167,6 +129,62 @@ export const signInWithGoogle = async () => {
   } catch (err: any) {
     console.error('Google Sign-In Error:', err);
     return { data: null, error: err.message || 'Unexpected error during Google sign-in' };
+  }
+};
+
+const handleAuthResult = async (url: string) => {
+  try {
+    // Extraer parámetros de la URL de respuesta
+    let urlParams: string;
+    if (url.includes('#')) {
+      urlParams = url.split('#')[1];
+    } else if (url.includes('?')) {
+      urlParams = url.split('?')[1];
+    } else {
+      console.error('No parameters found in result URL');
+      return { data: null, error: 'No parameters in response URL' };
+    }
+
+    const params = new URLSearchParams(urlParams);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const errorParam = params.get('error');
+    const errorDescription = params.get('error_description');
+
+    console.log('URL params extracted:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      error: errorParam,
+      errorDescription
+    });
+
+    if (errorParam) {
+      console.error('OAuth error in callback:', errorParam, errorDescription);
+      return { data: null, error: errorDescription || errorParam };
+    }
+
+    if (accessToken && refreshToken) {
+      console.log('Setting session with tokens');
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        return { data: null, error: sessionError.message };
+      }
+      
+      console.log('Session set successfully');
+      return { data: sessionData, error: null };
+    }
+    
+    console.error('No tokens found in result URL:', url);
+    return { data: null, error: 'No authentication tokens received' };
+  } catch (err: any) {
+    console.error('Error handling auth result:', err);
+    return { data: null, error: err.message || 'Error processing authentication result' };
   }
 };
 

@@ -3,7 +3,6 @@
     "name": "Qourtify",
     "slug": "qourtify",
     "version": "1.0.0",
-    "newArchEnabled": true,
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,14 +16,62 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.quiqueru.Qourtify"
+      "bundleIdentifier": "com.quiqueru.qourtify",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "google-oauth",
+            "CFBundleURLSchemes": [
+              "com.quiqueru.qourtify"
+            ]
+          },
+          {
+            "CFBundleURLName": "qourtify-auth",
+            "CFBundleURLSchemes": [
+              "qourtify"
+            ]
+          },
+          {
+            "CFBundleURLName": "google-oauth",
+            "CFBundleURLSchemes": [
+              "com.quiqueru.qourtify"
+            ]
+          },
+          {
+            "CFBundleURLName": "qourtify-auth",
+            "CFBundleURLSchemes": [
+              "qourtify"
+            ]
+          }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.quiqueru.Qourtify"
+      "package": "com.quiqueru.qourtify",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "qourtify.com"
+            },
+            {
+              "scheme": "qourtify"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,9 +79,8 @@
     "scheme": "qourtify",
     "extra": {
       "eas": {
-        "projectId": "602d0416-1b31-4e43-ad43-43a6828d661e"
+        "projectId": "048a9614-92a6-4c9b-9da1-2b8d81ff1906"
       }
-    },
-    "owner": "quiqueru"
+    }
   }
 }

@@ -178,12 +178,13 @@ export default function App() {
     const handleDeepLink = async (url: string) => {
       console.log('Deep link received:', url);
       
-      // Verificar si es un callback de OAuth (más flexible en la detección)
+      // Verificar si es un callback de OAuth
       if (url.includes('access_token') || 
           url.includes('code') || 
           url.includes('auth/callback') ||
           url.includes('oauth') ||
-          url.includes('supabase')) {
+          url.includes('supabase') ||
+          url.includes('qourtify://auth')) {
         
         console.log('Processing OAuth callback:', url);
         
@@ -194,7 +195,6 @@ export default function App() {
           if (url.includes('#')) {
             urlParams = url.split('#')[1];
           } else if (url.includes('?')) {
-            // Obtener todo después del primer '?'
             const urlParts = url.split('?');
             urlParams = urlParts.slice(1).join('?');
           } else {
@@ -233,7 +233,6 @@ export default function App() {
               Alert.alert('Error', 'No se pudo autenticar con Google: ' + error.message);
             } else {
               console.log('Google OAuth session set successfully from deep link');
-              // La sesión se establecerá automáticamente y el estado se actualizará
             }
           } else {
             console.log('Deep link received but no valid tokens found');
@@ -289,16 +288,20 @@ export default function App() {
 
   const linking = {
     prefixes: [
-      'qourtify://', 
+      'qourtify://',
+      'https://qourtify.com',
       'https://auth.expo.io',
       'exp://',
       'exps://'
     ],
     config: {
       screens: {
-        Login: 'auth',
+        Login: 'login',
         Home: 'home',
-        AuthCallback: 'auth/callback',
+        AuthCallback: {
+          path: 'auth/callback',
+          exact: true
+        },
         Register: 'register',
         CommunityRegistration: 'community-registration',
       },
