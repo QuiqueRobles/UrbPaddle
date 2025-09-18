@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useMemo, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Animated } from 'react-native';
+import { StyleSheet, View, Text, Animated, TouchableOpacity, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Marker } from 'react-native-maps'; // Import Marker from react-native-maps
 import { Community } from '../screens/CommunityMapScreen';
 
 interface CustomMarkerProps {
@@ -15,7 +16,7 @@ interface CustomMarkerProps {
 const CustomMarker: React.FC<CustomMarkerProps> = React.memo(
   ({ community, onPress, isSelected, isAccessible }) => {
     const markerColor = useMemo(() => {
-      if (!isAccessible) return '#A9A9A9'; // Gris para comunidades inaccesibles
+      if (!isAccessible) return '#A9A9A9'; // Gray for inaccessible communities
       switch (community.user_relationship) {
         case 'resident':
           return '#4CAF50';
@@ -37,18 +38,28 @@ const CustomMarker: React.FC<CustomMarkerProps> = React.memo(
     }, [isSelected, scaleAnim]);
 
     return (
-      <Animated.View
-        style={[
-          styles.markerContainer,
-          { backgroundColor: markerColor, transform: [{ scale: scaleAnim }] },
-        ]}
-        onClick={() => onPress(community)}
+      <Marker
+        coordinate={{
+          latitude: Number(community.latitude), // Ensure number type
+          longitude: Number(community.longitude), // Ensure number type
+        }}
+        onPress={() => onPress(community)}
       >
-        <MaterialCommunityIcons name="office-building" size={24} color="white" />
-        <View style={styles.courtNumberContainer}>
-          <Text style={styles.courtNumberText}>{community.court_number}</Text>
-        </View>
-      </Animated.View>
+        <Animated.View
+          style={[
+            styles.markerContainer,
+            {
+              backgroundColor: markerColor,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="office-building" size={24} color="white" />
+          <View style={styles.courtNumberContainer}>
+            <Text style={styles.courtNumberText}>{community.court_number}</Text>
+          </View>
+        </Animated.View>
+      </Marker>
     );
   }
 );
@@ -64,7 +75,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    cursor: 'pointer', // En web se ve como botón
+    ...Platform.select({
+      web: { cursor: 'pointer' },
+    }),
   },
   courtNumberContainer: {
     position: 'absolute',

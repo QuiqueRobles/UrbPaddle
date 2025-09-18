@@ -9,8 +9,25 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomMarker from '../components/CustomMarker';
 import CommunityCard from '../components/CommunityCard';
 import { useTranslation } from 'react-i18next';
-import { useCommunities, Community } from '../hooks/useCommunities';
+import { useCommunities } from '../hooks/useCommunities';
 import { supabase } from '../lib/supabase';
+
+// Define the Community type (adjust as per your actual data structure)
+export interface Community {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  court_number: number;
+  resident_count: number;
+  guest_count: number;
+  booking_start_time: string;
+  booking_end_time: string;
+  max_number_current_bookings: number;
+  address: string;
+  image: string;
+  user_relationship: 'resident' | 'guest' | 'none';
+}
 
 type RootStackParamList = {
   Community: { communityId: string };
@@ -50,7 +67,7 @@ const CommunityMapScreen: React.FC = () => {
         const accessibleIds = [
           profile.resident_community_id,
           ...(profile.guest_communities || []),
-        ].filter(Boolean);
+        ].filter(Boolean) as string[];
 
         setAccessibleCommunities(accessibleIds);
       }
@@ -129,9 +146,9 @@ const CommunityMapScreen: React.FC = () => {
 
   const memoizedCommunities = useMemo(() => {
     return communities.map((community) => (
-      <CustomMarker 
-        key={community.id} 
-        community={community} 
+      <CustomMarker
+        key={community.id}
+        community={community}
         onPress={handleCommunityPress}
         isSelected={selectedCommunity?.id === community.id}
         isAccessible={accessibleCommunities.includes(community.id)}
@@ -156,18 +173,26 @@ const CommunityMapScreen: React.FC = () => {
     );
   }
 
+  // Default region if communities are empty
+  const defaultRegion: Region = {
+    latitude: 37.78825, // Example default: San Francisco
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={{
-          latitude: communities[0]?.latitude || 0,
-          longitude: communities[0]?.longitude || 0,
+        initialRegion={communities.length > 0 ? {
+          latitude: communities[0].latitude,
+          longitude: communities[0].longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
-        }}
+        } : defaultRegion}
         onRegionChangeComplete={handleRegionChange}
       >
         {memoizedCommunities}

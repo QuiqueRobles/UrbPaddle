@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, Platform, Linking } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,15 +8,17 @@ import { Community } from '../screens/CommunityMapScreen';
 interface CommunityCardProps {
   community: Community;
   onClose: () => void;
-  panResponder: any;
+  onViewDetails: () => void;
+  panResponder: Animated.PanResponderInstance;
   translateY: Animated.Value;
 }
 
-const CommunityCard: React.FC<CommunityCardProps> = ({ 
-  community, 
-  onClose, 
-  panResponder, 
-  translateY 
+const CommunityCard: React.FC<CommunityCardProps> = ({
+  community,
+  onClose,
+  onViewDetails,
+  panResponder,
+  translateY,
 }) => {
   const openMaps = () => {
     const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
@@ -22,17 +26,17 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
     const label = community.name;
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`
+      android: `${scheme}${latLng}(${label})`,
     });
 
     Linking.openURL(url as string);
   };
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.cardContainer, 
-        { transform: [{ translateY }] }
+        styles.cardContainer,
+        { transform: [{ translateY }] },
       ]}
       {...panResponder.panHandlers}
     >
@@ -54,7 +58,9 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
             </View>
             <View style={styles.cardRow}>
               <Feather name="clock" size={16} color="#10B981" />
-              <Text style={styles.cardText}>{community.booking_start_time} - {community.booking_end_time}</Text>
+              <Text style={styles.cardText}>
+                {community.booking_start_time} - {community.booking_end_time}
+              </Text>
             </View>
             <View style={styles.cardRow}>
               <MaterialCommunityIcons name="tennis" size={16} color="#F59E0B" />
@@ -62,12 +68,19 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
             </View>
             <View style={styles.cardRow}>
               <Feather name="calendar" size={16} color="#EC4899" />
-              <Text style={styles.cardText}>Max {community.max_number_current_bookings} current bookings</Text>
+              <Text style={styles.cardText}>
+                Max {community.max_number_current_bookings} current bookings
+              </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.addressContainer} onPress={openMaps}>
             <Feather name="map-pin" size={16} color="#6D28D9" />
-            <Text style={styles.cardAddress} numberOfLines={2}>{community.address}</Text>
+            <Text style={styles.cardAddress} numberOfLines={2}>
+              {community.address}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.viewDetailsButton} onPress={onViewDetails}>
+            <Text style={styles.viewDetailsText}>View Details</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -81,7 +94,7 @@ const styles = StyleSheet.create({
     bottom: 70,
     left: 0,
     right: 0,
-    height: 250,  
+    height: 280, // Increased height to accommodate View Details button
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -145,7 +158,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     textDecorationLine: 'underline',
   },
+  viewDetailsButton: {
+    backgroundColor: '#6D28D9',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  viewDetailsText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
 
 export default CommunityCard;
-
