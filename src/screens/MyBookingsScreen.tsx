@@ -530,7 +530,7 @@ export default function MyBookingsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[colors.primary, '#000']} style={[styles.container, styles.centered]}>
+      <LinearGradient colors={[colors.gradientStart, '#000']} style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#ffffff" />
       </LinearGradient>
     );
@@ -539,7 +539,7 @@ export default function MyBookingsScreen() {
   const allBookings = [...futureBookings, ...pastBookings];
 
   return (
-    <LinearGradient colors={[colors.primary, "#000"]} style={styles.container}>
+    <LinearGradient colors={[colors.gradientStart, "#000"]} style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
           <Title style={styles.title}>{t('myBookings')}</Title>

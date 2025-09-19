@@ -1,1 +1,2 @@
 Recordar que no funciona el añadir a un partido a alguien del grupo en el móvil.
+Recordar que las notificaciones de cancelar deben ser solo a la gente de la comunidad y en tres días max.

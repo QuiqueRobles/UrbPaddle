@@ -91,7 +91,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
   const maxDateString = maxDate.toISOString().split('T')[0];
 
   return (
-    <LinearGradient colors={['#00A86B', '#000', '#000']} style={styles.container} locations={[0, 0.7, 1]}>
+    <LinearGradient colors={[colors.gradientStart, '#000', '#000']} style={styles.container} locations={[0, 0.7, 1]}>
       <ScrollView 
         contentContainerStyle={styles.contentContainer}
       >

@@ -207,7 +207,7 @@ export default function CommunityManagementScreen() {
 
   if (!communityData) {
     return (
-      <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
+      <LinearGradient colors={[theme.colors.gradientStart, '#000']} style={styles.container}>
         <View style={styles.loadingContainer}>
           <Title style={styles.loadingText}>{t('loadingCommunityData')}</Title>
         </View>
@@ -232,7 +232,7 @@ export default function CommunityManagementScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <StatusBar style="light" />
-      <LinearGradient colors={[theme.colors.primary, '#000']} style={styles.container}>
+      <LinearGradient colors={[theme.colors.gradientStart, '#000']} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card style={styles.card}>
             {communityData?.image && (

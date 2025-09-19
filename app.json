@@ -17,6 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.quiqueru.qourtify",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "CFBundleURLTypes": [
           {
@@ -81,6 +82,9 @@
       "eas": {
         "projectId": "048a9614-92a6-4c9b-9da1-2b8d81ff1906"
       }
+    },
+    "notification": {
+      "icon": "./assets/icon.png"
     }
   }
 }

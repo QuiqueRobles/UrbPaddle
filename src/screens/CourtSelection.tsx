@@ -76,7 +76,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const theme = useTheme()
   const { date } = route.params
   const { t } = useTranslation()
-  const gradientStart = "#00A86B"
+  const gradientStart = "#0e3730ff"
   const gradientMiddle = "#000"
   const gradientEnd = "#000"
 

@@ -190,13 +190,11 @@ export default function App() {
     // Guardar el token en Supabase
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { error } = await supabase
-        .from('user_devices')
-        .upsert({
+      const { error } = await supabase.from('user_devices').upsert({
           user_id: user.id,
           expo_push_token: token.data,
-          device_info: { platform: Platform.OS },
-        });
+          device_info: { platform: Platform.OS }
+        }, { onConflict: 'user_id' });
       if (error) {
         console.error('Error saving push token:', error);
       } else {
@@ -330,7 +328,7 @@ export default function App() {
           <NavigationContainer linking={linking} ref={navigationRef}>
             <Stack.Navigator
               screenOptions={{
-                headerStyle: { backgroundColor: colors.primary },
+                headerStyle: { backgroundColor: colors.gradientStart },
                 headerTintColor: colors.onPrimary,
                 headerTitleStyle: { fontWeight: 'bold' },
               }}
