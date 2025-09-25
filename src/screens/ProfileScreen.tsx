@@ -285,12 +285,16 @@ export default function EnhancedProfileScreen() {
   }
 
   if (!profile) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text>{t('noProfileData')}</Text>
-      </View>
-    );
-  }
+  return (
+    <View style={[styles.container, styles.centered]}>
+      <Text>{t('noProfileData')}</Text>
+      <TouchableOpacity onPress={handleLogout} style={{ marginTop: 20 }}>
+        <Text style={{ color: 'red', fontWeight: 'bold' }}>{t('logOut')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 
   return (
     <LinearGradient

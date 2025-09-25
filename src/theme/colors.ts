@@ -57,7 +57,7 @@ export const colors = {
   transparentWhite: 'rgba(255, 255, 255, 0.5)', // 50% transparent white
 
   // Gradient colors
-  gradientStart: '#0e3730ff', // Start with primary color
+  gradientStart: '#1A3C34', // Start with primary color
   gradientEnd: '#000000', // End with accent color
 
   trophy:'#fcdb03'

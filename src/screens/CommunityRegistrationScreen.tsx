@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Dimensions, FlatList, Animated, TouchableOpacity } from 'react-native';
-import { TextInput, Text } from 'react-native-paper';
+import { View, StyleSheet, Linking, Dimensions, FlatList, Animated, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -29,15 +28,9 @@ interface SlideItem {
   title: string;
   description: string;
   iconName: string;
-  isForm?: boolean;
 }
 
 export default function CommunityRegistrationScreen({ navigation }: Props) {
-  const [communityName, setCommunityName] = useState('');
-  const [address, setAddress] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [loading, setLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const flatListRef = useRef<FlatList<SlideItem>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -61,97 +54,7 @@ export default function CommunityRegistrationScreen({ navigation }: Props) {
     },
   ];
 
-  async function handleRegistration() {
-    setLoading(true);
-    
-    try {
-      const { error } = await supabase.functions.invoke('send-community-registration-email', {
-        body: JSON.stringify({
-          communityName,
-          address,
-          contactName,
-          phoneNumber,
-        }),
-      });
-
-      if (error) throw error;
-
-      Alert.alert(t('success'), t('communityRegistrationSuccess'));
-      navigation.navigate('Login');
-    } catch (error: any) {
-      Alert.alert(t('error'), error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const renderItem = ({ item, index }: { item: SlideItem; index: number }) => {
-    if (item.isForm) {
-      return (
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.formSlide}
-        >
-          <ScrollView contentContainerStyle={styles.scrollView}>
-            <Text style={styles.title}>{t('communityRegistrationTitle')}</Text>
-            <View style={styles.formContainer}>
-              <TextInput
-                label={t('communityName')}
-                value={communityName}
-                onChangeText={setCommunityName}
-                style={styles.input}
-                mode="flat"
-                underlineColor="transparent"
-                textColor='#fff'
-                left={<TextInput.Icon icon={() => <Icon name="home" size={24} color="#FFFFFF" />} />}
-              />
-              <TextInput
-                label={t('address')}
-                value={address}
-                onChangeText={setAddress}
-                style={styles.input}
-                mode="flat"
-                underlineColor="transparent"
-                textColor='#fff'
-                left={<TextInput.Icon icon={() => <Icon name="map-marker" size={24} color="#FFFFFF" />} />}
-              />
-              <TextInput
-                label={t('contactName')}
-                value={contactName}
-                onChangeText={setContactName}
-                style={styles.input}
-                mode="flat"
-                underlineColor="transparent"
-                textColor='#fff'
-                left={<TextInput.Icon icon={() => <Icon name="account" size={24} color="#FFFFFF" />} />}
-              />
-              <TextInput
-                label={t('phoneNumber')}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                style={styles.input}
-                mode="flat"
-                underlineColor="transparent"
-                textColor='#fff'
-                keyboardType="phone-pad"
-                left={<TextInput.Icon icon={() => <Icon name="phone" size={24} color="#FFFFFF" />} />}
-              />
-              <TouchableOpacity onPress={handleRegistration} disabled={loading}>
-                <LinearGradient
-                  colors={gradients.greenTheme}
-                  style={styles.button}
-                >
-                  <Text style={styles.buttonLabel}>
-                    {loading ? t('sending') : t('sendRegistration')}
-                  </Text>
-                  <Icon name="send" size={24} color="#FFFFFF" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      );
-    }
+  const renderItem = ({ item }: { item: SlideItem }) => {
     return <IntroductionSlide title={item.title} description={item.description} iconName={item.iconName} />;
   };
 
@@ -166,13 +69,14 @@ export default function CommunityRegistrationScreen({ navigation }: Props) {
   };
 
   const goToNextSlide = () => {
-    if (currentSlide < introSlides.length) {
+    if (currentSlide < introSlides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentSlide + 1, animated: true });
+    } else {
+      Linking.openURL('https://qourtify.com/pricing');
     }
   };
 
   const renderDotIndicator = () => {
-    if (currentSlide === introSlides.length) return null;
     return (
       <View style={styles.paginationDots}>
         {introSlides.map((_, index) => {
@@ -212,7 +116,7 @@ export default function CommunityRegistrationScreen({ navigation }: Props) {
       <StatusBar style="light" />
       <FlatList
         ref={flatListRef}
-        data={[...introSlides, { isForm: true } as SlideItem]}
+        data={introSlides}
         renderItem={renderItem}
         horizontal
         pagingEnabled
@@ -223,19 +127,17 @@ export default function CommunityRegistrationScreen({ navigation }: Props) {
         keyExtractor={(item, index) => index.toString()}
       />
       {renderDotIndicator()}
-      {currentSlide < introSlides.length && (
-        <TouchableOpacity onPress={goToNextSlide}>
-          <LinearGradient
-            colors={gradients.greenTheme}
-            style={styles.nextButton}
-          >
-            <Text style={styles.buttonLabel}>
-              {currentSlide === introSlides.length - 1 ? t('startRegistration') : t('next')}
-            </Text>
-            <Icon name="arrow-right" size={24} color="#FFFFFF" />
-          </LinearGradient>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity onPress={goToNextSlide}>
+        <LinearGradient
+          colors={gradients.greenTheme}
+          style={styles.nextButton}
+        >
+          <Text style={styles.buttonLabel}>
+            {currentSlide === introSlides.length - 1 ? t('startRegistration') : t('next')}
+          </Text>
+          <Icon name="arrow-right" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </LinearGradient>
   );
 }
@@ -243,59 +145,6 @@ export default function CommunityRegistrationScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  formSlide: {
-    width,
-    height: '100%',
-  },
-  scrollView: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 50,
-    bottom: 50,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
-  },
-  formContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20,
-    padding: 20,
-    bottom:50,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  input: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  button: {
-    marginTop: 24,
-    borderRadius: 25,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   buttonLabel: {
     fontSize: 18,
@@ -334,4 +183,3 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
 });
-

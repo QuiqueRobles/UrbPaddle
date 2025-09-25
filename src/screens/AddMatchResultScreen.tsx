@@ -642,7 +642,7 @@ export default function AddMatchResultScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[theme.colors.primary, "#000"]} style={styles.container}>
+      <LinearGradient colors={[theme.colors.gradientStart, "#000"]} style={styles.container}>
         <View style={[styles.container, styles.centered]}>
           <ActivityIndicator size="large" color={'white'} />
         </View>
@@ -651,7 +651,7 @@ export default function AddMatchResultScreen() {
   }
 
   return (
-    <LinearGradient colors={[theme.colors.primary, "#000"]} style={styles.container}>
+    <LinearGradient colors={[theme.colors.gradientStart, "#000"]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card style={styles.headerCard}>
           <Card.Content>
@@ -667,7 +667,7 @@ export default function AddMatchResultScreen() {
                   color={activeTab === 'propose' ? colors.primary : colors.text} 
                 />
                 <Paragraph style={[styles.tabText, activeTab === 'propose' && styles.activeTabText]}>
-                  Propose
+                  {t('proposeMatch') || 'Propose'}
                 </Paragraph>
               </TouchableOpacity>
               <TouchableOpacity 
@@ -680,7 +680,7 @@ export default function AddMatchResultScreen() {
                   color={activeTab === 'validate' ? colors.primary : colors.text} 
                 />
                 <Paragraph style={[styles.tabText, activeTab === 'validate' && styles.activeTabText]}>
-                  Validate
+                  {t('validateMatch') || 'Validate'}
                 </Paragraph>
               </TouchableOpacity>
             </View>

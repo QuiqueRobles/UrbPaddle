@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Card, Title, Text, ProgressBar, IconButton, Portal, Modal, Button } from 'react-native-paper';
@@ -5,6 +7,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
+import * as Animatable from 'react-native-animatable';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -98,6 +102,7 @@ export default function EnhancedStatisticsSection({
   };
 
   const handleRefresh = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsRefreshing(true);
     try {
       await onRefresh();
@@ -111,6 +116,21 @@ export default function EnhancedStatisticsSection({
     }
   };
 
+  const handleToggleExpanded = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onToggleExpanded();
+  };
+
+  const handleOpenInfo = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsInfoDialogOpen(true);
+  };
+
+  const handleCloseInfo = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsInfoDialogOpen(false);
+  };
+
   const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
   const winRate = profile.matches_played > 0 ? (profile.wins / profile.matches_played) * 100 : 0;
   const setWinRate = profile.sets_won + profile.sets_lost > 0 ? (profile.sets_won / (profile.sets_won + profile.sets_lost)) * 100 : 0;
@@ -120,7 +140,7 @@ export default function EnhancedStatisticsSection({
     icon, 
     value, 
     label, 
-    color = 'white' 
+    color = '#00C853' 
   }) => (
     <View style={styles.statItem}>
       <MaterialCommunityIcons name={icon} size={32} color={color} />
@@ -137,7 +157,7 @@ export default function EnhancedStatisticsSection({
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
     gradientColors: string[];
   }> = ({ title, won, lost, winRate, icon, gradientColors }) => (
-    <Card style={styles.performanceCard}>
+    <Animatable.View animation="fadeInUp" duration={800} style={styles.performanceCard}>
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
@@ -168,25 +188,25 @@ export default function EnhancedStatisticsSection({
           <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
         </View>
       </LinearGradient>
-    </Card>
+    </Animatable.View>
   );
 
   return (
     <>
-      {/* Main Statistics Card */}
-      <Card style={styles.mainStatsCard}>
-        <Card.Content>
+      <Animatable.View animation="fadeInUp" duration={800} style={styles.container}>
+        {/* Main Statistics Card */}
+        <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.mainStatsCard}>
           <View style={styles.statsHeader}>
             <View style={styles.statsHeaderLeft}>
-              <MaterialCommunityIcons name="chart-line" size={24} color="white" />
-              <Title style={styles.statsTitle}>{t('detailedStatistics')}</Title>
+              <MaterialCommunityIcons name="chart-line" size={16} color="white" />
+              <Text style={styles.statsTitle}>{t('detailedStatistics')}</Text>
             </View>
-            <View style={styles.statsHeaderRight} >
+            <View style={styles.statsHeaderRight}>
               <IconButton
                 icon="information"
                 size={20}
                 iconColor="rgba(255,255,255,0.8)"
-                onPress={() => setIsInfoDialogOpen(true)}
+                onPress={handleOpenInfo}
               />
               <IconButton
                 icon="refresh"
@@ -199,75 +219,75 @@ export default function EnhancedStatisticsSection({
                 icon={expanded ? "chevron-up" : "chevron-down"}
                 size={20}
                 iconColor="rgba(255,255,255,0.8)"
-                
-
-                onPress={onToggleExpanded}
+                onPress={handleToggleExpanded}
               />
             </View>
           </View>
 
           {/* Quick Overview Stats */}
           <View style={styles.overviewStatsContainer}>
-            <View style={styles.overviewStatItem}>
+            <Animatable.View animation="fadeInUp" duration={800} delay={300} style={styles.overviewStatItem}>
               <MaterialCommunityIcons name="calendar-check" size={20} color="#4CAF50" />
               <Text style={styles.overviewStatValue}>{realStats.totalBookings}</Text>
-              <Text style={styles.overviewStatLabel}>Total Bookings</Text>
-            </View>
-            <View style={styles.overviewStatItem}>
+              <Text style={styles.overviewStatLabel}>{t('totalBookings')}</Text>
+            </Animatable.View>
+            <Animatable.View animation="fadeInUp" duration={800} delay={400} style={styles.overviewStatItem}>
               <MaterialCommunityIcons name="calendar-clock" size={20} color="#2196F3" />
               <Text style={styles.overviewStatValue}>{realStats.upcomingBookings}</Text>
-              <Text style={styles.overviewStatLabel}>Upcoming</Text>
-            </View>
-            <View style={styles.overviewStatItem}>
+              <Text style={styles.overviewStatLabel}>{t('upcoming')}</Text>
+            </Animatable.View>
+            <Animatable.View animation="fadeInUp" duration={800} delay={500} style={styles.overviewStatItem}>
               <MaterialCommunityIcons name="trophy" size={20} color="#FF9800" />
               <Text style={styles.overviewStatValue}>{profile.matches_played || 0}</Text>
-              <Text style={styles.overviewStatLabel}>Matches</Text>
-            </View>
-            <View style={styles.overviewStatItem}>
+              <Text style={styles.overviewStatLabel}>{t('matches')}</Text>
+            </Animatable.View>
+            <Animatable.View animation="fadeInUp" duration={800} delay={600} style={styles.overviewStatItem}>
               <MaterialCommunityIcons name="percent" size={20} color="#9C27B0" />
               <Text style={styles.overviewStatValue}>{winRate.toFixed(1)}%</Text>
-              <Text style={styles.overviewStatLabel}>Win Rate</Text>
-            </View>
+              <Text style={styles.overviewStatLabel}>{t('winRate')}</Text>
+            </Animatable.View>
           </View>
 
           {/* Streak Information */}
           <View style={styles.streakContainer}>
-            <View style={styles.streakItem}>
+            <Animatable.View animation="fadeInUp" duration={800} delay={700} style={styles.streakItem}>
               <LinearGradient
-                colors={['#FF6B35', '#F7931E']}
+                colors={['#00A86B', '#00C853']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.streakBadge}
               >
                 <MaterialCommunityIcons name="fire" size={24} color="white" />
                 <Text style={styles.streakValue}>{profile.hot_streak || 0}</Text>
               </LinearGradient>
               <Text style={styles.streakLabel}>Current Streak</Text>
-            </View>
-            <View style={styles.streakItem}>
+            </Animatable.View>
+            <Animatable.View animation="fadeInUp" duration={800} delay={800} style={styles.streakItem}>
               <LinearGradient
-                colors={['#FFD700', '#FFA000']}
+                colors={['#00A86B', '#00C853']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.streakBadge}
               >
                 <MaterialCommunityIcons name="star" size={24} color="white" />
                 <Text style={styles.streakValue}>{profile.max_hot_streak || 0}</Text>
               </LinearGradient>
               <Text style={styles.streakLabel}>Best Streak</Text>
-            </View>
+            </Animatable.View>
           </View>
-        </Card.Content>
-      </Card>
+        </Animatable.View>
 
-      {/* Expanded Statistics */}
-      {expanded && (
-        <>
-          {/* Match Statistics */}
-          <Card style={styles.card}>
-            <Card.Content>
+        {/* Expanded Statistics */}
+        {expanded && (
+          <>
+            {/* Match Statistics */}
+            <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.card}>
               <View style={styles.cardHeader}>
                 <MaterialCommunityIcons name="tennis" size={24} color="white" />
-                <Title style={styles.cardTitle}>{t('matchStatistics')}</Title>
+                <Text style={styles.cardTitle}>{t('matchStatistics')}</Text>
               </View>
               <View style={styles.statsRow}>
-                <StatItem icon="tennis" value={profile.matches_played} label={t('matches')} />
+                <StatItem icon="tennis" value={profile.matches_played} label={t('matches') } color="white"/>
                 <StatItem icon="trophy" value={profile.wins} label={t('wins')} color="#4CAF50" />
                 <StatItem icon="close-circle" value={profile.losses} label={t('losses')} color="#F44336" />
               </View>
@@ -280,38 +300,36 @@ export default function EnhancedStatisticsSection({
                 />
                 <Text style={styles.winRateValue}>{winRate.toFixed(1)}%</Text>
               </View>
-            </Card.Content>
-          </Card>
+            </Animatable.View>
 
-          {/* Performance Cards Grid */}
-          <View style={styles.performanceGrid}>
-            <PerformanceCard
-              title="Sets Performance"
-              won={profile.sets_won || 0}
-              lost={profile.sets_lost || 0}
-              winRate={setWinRate}
-              icon="table-tennis"
-              gradientColors={['#3bb018ff', '#03A9F4']}
-            />
-            <PerformanceCard
-              title="Games Performance"
-              won={profile.games_won || 0}
-              lost={profile.games_lost || 0}
-              winRate={gameWinRate}
-              icon="tennis-ball"
-              gradientColors={['#3bb018ff', '#1e21e9ff']}
-            />
-          </View>
+            {/* Performance Cards Grid */}
+            <View style={styles.performanceGrid}>
+              <PerformanceCard
+                title="Sets Performance"
+                won={profile.sets_won || 0}
+                lost={profile.sets_lost || 0}
+                winRate={setWinRate}
+                icon="table-tennis"
+                gradientColors={['#00A86B', '#00C853']}
+              />
+              <PerformanceCard
+                title="Games Performance"
+                won={profile.games_won || 0}
+                lost={profile.games_lost || 0}
+                winRate={gameWinRate}
+                icon="tennis-ball"
+                gradientColors={['#00A86B', '#00C853']}
+              />
+            </View>
 
-          {/* Advanced Analytics */}
-          <Card style={styles.card}>
-            <Card.Content>
+            {/* Advanced Analytics */}
+            <Animatable.View animation="fadeInUp" duration={800} delay={400} style={styles.card}>
               <View style={styles.cardHeader}>
                 <MaterialCommunityIcons name="chart-bar" size={24} color="white" />
-                <Title style={styles.cardTitle}>Advanced Analytics</Title>
+                <Text style={styles.cardTitle}>Advanced Analytics</Text>
               </View>
               <View style={styles.analyticsGrid}>
-                <View style={styles.analyticsItem}>
+                <Animatable.View animation="fadeInUp" duration={800} delay={500} style={styles.analyticsItem}>
                   <Text style={styles.analyticsValue}>
                     {profile.matches_played > 0 
                       ? (((profile.sets_won || 0) + (profile.sets_lost || 0)) / profile.matches_played).toFixed(1)
@@ -319,8 +337,8 @@ export default function EnhancedStatisticsSection({
                     }
                   </Text>
                   <Text style={styles.analyticsLabel}>Avg Sets/Match</Text>
-                </View>
-                <View style={styles.analyticsItem}>
+                </Animatable.View>
+                <Animatable.View animation="fadeInUp" duration={800} delay={600} style={styles.analyticsItem}>
                   <Text style={styles.analyticsValue}>
                     {((profile.sets_won || 0) + (profile.sets_lost || 0)) > 0 
                       ? (((profile.games_won || 0) + (profile.games_lost || 0)) / ((profile.sets_won || 0) + (profile.sets_lost || 0))).toFixed(1)
@@ -328,44 +346,55 @@ export default function EnhancedStatisticsSection({
                     }
                   </Text>
                   <Text style={styles.analyticsLabel}>Avg Games/Set</Text>
-                </View>
-                <View style={styles.analyticsItem}>
+                </Animatable.View>
+                <Animatable.View animation="fadeInUp" duration={800} delay={700} style={styles.analyticsItem}>
                   <Text style={styles.analyticsValue}>{profile.level || 0}</Text>
                   <Text style={styles.analyticsLabel}>Current Level</Text>
-                </View>
-                <View style={styles.analyticsItem}>
+                </Animatable.View>
+                <Animatable.View animation="fadeInUp" duration={800} delay={800} style={styles.analyticsItem}>
                   <Text style={styles.analyticsValue}>{profile.xp || 0}</Text>
                   <Text style={styles.analyticsLabel}>Total XP</Text>
-                </View>
+                </Animatable.View>
               </View>
-            </Card.Content>
-          </Card>
-        </>
-      )}
+            </Animatable.View>
+          </>
+        )}
+      </Animatable.View>
 
       {/* XP Information Modal */}
       <Portal>
-        <Modal visible={isInfoDialogOpen} onDismiss={() => setIsInfoDialogOpen(false)} contentContainerStyle={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Title style={styles.modalTitle}>XP Calculation System</Title>
+        <Modal visible={isInfoDialogOpen} onDismiss={handleCloseInfo} contentContainerStyle={styles.modalContainer}>
+          <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
+            <Text style={styles.joinTitle}>XP Calculation System</Text>
             <View style={styles.xpInfoSection}>
-              <Text style={styles.xpInfoTitle}>Base Rewards</Text>
-              <Text style={styles.xpInfoText}>• 1000 XP - Playing a match</Text>
-              <Text style={styles.xpInfoText}>• 500 XP - Winning a match</Text>
+              <Text style={styles.warningText}>Base Rewards</Text>
+              <Text style={styles.communityName}>• 1000 XP - Playing a match</Text>
+              <Text style={styles.communityName}>• 500 XP - Winning a match</Text>
             </View>
             <View style={styles.xpInfoSection}>
-              <Text style={styles.xpInfoTitle}>Performance Bonuses</Text>
-              <Text style={styles.xpInfoText}>• Sets Bonus: 50 × (setsWon ÷ (1 + setsLost))</Text>
-              <Text style={styles.xpInfoText}>• Games Bonus: 20 × (gamesWon ÷ (1 + gamesLost))</Text>
+              <Text style={styles.warningText}>Performance Bonuses</Text>
+              <Text style={styles.communityName}>• Sets Bonus: 50 × (setsWon ÷ (1 + setsLost))</Text>
+              <Text style={styles.communityName}>• Games Bonus: 20 × (gamesWon ÷ (1 + gamesLost))</Text>
             </View>
             <View style={styles.xpInfoSection}>
-              <Text style={styles.xpInfoTitle}>Level Up System</Text>
-              <Text style={styles.xpInfoText}>You need 5000 XP to advance to the next level. XP above this amount carries over to your new level.</Text>
+              <Text style={styles.warningText}>Level Up System</Text>
+              <Text style={styles.communityName}>You need 5000 XP to advance to the next level. XP above this amount carries over to your new level.</Text>
             </View>
-            <Button mode="contained" onPress={() => setIsInfoDialogOpen(false)} style={styles.modalButton}>
-              Close
-            </Button>
-          </View>
+            <TouchableOpacity 
+              onPress={handleCloseInfo} 
+              style={styles.closeButton}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={['#00A86B', '#00C853']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.joinButtonText}>Close</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animatable.View>
         </Modal>
       </Portal>
     </>
@@ -373,11 +402,23 @@ export default function EnhancedStatisticsSection({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    marginBottom:30,
+  },
   mainStatsCard: {
     marginBottom: 20,
     borderRadius: 16,
     elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   statsHeader: {
     flexDirection: 'row',
@@ -393,10 +434,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
   statsTitle: {
-    color: 'white',
-    fontSize: 20,
+    color: '#ffffff',
+    fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 12,
   },
@@ -417,7 +457,7 @@ const styles = StyleSheet.create({
   overviewStatValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
     marginTop: 4,
   },
   overviewStatLabel: {
@@ -445,7 +485,7 @@ const styles = StyleSheet.create({
   streakValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
     marginLeft: 4,
   },
   streakLabel: {
@@ -457,7 +497,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 16,
     elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -465,7 +504,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 12,
@@ -482,7 +521,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 8,
-    color: 'white',
+    color: '#ffffff',
   },
   statLabel: {
     fontSize: 12,
@@ -495,7 +534,7 @@ const styles = StyleSheet.create({
   winRateLabel: {
     fontSize: 14,
     marginBottom: 8,
-    color: 'white',
+    color: '#ffffff',
   },
   winRateBar: {
     height: 8,
@@ -507,19 +546,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 8,
     textAlign: 'right',
-    color: 'white',
+    color: '#ffffff',
   },
   performanceGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
-    marginHorizontal: 10,
+    marginHorizontal: 0,
   },
   performanceCard: {
     flex: 1,
     marginHorizontal: 4,
     borderRadius: 16,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
   },
   performanceCardGradient: {
@@ -531,7 +572,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   performanceCardTitle: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 8,
@@ -547,7 +588,7 @@ const styles = StyleSheet.create({
   performanceStatValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
   performanceStatLabel: {
     fontSize: 12,
@@ -561,7 +602,6 @@ const styles = StyleSheet.create({
   },
   analyticsItem: {
     width: '48%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -570,7 +610,7 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
   analyticsLabel: {
     fontSize: 12,
@@ -587,31 +627,60 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     alignItems: 'center',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  modalTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  joinTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
     textAlign: 'center',
+    marginBottom: 24,
   },
   xpInfoSection: {
     marginBottom: 16,
     width: '100%',
   },
-  xpInfoTitle: {
-    color: 'white',
+  warningText: {
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  xpInfoText: {
+  communityName: {
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 14,
     marginBottom: 4,
   },
-  modalButton: {
-    marginTop: 20,
-    backgroundColor: '#4CAF50',
+  closeButton: {
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    width: '100%',
+  },
+  gradientButton: {
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  joinButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
 });

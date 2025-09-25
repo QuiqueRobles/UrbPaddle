@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Privacy: undefined
   PlayerManagement: undefined
   ChangePassword: undefined
+  ConfirmEmailSent: { email: string };
 }
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>

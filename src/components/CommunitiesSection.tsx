@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
-import { TextInput, Card, Title, Paragraph, Modal, Portal, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Alert, TouchableOpacity, Text } from 'react-native';
+import { TextInput, Modal, Portal, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
+import * as Animatable from 'react-native-animatable';
+import * as Haptics from 'expo-haptics';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../theme/colors';
 import ApartmentForm from './ApartmentForm';
 
 type Community = {
@@ -73,6 +76,11 @@ export default function CommunitiesSection() {
     }
   };
 
+  const handleJoinCommunityPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsJoinModalVisible(true);
+  };
+
   const handleJoinCommunity = async () => {
     if (!joinCode.trim()) {
       Alert.alert(t('error'), t('enterJoinCode'));
@@ -91,16 +99,14 @@ export default function CommunitiesSection() {
         .single();
 
       if (profileError) throw profileError;
-     
-      // Check if the code matches a resident_code
+
       const { data: residentCommunityData, error: residentError } = await supabase
         .from('community')
         .select('id, name')
         .eq('resident_code', joinCode)
         .single();
-      
+
       if (!residentError && residentCommunityData) {
-        // Code matches a resident_code
         if (profileData.resident_community_id) {
           Alert.alert(t('error'), t('alreadyResident'));
           return;
@@ -112,7 +118,6 @@ export default function CommunitiesSection() {
         return;
       }
 
-      // If not a resident_code, check if it's a guest_code
       const { data: guestCommunityData, error: guestError } = await supabase
         .from('community')
         .select('id, name')
@@ -124,7 +129,6 @@ export default function CommunitiesSection() {
         return;
       }
 
-      // Code matches a guest_code
       if (profileData.resident_community_id === guestCommunityData.id) {
         Alert.alert(t('error'), t('alreadyResidentCantBeGuest'));
         return;
@@ -187,171 +191,257 @@ export default function CommunitiesSection() {
     }
   };
 
+  const handleCloseApartmentModal = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsApartmentFormVisible(false);
+    setPendingResidentCommunity(null);
+  };
+
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>{t('loading')}</Text>
+          </View>
+        </SafeAreaView>
+      
     );
   }
 
   return (
-    <Card style={styles.container}>
-      
-        <Card.Content>
-          <Title style={styles.sectionTitle}>{t('yourCommunities')}</Title>
+    
+      <SafeAreaView style={styles.safeArea}>
+        <Animatable.View animation="fadeInUp" duration={800} style={styles.container}>
+          <Text style={styles.sectionTitle}>{t('yourCommunities')}</Text>
           
           {residentCommunity && (
-            <View style={styles.communityItem}>
-              <MaterialCommunityIcons name="home" size={24} color="#ffffff" />
-              <Paragraph style={styles.communityName}>{t('communityResident', { name: residentCommunity.name })}</Paragraph>
-            </View>
+            <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.communityItem}>
+              <MaterialCommunityIcons name="home" size={20} color="#00C853" />
+              <Text style={styles.communityName}>{t('communityResident', { name: residentCommunity.name })}</Text>
+            </Animatable.View>
           )}
 
-          {guestCommunities.map((community) => (
-            <View key={community.id} style={styles.communityItem}>
-              <MaterialCommunityIcons name="account-group" size={24} color="#ffffff" />
-              <Paragraph style={styles.communityName}>{t('communityGuest', { name: community.name })}</Paragraph>
-            </View>
+          {guestCommunities.map((community, index) => (
+            <Animatable.View 
+              key={community.id} 
+              animation="fadeInUp" 
+              duration={800} 
+              delay={400 + index * 100} 
+              style={styles.communityItem}
+            >
+              <MaterialCommunityIcons name="account-group" size={20} color="#00C853" />
+              <Text style={styles.communityName}>{t('communityGuest', { name: community.name })}</Text>
+            </Animatable.View>
           ))}
 
-          <TouchableOpacity onPress={() => setIsJoinModalVisible(true)}>
-            <LinearGradient
-              colors={['#00A86B', '#00C853']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+          <Animatable.View animation="fadeInUp" duration={800} delay={600}>
+            <TouchableOpacity 
+              onPress={handleJoinCommunityPress} 
               style={styles.joinButton}
+              activeOpacity={0.7}
+              accessibilityLabel={t('joinCommunity')}
             >
-              <Text style={styles.joinButtonText}>{t('joinCommunity')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#00A86B', '#00C853']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.joinButtonText}>{t('joinCommunity')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animatable.View>
 
           <Portal>
-            <Modal visible={isJoinModalVisible} onDismiss={() => setIsJoinModalVisible(false)} contentContainerStyle={styles.modalContainer}>
-              <BlurView intensity={100} tint="dark" style={styles.blurView}>
-                <Card style={styles.modalCard}>
-                  <Card.Content>
-                    <Title style={styles.joinTitle}>{t('joinCommunity')}</Title>
-                    <View style={styles.warningContainer}>
-                      <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#FF6B6B" />
-                      <Paragraph style={styles.warningText}>
-                        {t('joinWarning')}
-                      </Paragraph>
-                    </View>
-                    <TextInput
-                      label={t('communityJoinCode')}
-                      value={joinCode}
-                      onChangeText={setJoinCode}
-                      style={styles.input}
-                      mode="outlined"
-                      theme={{ colors: { primary: '#00A86B', underlineColor: 'transparent' } }}
-                    />
-                    <TouchableOpacity onPress={handleJoinCommunity} disabled={isLoading}>
-                      <LinearGradient
-                        colors={['#00A86B', '#00C853']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.modalJoinButton}
-                      >
-                        <Text style={styles.joinButtonText}>{t('join')}</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </Card.Content>
-                </Card>
-              </BlurView>
+            <Modal 
+              visible={isJoinModalVisible} 
+              onDismiss={() => setIsJoinModalVisible(false)} 
+              contentContainerStyle={styles.modalContainer}
+            >
+              <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
+                <Text style={styles.joinTitle}>{t('joinCommunity')}</Text>
+                <View style={styles.warningContainer}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FF6B6B" />
+                  <Text style={styles.warningText}>{t('joinWarning')}</Text>
+                </View>
+                <TextInput
+                  label={t('communityJoinCode')}
+                  value={joinCode}
+                  onChangeText={setJoinCode}
+                  style={styles.input}
+                  mode="outlined"
+                  theme={{ colors: { primary: '#00C853', background: 'rgba(255, 255, 255, 0.08)', text: '#fff', placeholder: 'rgba(255, 255, 255, 0.7)' } }}
+                  accessibilityLabel={t('communityJoinCode')}
+                />
+                <TouchableOpacity 
+                  onPress={handleJoinCommunity} 
+                  disabled={isLoading}
+                  style={styles.modalJoinButton}
+                  activeOpacity={0.7}
+                  accessibilityLabel={t('join')}
+                >
+                  <LinearGradient
+                    colors={isLoading ? ['#666', '#666'] : ['#00A86B', '#00C853']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    <Text style={styles.joinButtonText}>{t('join')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => setIsJoinModalVisible(false)} 
+                  style={styles.closeButton}
+                  activeOpacity={0.7}
+                  accessibilityLabel={t('close')}
+                >
+                  <LinearGradient
+                    colors={['#00A86B', '#00C853']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    <Text style={styles.joinButtonText}>{t('close')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animatable.View>
             </Modal>
-            <Modal visible={isApartmentFormVisible} onDismiss={() => setIsApartmentFormVisible(false)} contentContainerStyle={styles.modalContainer}>
-              <BlurView intensity={100} tint="dark" style={styles.blurView}>
-                <Card style={styles.modalCard}>
-                  <Card.Content>
-                    <ApartmentForm onSubmit={handleApartmentSubmit} />
-                  </Card.Content>
-                </Card>
-              </BlurView>
+            <Modal 
+              visible={isApartmentFormVisible} 
+              onDismiss={handleCloseApartmentModal} 
+              contentContainerStyle={styles.modalContainer}
+            >
+              <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
+                <Text style={styles.joinTitle}>{t('enterApartmentDetails')}</Text>
+                <ApartmentForm onSubmit={handleApartmentSubmit} />
+                <TouchableOpacity 
+                  onPress={handleCloseApartmentModal} 
+                  style={styles.closeButton}
+                  activeOpacity={0.7}
+                  accessibilityLabel={t('close')}
+                >
+                  <LinearGradient
+                    colors={['#00A86B', '#00C853']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    <Text style={styles.joinButtonText}>{t('close')}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animatable.View>
             </Modal>
           </Portal>
-        </Card.Content>
-    </Card>
+        </Animatable.View>
+      </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
+  gradientBackground: {
+    flex: 1,
   },
-  gradient: {
-    padding: 20,
+  safeArea: {
+    flex: 1,
+  },
+  container: {
+    margin: 16,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  communityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  communityName: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  joinButton: {
+    marginTop: 24,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  gradientButton: {
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  joinButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 24,
-    color: '#ffffff',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  communityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  communityName: {
-    marginLeft: 16,
+  loadingText: {
     fontSize: 18,
-    color: '#ffffff',
     fontWeight: '500',
-  },
-  joinButton: {
-    marginTop: 24,
-    borderRadius: 12,
-    paddingVertical: 14,
-    elevation: 4,
-  },
-  joinButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 16,
     textAlign: 'center',
-    letterSpacing: 0.5,
   },
   modalContainer: {
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
   },
-  blurView: {
+  modalContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 150,
+    borderRadius: 16,
     padding: 24,
-  },
-  modalCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   joinTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    marginBottom: 24,
-    color: '#333333',
+    color: '#ffffff',
     textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  input: {
     marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  modalJoinButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    elevation: 4,
   },
   warningContainer: {
     flexDirection: 'row',
@@ -363,10 +453,32 @@ const styles = StyleSheet.create({
   },
   warningText: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
     color: '#FF6B6B',
     fontSize: 16,
-    lineHeight: 22,
     fontWeight: '500',
+    lineHeight: 22,
+  },
+  input: {
+    marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.56)',
+    borderRadius: 8,
+  },
+  modalJoinButton: {
+    marginBottom: 16,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  closeButton: {
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

@@ -43,6 +43,7 @@ import CommunityMapScreen from './screens/CommunityMapScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
+import ConfirmEmailSentScreen from './screens/ConfirmEmailScreen';
 
 // Configura el handler de notificaciones
 Notifications.setNotificationHandler({
@@ -375,6 +376,7 @@ export default function App() {
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="CommunityRegistration" component={CommunityRegistrationScreen} options={{ title: t('registerCommunity') }} />
+                  <Stack.Screen name="ConfirmEmailSent" component={ConfirmEmailSentScreen} />
                 </>
               )}
             </Stack.Navigator>

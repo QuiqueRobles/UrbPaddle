@@ -139,7 +139,7 @@ export default function HomeScreen({ navigation }: Props) {
           </Animated.View>
           <Animated.View style={styles.header} entering={shouldAnimate ? FadeInDown.delay(300).duration(600) : undefined}>
             <FireText
-              text={"Quick booking, Quality matches"}
+              text={t("homeFireText")}
               fontSize={21}
               intensity={1.2}
               style={styles.fireTitle}

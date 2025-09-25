@@ -1,39 +1,38 @@
-import React, { useState, useLayoutEffect } from 'react'
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, SafeAreaView, Text as RNText } from 'react-native'
-import { TextInput, Button, HelperText, useTheme, Text, Checkbox } from 'react-native-paper'
-import { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { supabase } from '../lib/supabase'
-import { RootStackParamList } from '../navigation'
-import { LinearGradient } from 'expo-linear-gradient'
-import { StatusBar } from 'expo-status-bar'
-import { colors } from '../theme/colors'
-import FireText from '../components/FireText'
-import { TouchableOpacity } from 'react-native-gesture-handler'
-import { ActivityIndicator } from 'react-native'
-import { useTranslation } from 'react-i18next'
-import * as Animatable from 'react-native-animatable'
-import { gradients } from '../theme/gradients'
-import { signInWithGoogle } from '../lib/googleAuth'
+import React, { useState, useLayoutEffect, useRef } from 'react';
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Animated } from 'react-native';
+import { TextInput, useTheme, Text, Checkbox, HelperText } from 'react-native-paper';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { supabase } from '../lib/supabase';
+import { RootStackParamList } from '../navigation';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '../theme/colors';
+import FireText from '../components/FireText';
+import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { signInWithGoogle } from '../lib/googleAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Animatable from 'react-native-animatable';
 
-type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>
+type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
 type Props = {
-  navigation: RegisterScreenNavigationProp
-}
+  navigation: RegisterScreenNavigationProp;
+};
 
 export default function RegisterScreen({ navigation }: Props) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [userName, setUserName] = useState('')
-  const [apartment, setApartment] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [userName, setUserName] = useState('');
+  const [apartment, setApartment] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Form errors
   const [formErrors, setFormErrors] = useState({
@@ -44,7 +43,7 @@ export default function RegisterScreen({ navigation }: Props) {
     fullName: '',
     phoneNumber: '',
     terms: '',
-  })
+  });
 
   // Password strength criteria
   const [passwordCriteria, setPasswordCriteria] = useState({
@@ -53,30 +52,44 @@ export default function RegisterScreen({ navigation }: Props) {
     lowercase: false,
     number: false,
     special: false,
-  })
+  });
 
-  const theme = useTheme()
-  const { t } = useTranslation()
+  const theme = useTheme();
+  const { t, i18n } = useTranslation();
+
+  const inputFields = ['fullName', 'userName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'apartment'];
+  const inputAnimations = useRef(inputFields.reduce((acc, field) => {
+    acc[field] = new Animated.Value(0);
+    return acc;
+  }, {})).current;
+
+  const animateInput = (animation: Animated.Value, toValue: number) => {
+    Animated.timing(animation, {
+      toValue,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
 
   // Validation functions
   const validateEmail = (email: string) => {
-    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    return regex.test(email)
-  }
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return regex.test(email);
+  };
 
   const validateUsername = (username: string) => {
-    const regex = /^[a-zA-Z0-9_]{3,20}$/
-    return regex.test(username)
-  }
+    const regex = /^[a-zA-Z0-9_]{3,20}$/;
+    return regex.test(username);
+  };
 
   const validatePhoneNumber = (phone: string) => {
-    const regex = /^\+?[0-9]{8,15}$/
-    return phone === '' || regex.test(phone)
-  }
+    const regex = /^\+?[0-9]{8,15}$/;
+    return phone === '' || regex.test(phone);
+  };
 
   const validateFullName = (name: string) => {
-    return name.length >= 2 && name.length <= 50
-  }
+    return name.length >= 2 && name.length <= 50;
+  };
 
   const validatePasswordStrength = (password: string) => {
     const criteria = {
@@ -85,31 +98,43 @@ export default function RegisterScreen({ navigation }: Props) {
       lowercase: /[a-z]/.test(password),
       number: /[0-9]/.test(password),
       special: /[^A-Za-z0-9]/.test(password),
-    }
-    setPasswordCriteria(criteria)
-    return Object.values(criteria).filter(Boolean).length >= 3
-  }
+    };
+    setPasswordCriteria(criteria);
+    return Object.values(criteria).filter(Boolean).length >= 3;
+  };
 
   // Real-time password validation
   React.useEffect(() => {
     if (password) {
-      validatePasswordStrength(password)
+      validatePasswordStrength(password);
     }
-  }, [password])
+  }, [password]);
 
   const getPasswordStrengthColor = () => {
-    const strength = Object.values(passwordCriteria).filter(Boolean).length
-    if (strength <= 2) return colors.error
-    if (strength <= 4) return '#FFA500'
-    return colors.success || '#4CAF50'
-  }
+    const strength = Object.values(passwordCriteria).filter(Boolean).length;
+    if (strength <= 2) return colors.error;
+    if (strength <= 4) return '#FFA500';
+    return colors.success || '#4CAF50';
+  };
 
   const getPasswordStrengthText = () => {
-    const strength = Object.values(passwordCriteria).filter(Boolean).length
-    if (strength <= 2) return t('weak')
-    if (strength <= 4) return t('medium')
-    return t('strong')
-  }
+    const strength = Object.values(passwordCriteria).filter(Boolean).length;
+    if (strength <= 2) return t('weak');
+    if (strength <= 4) return t('medium');
+    return t('strong');
+  };
+
+  // Check if email exists
+  const checkEmailExists = async (email: string) => {
+    const { data } = await supabase.from('profiles').select('id').eq('email', email).single();
+    return !!data;
+  };
+
+  // Check if username exists
+  const checkUsernameExists = async (username: string) => {
+    const { data } = await supabase.from('profiles').select('id').eq('username', username).single();
+    return !!data;
+  };
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -126,58 +151,63 @@ export default function RegisterScreen({ navigation }: Props) {
       fullName: '',
       phoneNumber: '',
       terms: '',
-    }
+    };
 
-    let isValid = true
+    let isValid = true;
 
     // Email validation
     if (!validateEmail(email)) {
-      errors.email = t('invalidEmailError') || 'Invalid email format'
-      isValid = false
+      errors.email = t('invalidEmailError') || 'Invalid email format';
+      isValid = false;
+    } else if (await checkEmailExists(email)) {
+      errors.email = t('emailAlreadyExists') || 'Email already exists';
+      isValid = false;
     }
 
     // Username validation
     if (!validateUsername(userName)) {
-      errors.userName = t('invalidUsernameError') || 'Username must be 3-20 characters and contain only letters, numbers, and underscores'
-      isValid = false
+      errors.userName = t('invalidUsernameError') || 'Username must be 3-20 characters and contain only letters, numbers, and underscores';
+      isValid = false;
+    } else if (await checkUsernameExists(userName)) {
+      errors.userName = t('usernameAlreadyExists') || 'Username already exists';
+      isValid = false;
     }
 
     // Full name validation
     if (!validateFullName(fullName)) {
-      errors.fullName = t('invalidNameError') || 'Name must be between 2 and 50 characters'
-      isValid = false
+      errors.fullName = t('invalidNameError') || 'Name must be between 2 and 50 characters';
+      isValid = false;
     }
 
     // Phone validation (if provided)
     if (phoneNumber && !validatePhoneNumber(phoneNumber)) {
-      errors.phoneNumber = t('invalidPhoneError') || 'Please enter a valid phone number'
-      isValid = false
+      errors.phoneNumber = t('invalidPhoneError') || 'Please enter a valid phone number';
+      isValid = false;
     }
 
     // Password validation
     if (!validatePasswordStrength(password)) {
-      errors.password = t('weakPasswordError') || 'Password is too weak'
-      isValid = false
+      errors.password = t('weakPasswordError') || 'Password is too weak';
+      isValid = false;
     }
 
     // Confirm password
     if (password !== confirmPassword) {
-      errors.confirmPassword = t('passwordMismatchError') || 'Passwords do not match'
-      isValid = false
+      errors.confirmPassword = t('passwordMismatchError') || 'Passwords do not match';
+      isValid = false;
     }
 
     // Terms acceptance
     if (!acceptTerms) {
-      errors.terms = t('termsRequiredError') || 'You must accept the terms and conditions'
-      isValid = false
+      errors.terms = t('termsRequiredError') || 'You must accept the terms and conditions';
+      isValid = false;
     }
 
-    setFormErrors(errors)
-    return isValid
-  }
+    setFormErrors(errors);
+    return isValid;
+  };
 
   async function handleRegister() {
-    // Reset errors
     setFormErrors({
       email: '',
       password: '',
@@ -186,89 +216,72 @@ export default function RegisterScreen({ navigation }: Props) {
       fullName: '',
       phoneNumber: '',
       terms: '',
-    })
+    });
 
-    // Validate form
-    const isValid = await validateForm()
-    if (!isValid) return
+    const isValid = await validateForm();
+    if (!isValid) return;
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      // Sign up the user first
-      const { data: authData, error: authError } = await supabase.auth.signUp({ 
-        email, 
+      // Store user data in AsyncStorage to use after confirmation
+      const userData = {
+        email,
+        fullName,
+        userName,
+        phoneNumber,
+        apartment,
+      };
+      await AsyncStorage.setItem('pendingUserData', JSON.stringify(userData));
+
+      // Get current language for redirect URL
+      const lang = i18n.language || 'en';
+
+      // Sign up with Supabase - email confirmation is required
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
         password,
         options: {
+          emailRedirectTo: `https://qourtify.com/${lang}/confirm-email`, 
           data: {
             full_name: fullName,
             username: userName,
             phone_number: phoneNumber,
-          }
-        }
-      })
-      
+            apartment,
+          },
+        },
+      });
+
       if (authError) {
-        // Handle specific email already exists error from Supabase auth
         if (authError.message.includes('User already registered')) {
-          setFormErrors(prev => ({ ...prev, email: t('emailAlreadyExists') || 'Email already exists' }))
+          setFormErrors((prev) => ({ ...prev, email: t('emailAlreadyExists') || 'Email already exists' }));
         } else if (authError.message.includes('Email not allowed')) {
-          Alert.alert(t('error') || 'Error', t('unauthorizedEmailError') || 'Email not allowed')
+          Alert.alert(t('error') || 'Error', t('unauthorizedEmailError') || 'Email not allowed');
         } else {
-          Alert.alert(t('error') || 'Error', authError.message)
+          Alert.alert(t('error') || 'Error', authError.message);
         }
-        setLoading(false)
-        return
+        setLoading(false);
+        return;
       }
 
-      if (authData.user) {
-        // Now create/update the profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: authData.user.id, 
-            full_name: fullName,
-            apartment: apartment,
-            username: userName,
-            phone_number: phoneNumber,
-            updated_at: new Date()
-          })
-
-        if (profileError) {
-          // Handle username uniqueness error
-          if (profileError.message.includes('duplicate') || 
-              profileError.message.includes('unique') ||
-              profileError.message.includes('profiles_username_unique')) {
-            setFormErrors(prev => ({ 
-              ...prev, 
-              userName: t('usernameAlreadyExists') || 'Username already exists' 
-            }))
-          } else {
-            Alert.alert(t('error') || 'Error', profileError.message)
-          }
-          setLoading(false)
-          return
-        }
-
-        // Success!
-        setLoading(false)
-        Alert.alert(
-          t('success') || 'Success', 
-          t('registrationSuccessful') || 'Registration successful'
-        )
-        navigation.navigate('CommunityCode', { userId: authData.user.id })
-      }
-    } catch (error: any) {
-      setLoading(false)
-      console.error('Registration error:', error)
+      setLoading(false);
       Alert.alert(
-        t('error') || 'Error', 
+        t('success') || 'Success',
+        t('confirmationEmailSent') || 'A confirmation email has been sent. Please check your inbox.'
+      );
+      // Navigate to ConfirmEmailSent screen with the email
+      navigation.navigate('ConfirmEmailSent', { email });
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Registration error:', error);
+      Alert.alert(
+        t('error') || 'Error',
         error.message || t('genericError') || 'An error occurred'
-      )
+      );
     }
   }
 
-  const handleGoogleSignUp = async () => {
+  async function handleGoogleSignUp() {
     console.log("🔵 Google Sign-Up iniciado...");
     setIsGoogleLoading(true);
 
@@ -296,30 +309,28 @@ export default function RegisterScreen({ navigation }: Props) {
   }
 
   const renderPasswordStrength = () => {
-    if (!password) return null
-    
-    const strength = Object.values(passwordCriteria).filter(Boolean).length
-    const strengthPercentage = (strength / 5) * 100
+    if (!password) return null;
+
+    const strength = Object.values(passwordCriteria).filter(Boolean).length;
+    const strengthPercentage = (strength / 5) * 100;
 
     return (
       <View style={styles.passwordStrengthContainer}>
         <View style={styles.passwordStrengthHeader}>
           <Text style={styles.passwordStrengthLabel}>
-            {t('passwordStrength') || 'Password Strength'}: 
-            <Text style={{ color: getPasswordStrengthColor() }}>
-              {' '}{getPasswordStrengthText()}
-            </Text>
+            {t('passwordStrength') || 'Password Strength'}: {' '}
+            <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
           </Text>
         </View>
         <View style={styles.strengthBar}>
-          <View 
+          <View
             style={[
-              styles.strengthBarFill, 
-              { 
-                width: `${strengthPercentage}%`, 
-                backgroundColor: getPasswordStrengthColor() 
-              }
-            ]} 
+              styles.strengthBarFill,
+              {
+                width: `${strengthPercentage}%`,
+                backgroundColor: getPasswordStrengthColor(),
+              },
+            ]}
           />
         </View>
         <View style={styles.criteriaContainer}>
@@ -332,205 +343,242 @@ export default function RegisterScreen({ navigation }: Props) {
           ))}
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   const getCriteriaText = (criteria: string) => {
     switch (criteria) {
-      case 'length': return t('minChars') || 'At least 8 characters'
-      case 'uppercase': return t('upperCase') || 'Uppercase letter'
-      case 'lowercase': return t('lowerCase') || 'Lowercase letter'
-      case 'number': return t('number') || 'Number'
-      case 'special': return t('special') || 'Special character'
-      default: return ''
+      case 'length':
+        return t('minChars') || 'At least 8 characters';
+      case 'uppercase':
+        return t('upperCase') || 'Uppercase letter';
+      case 'lowercase':
+        return t('lowerCase') || 'Lowercase letter';
+      case 'number':
+        return t('number') || 'Number';
+      case 'special':
+        return t('special') || 'Special character';
+      default:
+        return '';
     }
-  }
+  };
 
   const renderInput = (
-    label: string, 
-    value: string, 
-    onChangeText: (text: string) => void, 
-    icon: string, 
-    keyboardType: any = 'default', 
-    secureTextEntry: boolean = false, 
+    label: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    icon: string,
+    keyboardType: any = 'default',
+    secureTextEntry: boolean = false,
     error: string = '',
     showPasswordToggle: boolean = false,
-    isPassword: boolean = false
+    isPassword: boolean = false,
+    animationKey: string
   ) => (
-    <Animatable.View animation="fadeInUp" duration={800} style={styles.inputContainer}>
+    <Animated.View style={[
+      styles.inputContainer,
+      {
+        borderColor: inputAnimations[animationKey].interpolate({
+          inputRange: [0, 1],
+          outputRange: ['rgba(255,255,255,0.1)', '#00C853']
+        }),
+        shadowOpacity: inputAnimations[animationKey].interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 0.3]
+        })
+      }
+    ]}>
       <TextInput
         label={label}
         value={value}
         onChangeText={onChangeText}
         style={styles.input}
-        mode="outlined"
-        outlineColor={error ? colors.error : colors.primary}
-        activeOutlineColor={error ? colors.error : colors.primary}
-        activeUnderlineColor='transparent'
-        textColor={colors.text}
+        autoCapitalize="none"
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry && (isPassword ? !showPassword : !showConfirmPassword)}
-        left={<TextInput.Icon icon={icon} color={colors.primary} />}
-        right={showPasswordToggle && (
-          <TextInput.Icon 
-            icon={isPassword ? (showPassword ? "eye-off" : "eye") : (showConfirmPassword ? "eye-off" : "eye")} 
-            color={colors.primary}
-            onPress={() => isPassword ? setShowPassword(!showPassword) : setShowConfirmPassword(!showConfirmPassword)}
-          />
-        )}
+        mode="outlined"
+        outlineColor="transparent"
+        activeOutlineColor="transparent"
+        selectionColor="#00C853"
+        textColor='#ffffff'
+        placeholderTextColor="rgba(255,255,255,0.6)"
+        theme={{
+          colors: {
+            onSurfaceVariant: 'rgba(255,255,255,0.6)',
+            outline: 'transparent',
+          }
+        }}
+        left={<TextInput.Icon icon={icon} iconColor="rgba(255,255,255,0.6)" />}
+        right={
+          showPasswordToggle && (
+            <TextInput.Icon 
+              icon={isPassword ? (showPassword ? "eye-off" : "eye") : (showConfirmPassword ? "eye-off" : "eye")} 
+              iconColor="rgba(255,255,255,0.6)"
+              onPress={() => isPassword ? setShowPassword(!showPassword) : setShowConfirmPassword(!showConfirmPassword)}
+            />
+          )
+        }
+        onFocus={() => animateInput(inputAnimations[animationKey], 1)}
+        onBlur={() => animateInput(inputAnimations[animationKey], 0)}
       />
       {error && (
         <HelperText type="error" visible={!!error} style={styles.errorText}>
           {error}
         </HelperText>
       )}
-      {/* Show password strength for password field */}
       {isPassword && renderPasswordStrength()}
-      {/* Show match indicator for confirm password */}
       {!isPassword && secureTextEntry && confirmPassword && password === confirmPassword && !error && (
         <HelperText type="info" visible={true} style={styles.successText}>
           ✓ {t('passwordsMatch') || 'Passwords match'}
         </HelperText>
       )}
-    </Animatable.View>
-  )
+      {!isPassword && label === (t('username') || 'Username') && userName && !error && validateUsername(userName) && (
+        <HelperText type="info" visible={true} style={styles.successText}>
+          ✓ {t('validUsername') || 'Valid username format'}
+        </HelperText>
+      )}
+    </Animated.View>
+  );
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
+    <View style={styles.container}>
       <StatusBar style="light" />
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.gradient}
       >
-        <SafeAreaView style={styles.safeArea}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView 
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Animatable.View animation="fadeIn" duration={1000} style={styles.logoContainer}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo Section */}
+            <Animatable.View animation="fadeInDown" duration={800} style={styles.logoSection}>
+              <View style={styles.logoContainer}>
                 <Image 
-                  source={require('../../assets/images/logo.png')} 
+                  source={require('../../assets/images/quortify-logo.png')} 
                   style={styles.logo}
                   resizeMode="contain"
                 />
-              </Animatable.View>
-              
-              <Animatable.View animation="fadeInUp" duration={1000} delay={500}>
-                <FireText
-                  text={t('joinPaddleCommunity') || 'Join the Paddle Community'}
-                  fontSize={24}
-                  intensity={1.2}
-                  style={styles.fireTitle}
-                />
-              </Animatable.View>
+              </View>
+              <FireText
+                text={t('joinPaddleCommunity') || 'Join the Paddle Community'}
+                fontSize={19}
+                intensity={0.8}
+                style={styles.welcomeFireText}
+              />
+            </Animatable.View>
 
-              {/* Google Sign Up Button */}
-              <Animatable.View animation="fadeInUp" duration={1000} delay={750} style={styles.googleButtonContainer}>
-                <TouchableOpacity 
-                  onPress={handleGoogleSignUp} 
-                  disabled={isGoogleLoading}
-                  style={styles.googleButton}
-                >
-                  <View style={styles.googleButtonContent}>
-                    <Image 
-                      source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }} 
-                      style={styles.googleIcon}
-                    />
-                    {isGoogleLoading ? (
-                      <ActivityIndicator color="#757575" size="small" style={styles.googleSpinner} />
-                    ) : (
-                      <Text style={styles.googleButtonText}>
-                        {t('continueWithGoogle') || 'Continue with Google'}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </Animatable.View>
-
-              {/* Divider */}
-              <Animatable.View animation="fadeInUp" duration={1000} delay={1000} style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>
-                  {t('orRegisterWith') || 'or register with'}
-                </Text>
-                <View style={styles.dividerLine} />
-              </Animatable.View>
-              
-              <Animatable.View animation="fadeInUp" duration={1000} delay={1250} style={styles.formContainer}>
-                {renderInput(t('fullName') || 'Full Name', fullName, setFullName, 'account', 'default', false, formErrors.fullName)}
-                {renderInput(t('username') || 'Username', userName, setUserName, 'at', 'default', false, formErrors.userName)}
-                {renderInput(t('email') || 'Email', email, setEmail, 'email', 'email-address', false, formErrors.email)}
-                {renderInput(t('password') || 'Password', password, setPassword, 'lock', 'default', true, formErrors.password, true, true)}
-                {renderInput(t('confirmPassword') || 'Confirm Password', confirmPassword, setConfirmPassword, 'lock', 'default', true, formErrors.confirmPassword, true, false)}
-                {renderInput(t('phoneNumber') || 'Phone Number', phoneNumber, setPhoneNumber, 'phone', 'phone-pad', false, formErrors.phoneNumber)}
-                {apartment && renderInput(t('apartment') || 'Apartment', apartment, setApartment, 'home')}
-
-                {/* Terms and Conditions */}
-                <View style={styles.checkboxContainer}>
-                  <Checkbox
-                    status={acceptTerms ? 'checked' : 'unchecked'}
-                    onPress={() => setAcceptTerms(!acceptTerms)}
-                    color={colors.primary}
+            {/* Register Form */}
+            <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.formContainer}>
+              {/* Google Sign-Up Button */}
+              <TouchableOpacity 
+                onPress={handleGoogleSignUp} 
+                style={styles.googleButton}
+                disabled={isGoogleLoading}
+              >
+                <View style={styles.googleButtonContent}>
+                  <Image 
+                    source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                    style={styles.googleIcon}
                   />
-                  <TouchableOpacity onPress={() => setAcceptTerms(!acceptTerms)} style={styles.checkboxTextContainer}>
-                    <Text style={styles.checkboxText}>
-                      {t('acceptTerms') || 'I accept the'} 
-                      <Text style={styles.linkText}> {t('termsAndConditions') || 'Terms and Conditions'}</Text>
-                      {t('andThe') || ' and the'} 
-                      <Text style={styles.linkText}> {t('privacyPolicy') || 'Privacy Policy'}</Text>
+                  {isGoogleLoading ? (
+                    <ActivityIndicator color="#757575" size="small" style={styles.googleSpinner} />
+                  ) : (
+                    <Text style={styles.googleButtonText}>
+                      {t('continueWithGoogle') || 'Continue with Google'}
                     </Text>
-                  </TouchableOpacity>
+                  )}
                 </View>
-                {formErrors.terms && (
-                  <HelperText type="error" visible={!!formErrors.terms} style={styles.errorText}>
-                    {formErrors.terms}
-                  </HelperText>
-                )}
+              </TouchableOpacity>
+              
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('or') || 'OR'}</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-                {/* Security Note */}
-                <View style={styles.securityNote}>
-                  <Text style={styles.securityNoteText}>
-                    🛡️ {t('securityNote') || 'Your data is encrypted and secure'}
+              {/* Inputs */}
+              {renderInput(t('fullName') || 'Full Name', fullName, setFullName, 'account', 'default', false, formErrors.fullName, false, false, 'fullName')}
+              {renderInput(t('username') || 'Username', userName, setUserName, 'at', 'default', false, formErrors.userName, false, false, 'userName')}
+              {renderInput(t('email') || 'Email', email, setEmail, 'email', 'email-address', false, formErrors.email, false, false, 'email')}
+              {renderInput(t('password') || 'Password', password, setPassword, 'lock', 'default', true, formErrors.password, true, true, 'password')}
+              {renderInput(t('confirmPassword') || 'Confirm Password', confirmPassword, setConfirmPassword, 'lock', 'default', true, formErrors.confirmPassword, true, false, 'confirmPassword')}
+              {renderInput(t('phoneNumber') || 'Phone Number', phoneNumber, setPhoneNumber, 'phone', 'phone-pad', false, formErrors.phoneNumber, false, false, 'phoneNumber')}
+              {renderInput(t('apartment') || 'Apartment', apartment, setApartment, 'home', 'default', false, '', false, false, 'apartment')}
+
+              {/* Terms and Conditions */}
+              <View style={styles.checkboxContainer}>
+                <Checkbox
+                  status={acceptTerms ? 'checked' : 'unchecked'}
+                  onPress={() => setAcceptTerms(!acceptTerms)}
+                  color="#00C853"
+                />
+                <TouchableOpacity onPress={() => setAcceptTerms(!acceptTerms)} style={styles.checkboxTextContainer}>
+                  <Text style={styles.checkboxText}>
+                    {t('acceptTerms') || 'I accept the'}{' '}
+                    <Text style={styles.linkText}>{t('termsAndConditions') || 'Terms and Conditions'}</Text>
+                    {t('andThe') || ' and the'}{' '}
+                    <Text style={styles.linkText}>{t('privacyPolicy') || 'Privacy Policy'}</Text>
                   </Text>
-                </View>
-                
-                <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.button}>
-                  <LinearGradient
-                    colors={gradients.greenTheme}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#ffffff" />
-                    ) : (
-                      <Text style={styles.buttonLabel}>
-                        {t('createAccount') || 'Create Account'}
-                      </Text>
-                    )}
-                  </LinearGradient>
                 </TouchableOpacity>
-                
-                <Button 
-                  onPress={() => navigation.navigate('Login')}
-                  style={styles.loginButton}
-                  labelStyle={styles.loginButtonLabel}
+              </View>
+              {formErrors.terms && (
+                <HelperText type="error" visible={!!formErrors.terms} style={styles.errorText}>
+                  {formErrors.terms}
+                </HelperText>
+              )}
+
+              {/* Security Note */}
+              <View style={styles.securityNote}>
+                <Text style={styles.securityNoteText}>
+                  🛡️ {t('securityNote') || 'Your data is encrypted and secure'}
+                </Text>
+              </View>
+
+              {/* Create Account Button */}
+              <TouchableOpacity 
+                onPress={handleRegister} 
+                style={[
+                  styles.signInButton,
+                  { opacity: (loading || isGoogleLoading) ? 0.7 : 1 }
+                ]} 
+                disabled={loading || isGoogleLoading}
+              >
+                <LinearGradient
+                  colors={['#00A86B', '#00C853']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
                 >
-                  {t('alreadyHaveAccount') || 'Already have an account?'}
-                </Button>
-              </Animatable.View>
-            </ScrollView>
-          </TouchableWithoutFeedback>
-        </SafeAreaView>
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.signInButtonText}>{t('createAccount') || 'Create Account'}</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Already have account Section */}
+              <View style={styles.signUpSection}>
+                <Text style={styles.signUpText}>
+                  {t('alreadyHaveAccount') || 'Already have an account?'}{' '}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                  <Text style={styles.signUpLink}>{t('login') || 'Sign In'}</Text>
+                </TouchableOpacity>
+              </View>
+            </Animatable.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
-    </KeyboardAvoidingView>
-  )
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -540,34 +588,35 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  safeArea: {
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 80 : 60,
+  },
+  logoSection: {
+    alignItems: 'center',
+    paddingBottom: 16,
   },
   logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+    marginTop: -70,
+    marginBottom: -80,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 280,
+    height: 280,
   },
-  fireTitle: {
-    textAlign: 'center',
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: colors.text,
+  welcomeFireText: {
+    marginBottom: 8,
   },
-  googleButtonContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
+  formContainer: {
+    flex: 1,
+    paddingBottom: 32,
   },
   googleButton: {
+    marginBottom: 20,
     borderRadius: 16,
     elevation: 4,
     shadowColor: '#000',
@@ -603,50 +652,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 20,
-    paddingHorizontal: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.7)',
-    paddingHorizontal: 15,
+    marginHorizontal: 16,
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
-  },
-  formContainer: {
-    width: '100%',
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   inputContainer: {
-    width: '100%',
     marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 2,
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
-  },
-  errorText: {
-    color: colors.error,
-    marginTop: 4,
-  },
-  successText: {
-    color: colors.success || '#4CAF50',
-    marginTop: 4,
+    backgroundColor: 'transparent',
+    fontSize: 16,
   },
   passwordStrengthContainer: {
     marginTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   passwordStrengthHeader: {
     flexDirection: 'row',
@@ -655,7 +691,7 @@ const styles = StyleSheet.create({
   },
   passwordStrengthLabel: {
     fontSize: 12,
-    color: colors.textSecondary || '#666',
+    color: 'rgba(255,255,255,0.6)',
   },
   strengthBar: {
     height: 4,
@@ -678,70 +714,86 @@ const styles = StyleSheet.create({
   },
   criteriaText: {
     fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  errorText: {
+    color: colors.error,
+    paddingHorizontal: 16,
+  },
+  successText: {
+    color: '#00C853',
+    paddingHorizontal: 16,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginVertical: 16,
-    width: '100%',
+    borderColor: '#00C853',  
   },
   checkboxTextContainer: {
     flex: 1,
     marginLeft: 8,
+    
   },
   checkboxText: {
-    color: colors.text,
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     lineHeight: 20,
   },
   linkText: {
-    color: colors.primary,
+    color: '#00C853',
     textDecorationLine: 'underline',
   },
   securityNote: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: 'rgba(0, 200, 83, 0.1)',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.3)',
+    borderColor: 'rgba(0, 200, 83, 0.2)',
     marginBottom: 16,
-    width: '100%',
+    alignItems: 'center',
   },
   securityNoteText: {
-    color: colors.text,
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
-    textAlign: 'center',
   },
-  button: {
-    marginTop: 24,
-    width: '100%',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  signInButton: {
+    marginTop: 8,
+    marginBottom: 24,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   gradientButton: {
-    height: 50,
-    padding: 10,
-    borderRadius: 25,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonLabel: {
+  signInButtonText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    textTransform: 'uppercase',
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
-  loginButton: {
-    marginTop: 16,
+  signUpSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  loginButtonLabel: {
+  signUpText: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
-    color: 'white',
+    fontWeight: '400',
   },
-})
+  signUpLink: {
+    color: '#00C853',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+});

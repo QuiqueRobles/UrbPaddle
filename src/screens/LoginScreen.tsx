@@ -1,7 +1,6 @@
 import React, { useState, useLayoutEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { TextInput, useTheme, Text } from 'react-native-paper';
-import type { TextInput as TextInputType } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,8 +9,6 @@ import { colors } from '../theme/colors';
 import { ActivityIndicator } from 'react-native';
 import FireText from '../components/FireText';
 import { useTranslation } from 'react-i18next';
-import LanguageSelector2 from '../components/LanguageSelector2';
-import GoogleSignInButton from '../components/GoogleSignInButton';
 import { signInWithGoogle } from '../lib/googleAuth';
 import * as Animatable from 'react-native-animatable';
 
@@ -123,10 +120,6 @@ export default function LoginScreen({ navigation }: Props) {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Language Selector - Posición fija */}
-            <View style={styles.languageSelectorFixed}>
-              <LanguageSelector2 />
-            </View>
             {/* Logo Section */}
             <Animatable.View animation="fadeInDown" duration={800} style={styles.logoSection}>
               <View style={styles.logoContainer}>
@@ -142,7 +135,6 @@ export default function LoginScreen({ navigation }: Props) {
                 intensity={0.8}
                 style={styles.welcomeFireText}
               />
-              <Text style={styles.subtitleText}>{t('signInToContinue') || 'Sign in to continue'}</Text>
             </Animatable.View>
 
             {/* Login Form */}
@@ -199,6 +191,7 @@ export default function LoginScreen({ navigation }: Props) {
                   mode="outlined"
                   outlineColor="transparent"
                   activeOutlineColor="transparent"
+                  selectionColor="#00C853"
                   textColor='#ffffff'
                   placeholderTextColor="rgba(255,255,255,0.6)"
                   theme={{
@@ -237,6 +230,7 @@ export default function LoginScreen({ navigation }: Props) {
                   mode="outlined"
                   outlineColor="transparent"
                   activeOutlineColor="transparent"
+                  selectionColor="#00C853"
                   textColor='#ffffff'
                   placeholderTextColor="rgba(255,255,255,0.6)"
                   theme={{
@@ -315,13 +309,6 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  languageSelectorFixed: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    right: 20,
-    zIndex: 100,
-    elevation: 100, // Para Android
-  },
   keyboardView: {
     flex: 1,
   },
@@ -335,7 +322,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   logoContainer: {
-    marginTop: -40,
+    marginTop: -70,
     marginBottom: -80,
   },
   logo: {

@@ -209,7 +209,7 @@
   "projects": {
     "title": "Notable Projects",
     "urbpaddle": {
-      "title": "KingOfTheCourt",
+      "title": "Qourtify",
       "description": "A comprehensive mobile application for managing paddle tennis communities. Features include court booking, player matching, and community management."
     },
     "cubesat": {
@@ -365,7 +365,7 @@
   "passwordLengthError": "Password must be at least 6 characters long",
   "unauthorizedEmailError": "This email domain is not authorized. Please contact the administrator for assistance.",
   "registrationSuccessful": "Registration successful. Please check your email to verify your account.",
-  "joinPaddleCommunity": "Join KingOfTheCourt!",
+  "joinPaddleCommunity": "Join Qourtify!",
  
   "username": "Username",
 
@@ -385,10 +385,10 @@
   "invalidCommunityCode": "Invalid community code",
   "registerCommunity": "Register a Community",
   "communityRegistration": "Community Registration",
-  "introTitle1": "Welcome to KingOfTheCourt",
-  "introDescription1": "KingOfTheCourt is the ultimate platform for paddle tennis communities. Book, play, and grow your passion for the sport.",
+  "introTitle1": "Welcome to Qourtify",
+  "introDescription1": "Qourtify is the ultimate platform for paddle tennis communities. Book, play, and grow your passion for the sport.",
   "introTitle2": "Put your community on the radar",
-  "introDescription2": "Statistics, competition, and fun. KingOfTheCourt offers everything you need to take your community to the next level.",
+  "introDescription2": "Statistics, competition, and fun. Qourtify offers everything you need to take your community to the next level.",
   "introTitle3": "Register Your Community",
   "introDescription3": "Create a profile for your paddle tennis community. Manage courts, residents and guests.",
   "communityRegistrationTitle": "Register Your Community",
@@ -485,6 +485,82 @@
     "bookedFor": "Booked for {{name}}",
     "unknown": "Unknown",
     "upcomingBookings": "Upcoming Bookings",
-    "pastBookings": "Past Bookings"
-   
+    "pastBookings": "Past Bookings",
+  "confirmPassword": "Confirm Password",
+  "signUpSuccess": "Account created successfully!",
+  "noUpcomingBookings": "You have no upcoming bookings.",
+  "homeFireText": "Booking with technology",
+  "loadingStatistics": "Loading statistics...",
+  "includeGuests": "Include Guests",
+  "matchResults": "Match Results",
+  "proposeMatch": "Propose Result",
+  "validateMatch": "Validate Result",
+
+
+
+
+
+  "welcomeBack": "Welcome Back",
+  "continueWithGoogle": "Continue with Google",
+  "or": "OR",
+
+  "dontHaveAccount": "Don't have an account?",
+  "register": "Sign Up",
+ 
+  "pleaseEnterEmailAndPassword": "Please enter email and password",
+ 
+  "acceptTerms": "I accept the",
+  "termsAndConditions": "Terms and Conditions",
+  "andThe": "and the",
+  
+  "securityNote": "Your data is encrypted and secure",
+  
+  "weak": "Weak",
+  "medium": "Medium",
+  "strong": "Strong",
+  "minChars": "At least 8 characters",
+  "upperCase": "Uppercase letter",
+  "lowerCase": "Lowercase letter",
+  "number": "Number",
+  "special": "Special character",
+  "passwordsMatch": "Passwords match",
+  "passwordStrength": "Password Strength",
+  
+  "invalidUsernameError": "Username must be 3-20 characters and contain only letters, numbers, and underscores",
+  
+  "invalidNameError": "Name must be between 2 and 50 characters",
+  "invalidPhoneError": "Please enter a valid phone number",
+  "weakPasswordError": "Password is too weak",
+  "passwordMismatchError": "Passwords do not match",
+  "termsRequiredError": "You must accept the terms and conditions",
+  
+  "genericError": "An error occurred",
+  "confirmationEmailSent": "A confirmation email has been sent. Please check your inbox.",
+  "validUsername": "Valid username format",
+  "checkYourEmail": "Check your email",
+  "confirmationEmailDescription": "We've sent a confirmation link to",
+  "confirmationInstructions": "Click the link in the email to verify your account. If you don’t see it, check your spam folder.",
+  "goToLogin": "Go to Login",
+  "noPastBookings": "You have no past bookings.",
+  "residentRequired": "Resident Access Required",
+  "residentRequiredMessage": "You must be a resident of a community to access this feature.",
+  "goToProfile": "Go to Profile",
+  "loading": "Loading...",
+  "notLoggedIn": "You must be logged in to access this feature.",
+
+
+  "detailedStatistics": "Detailed Statistics",
+  "matchStatistics": "Match Statistics",
+  "totalBookings": "Total Bookings",
+  "upcoming": "Upcoming Bookings",
+  "failedFetchProfile": "Failed to fetch profile",
+  "profileUpdated": "Profile updated successfully",
+  "permissionRequired": "Please grant permission to access your photos",
+  "userNotAuthenticated": "User not authenticated",
+  "failedUpdatePicture": "Could not update profile picture",
+  "profilePictureUpdated": "Profile picture updated successfully",
+  "personalInfo": "Personal Information",
+  "notSpecified": "Not Specified",
+  "noMotivationalSpeech": "No motivational speech provided",
+  "toLevel": "to Level {level}"
 }

@@ -10,9 +10,9 @@ import HotStreaks from '../components/HotStreaks';
 import SearchPlayers from '../components/SearchPlayers';
 import PlayerProfileCard from '../components/PlayerProfileCard';
 import { colors } from "../theme/colors";
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
+import * as Animatable from 'react-native-animatable';
 
 type PlayerStats = {
   id: string;
@@ -93,7 +93,7 @@ export default function StatisticsScreen() {
           Alert.alert(
             t('noCommunities'),
             t('noCommunitiesMessage'),
-            [{ text: t('ok'), onPress: () => navigation.navigate('ProfileTab' as never) }]
+            [{ text: t('ok'), onPress: () => navigation.navigate('Tabs', { screen: 'Profile' }) }]
           );
           return;
         }
@@ -111,7 +111,7 @@ export default function StatisticsScreen() {
             isResident: community.id === profileData.resident_community_id,
           }));
           setCommunities(formattedCommunities);
-          
+          console.log(formattedCommunities);
           const residentCommunity = formattedCommunities.find((c) => c.isResident);
           setSelectedCommunity(residentCommunity || formattedCommunities[0]);
         } else {
@@ -147,7 +147,6 @@ export default function StatisticsScreen() {
 
   async function fetchTopPlayers() {
     try {
-      // Primero obtenemos los IDs de los residentes
       const { data: residentProfiles, error: residentError } = await supabase
         .from('profiles')
         .select('id')
@@ -365,70 +364,101 @@ export default function StatisticsScreen() {
     }
   };
 
+  const handleCommunitySelectorPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setModalVisible(true);
+  };
+
   const renderCommunitySelector = () => (
-    <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.communitySelector}>
-      <MaterialCommunityIcons name="map-marker" size={24} color="#fff" style={styles.communityIcon} />
-      <Text style={styles.communitySelectorText}>{selectedCommunity?.name || t('selectCommunity')}</Text>
-      <MaterialCommunityIcons name="chevron-down" size={24} color="#fff" style={styles.chevronIcon} />
-    </TouchableOpacity>
+    <Animatable.View animation="fadeInUp" duration={800}>
+      <TouchableOpacity 
+        onPress={handleCommunitySelectorPress} 
+        style={styles.communitySelector}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={['#00A86B', '#00C853']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientButton}
+        >
+          <MaterialCommunityIcons name="map-marker" size={20} color="#fff" style={styles.communityIcon} />
+          <Text style={styles.communitySelectorText}>
+            {selectedCommunity?.name || t('selectCommunityButton')}
+          </Text>
+          <MaterialCommunityIcons name="chevron-down" size={20} color="#fff" style={styles.chevronIcon} />
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animatable.View>
   );
 
   const renderIncludeGuestsToggle = () => (
-    <View style={styles.guestToggleContainer}>
-      <View style={styles.guestToggleContent}>
-        <MaterialCommunityIcons name="account-group" size={20} color="#fff" style={styles.guestToggleIcon} />
-        <Text style={styles.guestToggleText}>{t('includeGuests')}</Text>
-        <Switch
-          value={includeGuests}
-          onValueChange={setIncludeGuests}
-          thumbColor={includeGuests ? colors.primary : '#fff'}
-          trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.6)' }}
-        />
+    <Animatable.View animation="fadeInUp" duration={800} delay={200}>
+      <View style={styles.guestToggleContainer}>
+        <View style={styles.guestToggleContent}>
+          <MaterialCommunityIcons name="account-group" size={20} color="#fff" style={styles.guestToggleIcon} />
+          <Text style={styles.guestToggleText}>{t('includeGuests')}</Text>
+          <Switch
+            value={includeGuests}
+            onValueChange={setIncludeGuests}
+            thumbColor={includeGuests ? '#00C853' : '#fff'}
+            trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(0,168,107,0.3)' }}
+          />
+        </View>
       </View>
-    </View>
+    </Animatable.View>
   );
 
   const renderTabs = () => (
-    <View style={styles.tabContainer}>
-      {['overall', 'monthly'].map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tab, activeTab === tab && styles.activeTab]}
-          onPress={() => setActiveTab(tab)}
-        >
-          <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-            {t(tab)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <Animatable.View animation="fadeInUp" duration={800} delay={400}>
+      <View style={styles.tabContainer}>
+        {['overall', 'monthly'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {t(tab)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </Animatable.View>
   );
 
   const renderCommunityModal = () => (
-    <BlurView intensity={15} style={styles.modalContainer}>
-      <View style={styles.modalContent}>
+    <Modal
+      visible={modalVisible}
+      onDismiss={() => setModalVisible(false)}
+      contentContainerStyle={styles.modalContainer}
+    >
+      <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
         <Text style={styles.modalTitle}>{t('selectCommunity')}</Text>
         <FlatList
           data={communities}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.communityItem}
+              style={[styles.communityItem, item.id === selectedCommunity?.id && styles.selectedCommunityItem]}
               onPress={() => {
                 setSelectedCommunity(item);
                 setModalVisible(false);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
+              activeOpacity={0.7}
             >
               <MaterialCommunityIcons 
                 name={item.isResident ? "home" : "map-marker"} 
                 size={24} 
-                color={colors.primary} 
+                color="#00C853" 
                 style={styles.communityItemIcon} 
               />
               <View style={styles.communityItemTextContainer}>
                 <Text style={styles.communityItemText}>{item.name}</Text>
                 {item.isResident && (
-                  <Chip mode="outlined" compact style={styles.residentChip}>
+                  <Chip mode="outlined" style={styles.residentChip}>
                     <Text style={styles.residentChipText}>{t('resident')}</Text>
                   </Chip>
                 )}
@@ -436,11 +466,22 @@ export default function StatisticsScreen() {
             </TouchableOpacity>
           )}
         />
-        <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
-          {t('close')}
-        </Button>
-      </View>
-    </BlurView>
+        <TouchableOpacity 
+          onPress={() => setModalVisible(false)} 
+          style={styles.closeButton}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={['#00A86B', '#00C853']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientCloseButton}
+          >
+            <Text style={styles.closeButtonText}>{t('close')}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animatable.View>
+    </Modal>
   );
 
   const renderPlayerProfileModal = () => (
@@ -478,16 +519,19 @@ export default function StatisticsScreen() {
   if (loading) {
     return (
       <LinearGradient
-        colors={[colors.primary, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gradientBackground}
-      >
+      colors={[colors.gradientStart, colors.gradientEnd]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.gradientBackground}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.loadingText}>{t('loadingStatistics')}</Text>
         </View>
-      </LinearGradient>
+      </SafeAreaView>
+    </LinearGradient>
+
     );
   }
 
@@ -495,7 +539,7 @@ export default function StatisticsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={[colors.primary, colors.gradientEnd]}
+        colors={[colors.gradientStart, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
@@ -552,14 +596,7 @@ export default function StatisticsScreen() {
         </ScrollView>
       </LinearGradient>
 
-      <Modal
-        visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
-        contentContainerStyle={{ flex: 1 }}
-      >
-        {renderCommunityModal()}
-      </Modal>
-
+      {renderCommunityModal()}
       {selectedPlayer && renderPlayerProfileModal()}
     </SafeAreaView>
   );
@@ -583,32 +620,35 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 20,
   },
   communitySelector: {
+    borderRadius: 12,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  gradientButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 30,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    height: 48,
   },
   communityIcon: {
     marginRight: 12,
   },
   communitySelectorText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     flex: 1,
   },
@@ -616,11 +656,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   guestToggleContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   guestToggleContent: {
     flexDirection: 'row',
@@ -642,30 +684,22 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginHorizontal: 16,
-    borderRadius: 25,
+    borderRadius: 12,
     padding: 4,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 21,
+    borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   tabText: {
     fontSize: 16,
@@ -673,7 +707,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activeTabText: {
-    color: colors.primary,
+    color: '#00C853',
     fontWeight: '700',
   },
   contentContainer: {
@@ -681,12 +715,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   statsCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: '#00C853',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowRadius: 8,
+    backgroundColor: 'transparent',
   },
   emptyStateContainer: {
     alignItems: 'center',
@@ -696,15 +731,15 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontWeight: '700',
+    color: '#fff',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyStateMessage: {
     fontSize: 16,
-    color: 'rgba(0,0,0,0.6)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -717,7 +752,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     marginTop: 16,
     textAlign: 'center',
   },
@@ -725,34 +760,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent'
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 24,
-    width: '90%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-  },
+  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  marginTop:40,
+  borderRadius: 16,
+  padding: 24,
+  width: '90%',
+  maxHeight: height * 0.9, // <-- increased from 80% to 90%
+  borderWidth: 1,
+  borderColor: 'rgba(255, 255, 255, 0.1)',
+  elevation: 8,
+  shadowColor: '#00C853',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+},
+
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 24,
     textAlign: 'center',
-    color: colors.text,
   },
   communityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  selectedCommunityItem: {
+    backgroundColor: 'rgba(0, 168, 107, 0.1)',
   },
   communityItemIcon: {
     marginRight: 16,
@@ -765,39 +807,60 @@ const styles = StyleSheet.create({
   },
   communityItemText: {
     fontSize: 18,
-    color: colors.text,
+    color: '#fff',
     fontWeight: '500',
     flex: 1,
   },
   residentChip: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 168, 107, 0.1)',
+    borderColor: '#00C853',
+    borderRadius: 8,
   },
   residentChipText: {
-    color: '#4CAF50',
+    color: '#00C853',
     fontSize: 12,
     fontWeight: '600',
   },
   closeButton: {
     marginTop: 24,
     borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  gradientCloseButton: {
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   playerProfileModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   playerProfileModalContent: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: 'hidden',
     maxHeight: '90%',
     width: '95%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   playerProfileModalScrollContent: {
     flexGrow: 1,
@@ -808,10 +871,6 @@ const styles = StyleSheet.create({
     right: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     elevation: 5,
   },
 });

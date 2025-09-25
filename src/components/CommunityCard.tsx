@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   viewDetailsButton: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#00A86B',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
