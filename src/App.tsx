@@ -44,6 +44,7 @@ import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
 import ConfirmEmailSentScreen from './screens/ConfirmEmailScreen';
+import { ReviewHelper } from './utils/reviewHelper';
 
 // Configura el handler de notificaciones
 Notifications.setNotificationHandler({
@@ -166,41 +167,104 @@ export default function App() {
   const navigationRef = useRef<any>(null);
 
   // Registrar notificaciones push
-  async function registerForPushNotificationsAsync() {
-    if (!Device.isDevice) {
-      console.log('Must use physical device for Push Notifications');
-      return;
-    }
+  // Registrar notificaciones push con logs detallados
+async function registerForPushNotificationsAsync() {
+  console.log('🔔 [Push] Iniciando registro de notificaciones push...');
+  
+  if (!Device.isDevice) {
+    console.log('❌ [Push] No es un dispositivo físico');
+    return;
+  }
+  console.log('✅ [Push] Es un dispositivo físico');
 
+  try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('📱 [Push] Status actual de permisos:', existingStatus);
+    
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('📱 [Push] Permisos solicitados, nuevo status:', finalStatus);
     }
+    
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.log('❌ [Push] Permisos de notificación denegados');
+      Alert.alert(
+        'Permisos necesarios',
+        'Para recibir notificaciones de tus reservas, necesitamos permisos de notificaciones.'
+      );
       return;
     }
+    console.log('✅ [Push] Permisos concedidos');
 
     // Obtener el token de Expo
+    console.log('🔑 [Push] Obteniendo Expo Push Token...');
     const token = await Notifications.getExpoPushTokenAsync({
       projectId: '048a9614-92a6-4c9b-9da1-2b8d81ff1906', 
     });
+    console.log('✅ [Push] Token obtenido:', token.data);
 
     // Guardar el token en Supabase
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('👤 [Push] Usuario actual:', user?.id);
+    
     if (user) {
-      const { error } = await supabase.from('user_devices').upsert({
-          user_id: user.id,
-          expo_push_token: token.data,
-          device_info: { platform: Platform.OS }
-        }, { onConflict: 'user_id' });
-      if (error) {
-        console.error('Error saving push token:', error);
-      } else {
-        console.log('Push token saved:', token.data);
+      console.log('💾 [Push] Guardando token en Supabase...');
+      
+      // Estrategia: Primero verificar si existe este user_id
+      const { data: existingRecords, error: fetchError } = await supabase
+        .from('user_devices')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      console.log('📊 [Push] Registros existentes para este user_id:', existingRecords?.length || 0);
+      if (fetchError) {
+        console.error('❌ [Push] Error al buscar registros:', fetchError);
       }
+
+      // Si ya existe un registro, actualizar. Si no, insertar.
+      if (existingRecords && existingRecords.length > 0) {
+        console.log('🔄 [Push] Actualizando registro existente...');
+        const { error: updateError } = await supabase
+          .from('user_devices')
+          .update({
+            expo_push_token: token.data,
+            device_info: { 
+              platform: Platform.OS,
+              lastUpdated: new Date().toISOString()
+            },
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+        
+        if (updateError) {
+          console.error('❌ [Push] Error al actualizar token:', updateError);
+        } else {
+          console.log('✅ [Push] Token actualizado correctamente');
+        }
+      } else {
+        console.log('➕ [Push] Insertando nuevo registro...');
+        const { error: insertError } = await supabase
+          .from('user_devices')
+          .insert({
+            user_id: user.id,
+            expo_push_token: token.data,
+            device_info: { 
+              platform: Platform.OS,
+              createdAt: new Date().toISOString()
+            }
+          });
+        
+        if (insertError) {
+          console.error('❌ [Push] Error al insertar token:', insertError);
+          console.error('❌ [Push] Detalles del error:', JSON.stringify(insertError, null, 2));
+        } else {
+          console.log('✅ [Push] Token insertado correctamente');
+        }
+      }
+    } else {
+      console.log('❌ [Push] No hay usuario autenticado');
     }
 
     // Configurar el canal de notificaciones para Android
@@ -211,8 +275,14 @@ export default function App() {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
       });
+      console.log('✅ [Push] Canal de Android configurado');
     }
+
+  } catch (error) {
+    console.error('❌ [Push] Error general:', error);
+    console.error('❌ [Push] Stack trace:', error instanceof Error ? error.stack : 'No stack');
   }
+}
 
   useEffect(() => {
     // Configurar idioma
@@ -224,7 +294,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
-
+    
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
@@ -252,7 +322,7 @@ export default function App() {
         navigationRef.current?.navigate('HomeTab');
       }
     });
-
+    
     // Verificar deep links iniciales
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink(url);

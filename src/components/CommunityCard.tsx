@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, Platform, Linking } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Community } from '../screens/CommunityMapScreen';
+import { useTranslation } from 'react-i18next';
 
 interface CommunityCardProps {
   community: Community;
@@ -20,6 +21,8 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
   panResponder,
   translateY,
 }) => {
+  const { t } = useTranslation();
+
   const openMaps = () => {
     const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
     const latLng = `${community.latitude},${community.longitude}`;
@@ -30,6 +33,29 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
     });
 
     Linking.openURL(url as string);
+  };
+
+  const getRelationshipBadge = () => {
+    switch (community.user_relationship) {
+      case 'resident':
+        return (
+          <View style={styles.badge}>
+            <Text style={[styles.badgeText, { backgroundColor: '#00C853', color: 'white' }]}>
+              {t('resident')}
+            </Text>
+          </View>
+        );
+      case 'guest':
+        return (
+          <View style={styles.badge}>
+            <Text style={[styles.badgeText, { backgroundColor: '#2196F3', color: 'white' }]}>
+              {t('guest')}
+            </Text>
+          </View>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -43,132 +69,181 @@ const CommunityCard: React.FC<CommunityCardProps> = ({
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
         <Feather name="x" size={24} color="#6D28D9" />
       </TouchableOpacity>
-      <View style={styles.cardContent}>
+      <View style={styles.cardHeader}>
         <Image source={{ uri: community.image }} style={styles.communityImage} />
-        <View style={styles.cardInfo}>
+        <View style={styles.overlay}>
           <Text style={styles.cardTitle}>{community.name}</Text>
-          <View style={styles.cardDetails}>
+          {getRelationshipBadge()}
+        </View>
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.cardDetails}>
+          <View style={styles.cardSection}>
+            <Text style={styles.sectionTitle}>{t('communityStats')}</Text>
             <View style={styles.cardRow}>
-              <Feather name="users" size={16} color="#A78BFA" />
-              <Text style={styles.cardText}>{community.resident_count} residents</Text>
+              <Feather name="users" size={16} color="#00C853" />
+              <Text style={styles.cardText}>
+                {community.resident_count} {t('residents')}
+              </Text>
             </View>
             <View style={styles.cardRow}>
-              <MaterialCommunityIcons name="account-group" size={16} color="#60A5FA" />
-              <Text style={styles.cardText}>{community.guest_count} guests</Text>
+              <MaterialCommunityIcons name="account-group" size={16} color="#00C853" />
+              <Text style={styles.cardText}>
+                {community.guest_count} {t('guests')}
+              </Text>
             </View>
+          </View>
+          <View style={styles.cardSection}>
+            <Text style={styles.sectionTitle}>{t('bookingInfo')}</Text>
             <View style={styles.cardRow}>
-              <Feather name="clock" size={16} color="#10B981" />
+              <Feather name="clock" size={16} color="#00C853" />
               <Text style={styles.cardText}>
                 {community.booking_start_time} - {community.booking_end_time}
               </Text>
             </View>
             <View style={styles.cardRow}>
-              <MaterialCommunityIcons name="tennis" size={16} color="#F59E0B" />
-              <Text style={styles.cardText}>Court {community.court_number}</Text>
+              <MaterialCommunityIcons name="tennis" size={16} color="#00C853" />
+              <Text style={styles.cardText}>
+                {t('court')} {community.court_number}
+              </Text>
             </View>
             <View style={styles.cardRow}>
-              <Feather name="calendar" size={16} color="#EC4899" />
+              <Feather name="calendar" size={16} color="#00C853" />
               <Text style={styles.cardText}>
-                Max {community.max_number_current_bookings} current bookings
+                {t('maxCurrentBookings')} {community.max_number_current_bookings}
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.addressContainer} onPress={openMaps}>
-            <Feather name="map-pin" size={16} color="#6D28D9" />
-            <Text style={styles.cardAddress} numberOfLines={2}>
-              {community.address}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.viewDetailsButton} onPress={onViewDetails}>
-            <Text style={styles.viewDetailsText}>View Details</Text>
-          </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.addressContainer} onPress={openMaps}>
+          <Feather name="map-pin" size={16} color="#00C853" />
+          <Text style={styles.cardAddress} numberOfLines={2}>
+            {community.address}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.viewDetailsButton} onPress={onViewDetails}>
+          <Text style={styles.viewDetailsText}>{t('viewDetails')}</Text>
+        </TouchableOpacity>
       </View>
     </Animated.View>
   );
 };
 
+// Los estilos permanecen iguales...
 const styles = StyleSheet.create({
   cardContainer: {
     position: 'absolute',
     bottom: 70,
     left: 0,
     right: 0,
-    height: 280, // Increased height to accommodate View Details button
+    height: 500,
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 8,
+    overflow: 'hidden',
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   closeButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 16,
+    right: 16,
     zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+    padding: 4,
   },
-  cardContent: {
-    flexDirection: 'row',
-    padding: 15,
-    height: '100%',
+  cardHeader: {
+    height: 140,
+    position: 'relative',
   },
   communityImage: {
-    width: 120,
-    height: 180,
-    borderRadius: 10,
-    marginRight: 15,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  cardInfo: {
-    flex: 1,
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 16,
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+    flex: 1,
+  },
+  badge: {
+    marginLeft: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  cardContent: {
+    padding: 16,
+    flex: 1,
   },
   cardDetails: {
-    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  cardSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 8,
   },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   cardText: {
     marginLeft: 8,
-    fontSize: 12,
+    fontSize: 14,
     color: '#4B5563',
   },
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 16,
+    padding: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
   },
   cardAddress: {
     flex: 1,
-    fontSize: 12,
-    color: '#4B5563',
+    fontSize: 14,
+    color: '#00C853',
     marginLeft: 8,
     textDecorationLine: 'underline',
   },
   viewDetailsButton: {
-    backgroundColor: '#00A86B',
-    padding: 10,
+    backgroundColor: '#00C853',
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
   },
   viewDetailsText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

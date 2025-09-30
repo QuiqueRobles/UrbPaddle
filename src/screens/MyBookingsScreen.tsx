@@ -444,7 +444,7 @@ export default function MyBookingsScreen() {
       <LinearGradient colors={[colors.gradientStart, '#000']} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#22C55E" />
+            <ActivityIndicator size="large" color="white" />
           </View>
         </SafeAreaView>
       </LinearGradient>

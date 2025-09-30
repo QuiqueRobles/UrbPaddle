@@ -19,7 +19,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = React.memo(
       if (!isAccessible) return '#A9A9A9'; // Gray for inaccessible communities
       switch (community.user_relationship) {
         case 'resident':
-          return '#4CAF50';
+          return '#00C853';
         case 'guest':
           return '#2196F3';
         default:

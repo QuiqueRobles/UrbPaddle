@@ -156,7 +156,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
                 {t('residentRequiredMessage') || 'You must be a resident of a community or part of a resident group to access this feature.'}
               </Text>
               <TouchableOpacity 
-                onPress={() => navigation.navigate('Tabs', { screen: 'Profile' })} 
+                onPress={() => navigation.navigate('Home', { screen: 'ProfileTab' })} 
                 style={styles.profileButton}
               >
                 <LinearGradient
@@ -334,6 +334,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   calendarContainer: {
+    marginTop: -130,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,

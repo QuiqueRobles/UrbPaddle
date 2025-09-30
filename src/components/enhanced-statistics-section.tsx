@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -199,7 +200,9 @@ export default function EnhancedStatisticsSection({
           <View style={styles.statsHeader}>
             <View style={styles.statsHeaderLeft}>
               <MaterialCommunityIcons name="chart-line" size={16} color="white" />
-              <Text style={styles.statsTitle}>{t('detailedStatistics')}</Text>
+              <Text style={styles.statsTitle} numberOfLines={2} ellipsizeMode="tail">
+                {t('detailedStatistics')}
+              </Text>
             </View>
             <View style={styles.statsHeaderRight}>
               <IconButton
@@ -207,19 +210,21 @@ export default function EnhancedStatisticsSection({
                 size={20}
                 iconColor="rgba(255,255,255,0.8)"
                 onPress={handleOpenInfo}
+                style={styles.headerButton}
               />
               <IconButton
                 icon="refresh"
                 size={20}
                 iconColor="rgba(255,255,255,0.8)"
                 onPress={handleRefresh}
-                style={{ transform: [{ rotate: isRefreshing ? '360deg' : '0deg' }] }}
+                style={[styles.headerButton, { transform: [{ rotate: isRefreshing ? '360deg' : '0deg' }] }]}
               />
               <IconButton
                 icon={expanded ? "chevron-up" : "chevron-down"}
                 size={20}
                 iconColor="rgba(255,255,255,0.8)"
                 onPress={handleToggleExpanded}
+                style={styles.headerButton}
               />
             </View>
           </View>
@@ -287,7 +292,7 @@ export default function EnhancedStatisticsSection({
                 <Text style={styles.cardTitle}>{t('matchStatistics')}</Text>
               </View>
               <View style={styles.statsRow}>
-                <StatItem icon="tennis" value={profile.matches_played} label={t('matches') } color="white"/>
+                <StatItem icon="tennis" value={profile.matches_played} label={t('matches')} color="white" />
                 <StatItem icon="trophy" value={profile.wins} label={t('wins')} color="#4CAF50" />
                 <StatItem icon="close-circle" value={profile.losses} label={t('losses')} color="#F44336" />
               </View>
@@ -325,8 +330,10 @@ export default function EnhancedStatisticsSection({
             {/* Advanced Analytics */}
             <Animatable.View animation="fadeInUp" duration={800} delay={400} style={styles.card}>
               <View style={styles.cardHeader}>
-                <MaterialCommunityIcons name="chart-bar" size={24} color="white" />
-                <Text style={styles.cardTitle}>Advanced Analytics</Text>
+                <MaterialCommunityIcons name="chart-bar" size={24} color="white" style={styles.cardHeaderIcon} />
+                <Text style={styles.cardTitle} numberOfLines={2} ellipsizeMode="tail">
+                  {t('advancedAnalytics')}
+                </Text>
               </View>
               <View style={styles.analyticsGrid}>
                 <Animatable.View animation="fadeInUp" duration={800} delay={500} style={styles.analyticsItem}>
@@ -365,20 +372,23 @@ export default function EnhancedStatisticsSection({
       <Portal>
         <Modal visible={isInfoDialogOpen} onDismiss={handleCloseInfo} contentContainerStyle={styles.modalContainer}>
           <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
-            <Text style={styles.joinTitle}>XP Calculation System</Text>
-            <View style={styles.xpInfoSection}>
-              <Text style={styles.warningText}>Base Rewards</Text>
-              <Text style={styles.communityName}>• 1000 XP - Playing a match</Text>
-              <Text style={styles.communityName}>• 500 XP - Winning a match</Text>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="information" size={24} color="#00C853" />
+              <Text style={styles.joinTitle}>{t('xpCalculationSystem')}</Text>
             </View>
             <View style={styles.xpInfoSection}>
-              <Text style={styles.warningText}>Performance Bonuses</Text>
-              <Text style={styles.communityName}>• Sets Bonus: 50 × (setsWon ÷ (1 + setsLost))</Text>
-              <Text style={styles.communityName}>• Games Bonus: 20 × (gamesWon ÷ (1 + gamesLost))</Text>
+              <Text style={styles.warningText}>{t('baseRewards')}</Text>
+              <Text style={styles.communityName}>• 1000 XP - {t('playingMatch')}</Text>
+              <Text style={styles.communityName}>• 500 XP - {t('winningMatch')}</Text>
             </View>
             <View style={styles.xpInfoSection}>
-              <Text style={styles.warningText}>Level Up System</Text>
-              <Text style={styles.communityName}>You need 5000 XP to advance to the next level. XP above this amount carries over to your new level.</Text>
+              <Text style={styles.warningText}>{t('performanceBonuses')}</Text>
+              <Text style={styles.communityName}>• {t('setsBonus')}: 50 × (setsWon ÷ (1 + setsLost))</Text>
+              <Text style={styles.communityName}>• {t('gamesBonus')}: 20 × (gamesWon ÷ (1 + gamesLost))</Text>
+            </View>
+            <View style={styles.xpInfoSection}>
+              <Text style={styles.warningText}>{t('levelUpSystem')}</Text>
+              <Text style={styles.communityName}>{t('levelUpDescription')}</Text>
             </View>
             <TouchableOpacity 
               onPress={handleCloseInfo} 
@@ -391,7 +401,7 @@ export default function EnhancedStatisticsSection({
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientButton}
               >
-                <Text style={styles.joinButtonText}>Close</Text>
+                <Text style={styles.joinButtonText}>{t('close')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animatable.View>
@@ -413,7 +423,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    marginBottom:30,
+    marginBottom: 30,
   },
   mainStatsCard: {
     marginBottom: 20,
@@ -425,20 +435,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 8,
   },
   statsHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
+    marginRight: 8,
   },
   statsHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    minWidth: 120,
   },
   statsTitle: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 12,
+    flexShrink: 1,
+    maxWidth: width * 0.5,
+  },
+  headerButton: {
+    marginHorizontal: 2,
+    padding: 4,
   },
   overviewStatsContainer: {
     flexDirection: 'row',
@@ -497,17 +519,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 16,
     elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  cardHeaderIcon: {
+    marginRight: 12,
   },
   cardTitle: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 12,
+    flexShrink: 1,
+    maxWidth: width * 0.8,
   },
   statsRow: {
     flexDirection: 'row',
@@ -530,6 +561,7 @@ const styles = StyleSheet.create({
   },
   winRateContainer: {
     marginTop: 16,
+    paddingHorizontal: 16,
   },
   winRateLabel: {
     fontSize: 14,
@@ -599,6 +631,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
   analyticsItem: {
     width: '48%',
@@ -606,6 +639,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   analyticsValue: {
     fontSize: 24,
@@ -619,47 +653,49 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     margin: 20,
     borderRadius: 16,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalContent: {
-    alignItems: 'center',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     elevation: 8,
-    shadowColor: '#00C853',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  modalContent: {
+    padding: 24,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   joinTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 24,
+    color: '#000',
+    marginLeft: 8,
+    flexShrink: 1,
   },
   xpInfoSection: {
-    marginBottom: 16,
+    marginBottom: 24,
     width: '100%',
   },
   warningText: {
-    color: '#ffffff',
+    color: '#000',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 8,
   },
   communityName: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#333',
     fontSize: 14,
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   closeButton: {
     borderRadius: 12,
@@ -669,6 +705,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     width: '100%',
+    marginTop: 16,
   },
   gradientButton: {
     height: 48,

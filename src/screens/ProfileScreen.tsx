@@ -278,9 +278,13 @@ export default function EnhancedProfileScreen() {
 
   if (loading) {
     return (
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        style={[styles.container, styles.centered]}>
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={"white"} />
       </View>
+      </LinearGradient>
     );
   }
 
@@ -403,144 +407,154 @@ export default function EnhancedProfileScreen() {
               onToggleExpanded={() => setStatisticsExpanded(!statisticsExpanded)}
             />
 
-            {/* Profile Edit Section - Replace the existing Card with this */}
 <Card style={[styles.card, editing && styles.editingCard]}>
-  <LinearGradient
-    colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 1 }}
-    style={styles.gradientCard}
-  >
-    <Card.Content>
+  
+    <Card.Content style={styles.modalContent}>
       <View style={styles.cardHeader}>
         <MaterialCommunityIcons 
           name="account-details" 
           size={24} 
-          color="white" 
+          color="#ffffff" 
           style={styles.cardIcon}
         />
-        <Title style={styles.cardTitle}>{t('personalInfo')}</Title>
+        <Title style={styles.joinTitle}>{t('personalInfo')}</Title>
         <TouchableOpacity 
           onPress={editing ? updateProfile : () => setEditing(true)} 
           disabled={editing && !canSave()}
           style={styles.editButtonContainer}
         >
-          <MaterialCommunityIcons 
-            name={editing ? "check-circle" : "pencil-circle"} 
-            size={28} 
-            color={editing ? (canSave() ? '#2bed31ff' : 'gray') : '#2bed31ff'} 
-          />
+          <LinearGradient
+            colors={editing ? (canSave() ? ['#00A86B', '#00C853'] : ['#666', '#666']) : ['#00A86B', '#00C853']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientButton}
+          >
+            <Text style={styles.joinButtonText}>
+              {editing ? t('save') : t('edit')}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
       <View style={styles.infoGrid}>
         {/* Full Name */}
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>{t('fullName')}</Text>
-          {editing ? (
-            <TextInput
-              mode="outlined"
-              value={profile?.full_name || ''}
-              onChangeText={(text) => handleFieldChange('full_name', text)}
-              error={!!errors.full_name}
-              style={styles.infoInput}
-              theme={{
-                colors: {
-                  primary: colors.primary,
-                  background: 'rgba(255,255,255,0.1)',
-                  text: 'white',
-                  placeholder: 'rgba(255,255,255,0.5)'
-                }
-              }}
-            />
-          ) : (
-            <Text style={styles.infoValue}>{profile?.full_name || t('notSpecified')}</Text>
-          )}
-          {errors.full_name && <Text style={styles.errorText}>{errors.full_name}</Text>}
-        </View>
+<View style={styles.infoItem}>
+  <Text style={styles.infoLabel}>{t('fullName')}</Text>
+  {editing ? (
+    <TextInput
+      mode="outlined"
+      value={profile?.full_name || ''}
+      onChangeText={(text) => handleFieldChange('full_name', text)}
+      error={!!errors.full_name}
+      style={styles.input}
+      textColor="#fff" // Explicitly set text color to white
+      theme={{
+        colors: {
+          primary: '#00C853',
+          background: 'rgba(255, 255, 255, 0.08)',
+          text: '#fff', // White text when typing
+          placeholder: 'rgba(255, 255, 255, 0.7)',
+          onSurface: '#fff', // Ensures text stays white in all states
+        },
+      }}
+      accessibilityLabel={t('fullName')}
+    />
+  ) : (
+    <Text style={styles.infoValue}>{profile?.full_name || t('notSpecified')}</Text>
+  )}
+  {errors.full_name && <Text style={styles.errorText}>{errors.full_name}</Text>}
+</View>
 
-        {/* Apartment */}
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>{t('apartment')}</Text>
-          {editing ? (
-            <TextInput
-              mode="outlined"
-              value={profile?.apartment || ''}
-              onChangeText={(text) => handleFieldChange('apartment', text)}
-              error={!!errors.apartment}
-              style={styles.infoInput}
-              theme={{
-                colors: {
-                  primary: colors.primary,
-                  background: 'rgba(255,255,255,0.1)',
-                  text: 'white',
-                  placeholder: 'rgba(255,255,255,0.5)'
-                }
-              }}
-            />
-          ) : (
-            <Text style={styles.infoValue}>{profile?.apartment || t('notSpecified')}</Text>
-          )}
-          {errors.apartment && <Text style={styles.errorText}>{errors.apartment}</Text>}
-        </View>
+{/* Apartment */}
+<View style={styles.infoItem}>
+  <Text style={styles.infoLabel}>{t('apartment')}</Text>
+  {editing ? (
+    <TextInput
+      mode="outlined"
+      value={profile?.apartment || ''}
+      onChangeText={(text) => handleFieldChange('apartment', text)}
+      error={!!errors.apartment}
+      style={styles.input}
+      textColor="#fff" // Explicitly set text color to white
+      theme={{
+        colors: {
+          primary: '#00C853',
+          background: 'rgba(255, 255, 255, 0.08)',
+          text: '#fff', // White text when typing
+          placeholder: 'rgba(255, 255, 255, 0.7)',
+          onSurface: '#fff', // Ensures text stays white in all states
+        },
+      }}
+      accessibilityLabel={t('apartment')}
+    />
+  ) : (
+    <Text style={styles.infoValue}>{profile?.apartment || t('notSpecified')}</Text>
+  )}
+  {errors.apartment && <Text style={styles.errorText}>{errors.apartment}</Text>}
+</View>
 
-        {/* Phone Number */}
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>{t('phoneNumber')}</Text>
-          {editing ? (
-            <TextInput
-              mode="outlined"
-              value={profile?.phone_number || ''}
-              onChangeText={(text) => handleFieldChange('phone_number', text)}
-              error={!!errors.phone_number}
-              keyboardType="phone-pad"
-              style={styles.infoInput}
-              theme={{
-                colors: {
-                  primary: colors.primary,
-                  background: 'rgba(255,255,255,0.1)',
-                  text: 'white',
-                  placeholder: 'rgba(255,255,255,0.5)'
-                }
-              }}
-            />
-          ) : (
-            <Text style={styles.infoValue}>{profile?.phone_number || t('notSpecified')}</Text>
-          )}
-          {errors.phone_number && <Text style={styles.errorText}>{errors.phone_number}</Text>}
-        </View>
+{/* Phone Number */}
+<View style={styles.infoItem}>
+  <Text style={styles.infoLabel}>{t('phoneNumber')}</Text>
+  {editing ? (
+    <TextInput
+      mode="outlined"
+      value={profile?.phone_number || ''}
+      onChangeText={(text) => handleFieldChange('phone_number', text)}
+      error={!!errors.phone_number}
+      keyboardType="phone-pad"
+      style={styles.input}
+      textColor="#fff" // Explicitly set text color to white
+      theme={{
+        colors: {
+          primary: '#00C853',
+          background: 'rgba(255, 255, 255, 0.08)',
+          text: '#fff', // White text when typing
+          placeholder: 'rgba(255, 255, 255, 0.7)',
+          onSurface: '#fff', // Ensures text stays white in all states
+        },
+      }}
+      accessibilityLabel={t('phoneNumber')}
+    />
+  ) : (
+    <Text style={styles.infoValue}>{profile?.phone_number || t('notSpecified')}</Text>
+  )}
+  {errors.phone_number && <Text style={styles.errorText}>{errors.phone_number}</Text>}
+</View>
 
-        {/* Motivational Speech */}
-        <View style={[styles.infoItem, styles.fullWidthItem]}>
-          <Text style={styles.infoLabel}>{t('motivationalSpeech')}</Text>
-          {editing ? (
-            <TextInput
-              mode="outlined"
-              value={profile?.motivational_speech || ''}
-              onChangeText={(text) => handleFieldChange('motivational_speech', text)}
-              error={!!errors.motivational_speech}
-              multiline
-              numberOfLines={3}
-              style={[styles.infoInput, styles.multilineInput]}
-              theme={{
-                colors: {
-                  primary: colors.primary,
-                  background: 'rgba(255,255,255,0.1)',
-                  text: 'white',
-                  placeholder: 'rgba(255,255,255,0.5)'
-                }
-              }}
-            />
-          ) : (
-            <Text style={[styles.infoValue, styles.multilineText]}>
-              {profile?.motivational_speech || t('noMotivationalSpeech')}
-            </Text>
-          )}
-          {errors.motivational_speech && <Text style={styles.errorText}>{errors.motivational_speech}</Text>}
-        </View>
+{/* Motivational Speech */}
+<View style={[styles.infoItem, styles.fullWidthItem]}>
+  <Text style={styles.infoLabel}>{t('motivationalSpeech')}</Text>
+  {editing ? (
+    <TextInput
+      mode="outlined"
+      value={profile?.motivational_speech || ''}
+      onChangeText={(text) => handleFieldChange('motivational_speech', text)}
+      error={!!errors.motivational_speech}
+      multiline
+      numberOfLines={3}
+      style={[styles.input, styles.multilineInput]}
+      textColor="#fff" // Explicitly set text color to white
+      theme={{
+        colors: {
+          primary: '#00C853',
+          background: 'rgba(255, 255, 255, 0.08)',
+          text: '#fff', // White text when typing
+          placeholder: 'rgba(255, 255, 255, 0.7)',
+          onSurface: '#fff', // Ensures text stays white in all states
+        },
+      }}
+      accessibilityLabel={t('motivationalSpeech')}
+    />
+  ) : (
+    <Text style={[styles.infoValue, styles.multilineText]}>
+      {profile?.motivational_speech || t('noMotivationalSpeech')}
+    </Text>
+  )}
+  {errors.motivational_speech && <Text style={styles.errorText}>{errors.motivational_speech}</Text>}
+</View>
       </View>
     </Card.Content>
-  </LinearGradient>
 </Card>
 
             {/* Logout Section */}
@@ -650,6 +664,114 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 4,
   },
+  card: {
+    marginBottom: 20,
+    borderRadius: 16,
+    elevation: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editingCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  gradientCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 24,
+    borderRadius: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  cardIcon: {
+    marginRight: 12,
+  },
+  joinTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    flex: 1,
+  },
+  gradientButton: {
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  joinButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  editButtonContainer: {
+    marginLeft: 'auto',
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  infoItem: {
+    width: '48%',
+    marginBottom: 24,
+  },
+  fullWidthItem: {
+    width: '100%',
+  },
+  infoLabel: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  input: {
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+  },
+  multilineInput: {
+    minHeight: 80,
+  },
+  multilineText: {
+    lineHeight: 22,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    marginTop: 4,
+  },
   quickStatsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -679,12 +801,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  card: {
-    marginBottom: 20,
-    borderRadius: 16,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
+
   quoteCard: {
     marginBottom: 20,
     borderRadius: 16,
@@ -749,69 +866,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     height: '70%',
   },
-  gradientCard: {
-  borderRadius: 16,
-  overflow: 'hidden',
-},
-cardHeader: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: 12,
-  marginBottom: 20,
-  paddingBottom: 12,
-  borderBottomWidth: 1,
-  borderBottomColor: 'rgba(255,255,255,0.2)',
-},
-cardIcon: {
-  marginRight: 12,
-},
-editButtonContainer: {
-  marginLeft: 'auto',
-},
-infoGrid: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-},
-infoItem: {
-  width: '48%',
-  marginBottom: 16,
-},
-fullWidthItem: {
-  width: '100%',
-},
-infoLabel: {
-  color: 'rgba(255, 255, 255, 1)',
-  fontSize: 12,
-  marginBottom: 4,
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-},
-infoValue: {
-  color: 'white',
-  fontSize: 16,
-  paddingVertical: 8,
-  paddingHorizontal: 12,
-  backgroundColor: 'rgba(255, 254, 254, 0.1)',
-  borderRadius: 8,
-},
+
 infoInput: {
   backgroundColor: 'rgba(255,255,255,0.1)',
   color: 'white',
 },
-multilineInput: {
-  minHeight: 80,
-},
-multilineText: {
-  lineHeight: 22,
-},
-errorText: {
-  color: '#FF6B6B',
-  fontSize: 12,
-  marginTop: 4,
-},
-editingCard: {
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.3)',
-},
+
+
 });

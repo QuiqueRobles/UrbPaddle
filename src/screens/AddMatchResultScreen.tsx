@@ -58,6 +58,8 @@ type Match = {
   player3?: { full_name: string; username: string };
   player4?: { full_name: string; username: string };
   booking?: { user_id: string };
+  validated_by_players?: string[];
+  refuted_by_players?: string[];
 };
 
 export default function AddMatchResultScreen() {
@@ -82,7 +84,7 @@ export default function AddMatchResultScreen() {
   const [pendingMatches, setPendingMatches] = useState<Match[]>([]);
   const [showRefuteModal, setShowRefuteModal] = useState(false);
   const [selectedMatchForRefute, setSelectedMatchForRefute] = useState<Match | null>(null);
-  const [refuteData, setRefuteData] = useState({ winnerTeam: '', score: '' });
+  const [refuteData, setRefuteData] = useState({ winnerTeam: '', sets: [{ team1: '', team2: '' }] });
   const [communityId, setCommunityId] = useState<string | null>(null);
   
   const { t } = useTranslation();
@@ -161,7 +163,7 @@ export default function AddMatchResultScreen() {
           color={selectedBooking === item.id ? colors.primary : colors.text}
         />
         <View style={styles.bookingItemText}>
-          <Paragraph style={styles.bookingItemTitle}>Court {item.court_number}</Paragraph>
+          <Paragraph style={styles.bookingItemTitle}>{t('court')} {item.court_number}</Paragraph>
           <Paragraph style={styles.bookingItemSubtitle}>
             {new Date(item.date).toLocaleDateString()} • {item.start_time} - {item.end_time}
           </Paragraph>
@@ -232,7 +234,9 @@ export default function AddMatchResultScreen() {
           player2:player2_id(full_name, username),
           player3:player3_id(full_name, username),
           player4:player4_id(full_name, username),
-          booking:booking_id(user_id)
+          booking:booking_id(user_id),
+          validated_by_players,
+          refuted_by_players
         `)
         .eq('is_validated', false)
         .order('created_at', { ascending: false });
@@ -275,25 +279,16 @@ export default function AddMatchResultScreen() {
     }
   };
 
-  const validateSets = () => {
-    const setsWithScore = Object.values(score).filter(set => set.team1 !== '' && set.team2 !== '');
-    
-    if (setsWithScore.length === 0) {
-      Alert.alert('Error', 'You must enter the score for at least one set');
+  const validateSets = (sets: SetScore[]) => {
+    if (sets.length === 0) {
       return false;
     }
 
-    for (const set of setsWithScore) {
-      const team1Score = parseInt(set.team1);
-      const team2Score = parseInt(set.team2);
+    for (const set of sets) {
+      const team1Score = parseInt(set.team1) || 0;
+      const team2Score = parseInt(set.team2) || 0;
 
-      if (isNaN(team1Score) || isNaN(team2Score)) {
-        Alert.alert('Error', 'Scores must be numbers');
-        return false;
-      }
-
-      if (team1Score < 0 || team2Score < 0) {
-        Alert.alert('Error', 'Scores cannot be negative');
+      if (team1Score === 0 && team2Score === 0) {
         return false;
       }
 
@@ -301,28 +296,51 @@ export default function AddMatchResultScreen() {
       const minScore = Math.min(team1Score, team2Score);
 
       if (maxScore > 7) {
-        Alert.alert('Error', 'Set scores cannot exceed 7');
         return false;
       }
 
       if (maxScore < 6) {
-        Alert.alert('Error', 'A set must be won by at least 6 games');
         return false;
       }
 
       if (maxScore === 6 && minScore > 4) {
-        Alert.alert('Error', 'Invalid set score for 6-game set');
         return false;
       }
 
       if (maxScore === 7 && minScore !== 5 && minScore !== 6) {
-        Alert.alert('Error', 'Invalid set score for 7-game set');
         return false;
       }
     }
 
-    if (setsWithScore.length > 3) {
-      Alert.alert('Error', 'A padel match cannot have more than 3 sets');
+    const hasValidSet = sets.some(
+      (set) => parseInt(set.team1) > 0 || parseInt(set.team2) > 0
+    );
+    if (!hasValidSet) {
+      return false;
+    }
+
+    if (sets.length > 3) {
+      return false;
+    }
+
+    let team1Sets = 0;
+    let team2Sets = 0;
+
+    sets.forEach((set) => {
+      const team1Score = parseInt(set.team1) || 0;
+      const team2Score = parseInt(set.team2) || 0;
+      if (team1Score > team2Score && team1Score >= 6 && (team1Score - team2Score) >= 2) {
+        team1Sets++;
+      } else if (team2Score > team1Score && team2Score >= 6 && (team2Score - team1Score) >= 2) {
+        team2Sets++;
+      } else if (team1Score === 7 && team2Score === 6) {
+        team1Sets++;
+      } else if (team2Score === 7 && team1Score === 6) {
+        team2Sets++;
+      }
+    });
+
+    if (sets.length >= 2 && team1Sets < 2 && team2Sets < 2) {
       return false;
     }
 
@@ -387,7 +405,7 @@ export default function AddMatchResultScreen() {
   };
 
   const handleSubmitMatchProposal = async () => {
-    if (!selectedBooking || !validateSets() || !winningTeam) {
+    if (!selectedBooking || !winningTeam) {
       Alert.alert('Error', 'Please fill in all fields correctly');
       return;
     }
@@ -395,6 +413,12 @@ export default function AddMatchResultScreen() {
     const selectedPlayersList = Object.values(selectedPlayers).filter(Boolean);
     if (selectedPlayersList.length < 2) {
       Alert.alert('Error', 'Please select at least 2 players');
+      return;
+    }
+
+    const uniquePlayerIds = new Set(selectedPlayersList.map(p => p.id));
+    if (uniquePlayerIds.size !== selectedPlayersList.length) {
+      Alert.alert('Error', 'Duplicate players selected');
       return;
     }
 
@@ -412,14 +436,19 @@ export default function AddMatchResultScreen() {
       return;
     }
 
+    const setsArray = Object.values(score).filter(set => set.team1 !== '' && set.team2 !== '');
+    if (!validateSets(setsArray)) {
+      Alert.alert('Error', 'Invalid set scores');
+      return;
+    }
+
     try {
       setLoading(true);
 
       const booking = bookings.find(b => b.id === selectedBooking);
       if (!booking) throw new Error('Invalid booking selected');
 
-      const scoreString = Object.values(score)
-        .filter(set => set.team1 !== '' && set.team2 !== '')
+      const scoreString = setsArray
         .map(set => `${set.team1}-${set.team2}`)
         .join(', ');
 
@@ -482,19 +511,28 @@ export default function AddMatchResultScreen() {
         return;
       }
 
-      // Update the match with user's validation
-      const validatedByPlayers = currentMatch.validated_by_players || [];
-      validatedByPlayers.push(user.id);
+      const validatedBy = currentMatch.validated_by_players || [];
+      if (validatedBy.includes(user.id)) {
+        Alert.alert('Error', 'You have already validated this match.');
+        return;
+      }
+
+      const updatedValidatedBy = [...validatedBy, user.id];
 
       const { error: updateError } = await supabase
         .from('matches')
         .update({
-          validated_by_players: validatedByPlayers,
-          is_validated: true // Assume validation completes the process; adjust if more validations needed
+          validated_by_players: updatedValidatedBy,
         })
         .eq('id', matchId);
 
       if (updateError) throw updateError;
+
+      const { error: rpcError } = await supabase.rpc("update_match_and_xp", { p_match_id: matchId });
+
+      if (rpcError) {
+        throw new Error(rpcError.message);
+      }
 
       Alert.alert('Success', 'Match validated successfully');
 
@@ -507,8 +545,32 @@ export default function AddMatchResultScreen() {
     }
   };
 
+  const addRefuteSet = () => {
+    if (refuteData.sets.length < 3) {
+      setRefuteData(prev => ({
+        ...prev,
+        sets: [...prev.sets, { team1: '', team2: '' }],
+      }));
+    }
+  };
+
+  const removeRefuteSet = (index: number) => {
+    setRefuteData(prev => ({
+      ...prev,
+      sets: prev.sets.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateRefuteSet = (index: number, team: 'team1' | 'team2', value: string) => {
+    setRefuteData(prev => {
+      const newSets = [...prev.sets];
+      newSets[index][team] = value;
+      return { ...prev, sets: newSets };
+    });
+  };
+
   const handleRefuteMatch = async () => {
-    if (!selectedMatchForRefute || !refuteData.winnerTeam || !refuteData.score) {
+    if (!selectedMatchForRefute || !refuteData.winnerTeam || refuteData.sets.length === 0) {
       Alert.alert('Error', 'Please fill in all refutation fields');
       return;
     }
@@ -516,13 +578,71 @@ export default function AddMatchResultScreen() {
     try {
       setLoading(true);
 
+      const sets = refuteData.sets.map((set, index) => {
+        const team1 = parseInt(set.team1);
+        const team2 = parseInt(set.team2);
+        if (isNaN(team1) || isNaN(team2)) {
+          throw new Error(`Invalid score for Set ${index + 1}. Enter numeric values.`);
+        }
+        return { team1: team1.toString(), team2: team2.toString() };
+      });
+
+      if (!validateSets(sets)) {
+        throw new Error('Invalid set scores. Please check padel scoring rules.');
+      }
+
+      let team1Sets = 0;
+      let team2Sets = 0;
+
+      sets.forEach((set) => {
+        const team1Score = parseInt(set.team1) || 0;
+        const team2Score = parseInt(set.team2) || 0;
+        if (team1Score > team2Score && team1Score >= 6 && (team1Score - team2Score) >= 2) {
+          team1Sets++;
+        } else if (team2Score > team1Score && team2Score >= 6 && (team2Score - team1Score) >= 2) {
+          team2Sets++;
+        } else if (team1Score === 7 && team2Score === 6) {
+          team1Sets++;
+        } else if (team2Score === 7 && team1Score === 6) {
+          team2Sets++;
+        }
+      });
+
+      const inputWinnerTeam = parseInt(refuteData.winnerTeam);
+      if (
+        (inputWinnerTeam === 1 && team2Sets >= team1Sets) ||
+        (inputWinnerTeam === 2 && team1Sets >= team2Sets)
+      ) {
+        throw new Error('The selected winner team does not match the score provided.');
+      }
+
+      const scoreString = sets.map((set) => `${set.team1}-${set.team2}`).join(', ');
+
+      const { data: currentMatch, error: fetchError } = await supabase
+        .from('matches')
+        .select('is_validated, refuted_by_players, validated_by_players')
+        .eq('id', selectedMatchForRefute.id)
+        .single();
+
+      if (fetchError || currentMatch?.is_validated) {
+        Alert.alert('Error', 'This match has already been validated or an error occurred.');
+        return;
+      }
+
+      const refutedBy = currentMatch.refuted_by_players || [];
+      if (refutedBy.includes(user.id)) {
+        Alert.alert('Error', 'You have already refuted this match.');
+        return;
+      }
+
       const { error } = await supabase
         .from('matches')
         .update({
-          winner_team: parseInt(refuteData.winnerTeam),
-          score: refuteData.score,
+          winner_team: inputWinnerTeam,
+          score: scoreString,
           proposed_by_player: user.id,
-          validated_by_players: [], // Reset validations
+          validated_by_players: [],
+          refuted_by_players: [],
           validation_deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
         })
         .eq('id', selectedMatchForRefute.id);
@@ -532,137 +652,140 @@ export default function AddMatchResultScreen() {
       Alert.alert('Success', 'Refutation submitted successfully. The validation timer has been reset.');
 
       setShowRefuteModal(false);
-      setSelectedMatchForRefute(null);
-      setRefuteData({ winnerTeam: '', score: '' });
+      setRefuteData({ winnerTeam: '', sets: [{ team1: '', team2: '' }] });
       fetchPendingMatches();
     } catch (error) {
       console.error('Error refuting match:', error);
-      Alert.alert('Error', 'Failed to submit refutation');
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRemainingTimeColor = (deadline?: string) => {
-    if (!deadline) return colors.primary;
+  const formatTimeRemaining = (deadline: string) => {
+    if (!deadline) return null;
+
     const now = new Date();
-    const end = new Date(deadline);
-    const diff = Math.floor((end.getTime() - now.getTime()) / 1000 / 60 / 60);
-    return diff < 12 ? '#F44336' : colors.primary;
+    const deadlineDate = new Date(deadline);
+    const diffInMs = deadlineDate.getTime() - now.getTime();
+
+    if (diffInMs <= 0) {
+      return "Auto-validating soon...";
+    }
+
+    const hours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m remaining`;
+    } else {
+      return `${minutes}m remaining`;
+    }
   };
 
-  const renderPendingMatch = ({ item: match }: { item: Match }) => {
-    const team1Players = [match.player1, match.player2].filter(Boolean).map(p => p.full_name).join(' & ');
-    const team2Players = [match.player3, match.player4].filter(Boolean).map(p => p.full_name).join(' & ');
-    const isWinnerTeam1 = match.winner_team === 1;
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const created = new Date(dateString);
+    const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
 
-    return (
-      <Card style={styles.matchCard}>
-        <Card.Content style={styles.matchContent}>
-          <View style={styles.matchHeader}>
-            <View style={styles.matchInfo}>
-              <MaterialCommunityIcons name="calendar" size={16} color="#666" />
-              <Paragraph style={styles.matchDate}>{new Date(match.match_date).toLocaleDateString()} • {match.match_time}</Paragraph>
-              <Chip style={styles.courtChip} compact>Court {match.court_number}</Chip>
-            </View>
-            <View style={styles.matchTimestamps}>
-              <Paragraph style={styles.timeAgo}>{getTimeAgo(match.created_at)}</Paragraph>
-              <Paragraph style={[styles.timeRemaining, { color: getRemainingTimeColor(match.validation_deadline) }]}>
-                {getRemainingTime(match.validation_deadline)}
+    if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
+  };
+
+  const renderPendingMatch = ({ item: match }: { item: Match }) => (
+    <Card style={styles.matchCard}>
+      <Card.Content style={styles.matchContent}>
+        <View style={styles.matchHeader}>
+          <View style={styles.matchInfo}>
+            <MaterialCommunityIcons name="calendar" size={16} color={theme.colors.primary} />
+            <Paragraph style={styles.matchDate}>
+              {match.match_date} - {match.match_time}
+            </Paragraph>
+            <Chip style={styles.courtChip}>Court {match.court_number}</Chip>
+          </View>
+          <View style={styles.matchTimestamps}>
+            <Paragraph style={styles.timeAgo}>{formatTimeAgo(match.created_at)}</Paragraph>
+            {match.validation_deadline && (
+              <Paragraph style={styles.timeRemaining}>
+                {formatTimeRemaining(match.validation_deadline)}
               </Paragraph>
-            </View>
+            )}
           </View>
-
-          <View style={styles.teamsContainer}>
-            <View style={styles.teamSection}>
-              <View style={styles.teamHeader}>
-                <MaterialCommunityIcons name="account-group" size={20} color="#333" />
-                <Paragraph style={styles.teamTitle}>Team 1</Paragraph>
-                {isWinnerTeam1 && <MaterialCommunityIcons name="trophy" size={20} color={colors.trophy} />}
-              </View>
-              <Paragraph style={styles.playerName}>{team1Players}</Paragraph>
-            </View>
-            <Paragraph style={styles.vs}>VS</Paragraph>
-            <View style={styles.teamSection}>
-              <View style={styles.teamHeader}>
-                <MaterialCommunityIcons name="account-group" size={20} color="#333" />
-                <Paragraph style={styles.teamTitle}>Team 2</Paragraph>
-                {!isWinnerTeam1 && <MaterialCommunityIcons name="trophy" size={20} color={colors.trophy} />}
-              </View>
-              <Paragraph style={styles.playerName}>{team2Players}</Paragraph>
-            </View>
-          </View>
-
-          <View style={styles.scoreSection}>
-            <Paragraph style={styles.scoreLabel}>Score: {match.score}</Paragraph>
-          </View>
-
-          <View style={styles.matchActions}>
-            <Button 
-              mode="contained" 
-              style={[styles.actionButton, styles.validateButton]}
-              icon="check"
-              onPress={() => handleValidateMatch(match.id)}
-            >
-              Validate
-            </Button>
-            <Button 
-              mode="outlined" 
-              style={[styles.actionButton, styles.refuteButton]}
-              labelStyle={styles.refuteButtonLabel}
-              icon="close"
-              onPress={() => {
-                setSelectedMatchForRefute(match);
-                setShowRefuteModal(true);
-              }}
-            >
-              Refute
-            </Button>
-          </View>
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const then = new Date(date);
-    const diff = Math.floor((now.getTime() - then.getTime()) / 1000 / 60);
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
-  };
-
-  const getRemainingTime = (deadline?: string) => {
-    if (!deadline) return '';
-    const now = new Date();
-    const end = new Date(deadline);
-    const diff = Math.floor((end.getTime() - now.getTime()) / 1000 / 60 / 60);
-    return `${diff} hours remaining`;
-  };
-
-  if (loading) {
-    return (
-      <LinearGradient colors={[theme.colors.gradientStart, "#000"]} style={styles.container}>
-        <View style={[styles.container, styles.centered]}>
-          <ActivityIndicator size="large" color={'white'} />
         </View>
-      </LinearGradient>
-    );
-  }
+
+        <View style={styles.teamsContainer}>
+          <View style={styles.teamSection}>
+            <View style={styles.teamHeader}>
+              <MaterialCommunityIcons name="account-group" size={16} color={theme.colors.primary} />
+              <Paragraph style={styles.teamTitle}>Team 1 {match.winner_team === 1 && '(Winner)'}</Paragraph>
+            </View>
+            {match.player1 && <Paragraph style={styles.playerName}>{match.player1.full_name} (@{match.player1.username})</Paragraph>}
+            {match.player2 && <Paragraph style={styles.playerName}>{match.player2.full_name} (@{match.player2.username})</Paragraph>}
+          </View>
+          <Paragraph style={styles.vs}>VS</Paragraph>
+          <View style={styles.teamSection}>
+            <View style={styles.teamHeader}>
+              <MaterialCommunityIcons name="account-group" size={16} color={theme.colors.primary} />
+              <Paragraph style={styles.teamTitle}>Team 2 {match.winner_team === 2 && '(Winner)'}</Paragraph>
+            </View>
+            {match.player3 && <Paragraph style={styles.playerName}>{match.player3.full_name} (@{match.player3.username})</Paragraph>}
+            {match.player4 && <Paragraph style={styles.playerName}>{match.player4.full_name} (@{match.player4.username})</Paragraph>}
+          </View>
+        </View>
+
+        <View style={styles.scoreSection}>
+          <Paragraph style={styles.scoreLabel}>Score: {match.score}</Paragraph>
+        </View>
+
+        <View style={styles.matchActions}>
+          <Button
+            mode="contained"
+            onPress={() => handleValidateMatch(match.id)}
+            style={[styles.actionButton, styles.validateButton]}
+            disabled={loading}
+          >
+            Validate
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={() => {
+              setSelectedMatchForRefute(match);
+              setShowRefuteModal(true);
+            }}
+            style={[styles.actionButton, styles.refuteButton]}
+            labelStyle={styles.refuteButtonLabel}
+            disabled={loading}
+          >
+            Refute
+          </Button>
+        </View>
+      </Card.Content>
+    </Card>
+  );
 
   return (
-    <LinearGradient colors={[theme.colors.gradientStart, "#000"]} style={styles.container}>
+    <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {loading && (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        )}
+
         <Card style={styles.headerCard}>
           <Card.Content>
-            <Title style={styles.title}>{t('matchResults') || 'Match Results'}</Title>
+            <Title style={styles.title}>{t('addMatchResult') || 'Add Match Result'}</Title>
             <View style={styles.tabContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.tab, activeTab === 'propose' && styles.activeTab]}
                 onPress={() => setActiveTab('propose')}
               >
                 <MaterialCommunityIcons 
-                  name="pencil" 
+                  name="tennis" 
                   size={20} 
                   color={activeTab === 'propose' ? colors.primary : colors.text} 
                 />
@@ -670,7 +793,7 @@ export default function AddMatchResultScreen() {
                   {t('proposeMatch') || 'Propose'}
                 </Paragraph>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.tab, activeTab === 'validate' && styles.activeTab]}
                 onPress={() => setActiveTab('validate')}
               >
@@ -852,33 +975,63 @@ export default function AddMatchResultScreen() {
 
                   <View style={styles.formField}>
                     <Paragraph style={styles.fieldLabel}>{t('correctScore') || 'Correct Score'}</Paragraph>
-                    <TextInput
-                      value={refuteData.score}
-                      onChangeText={(value) => setRefuteData(prev => ({ ...prev, score: value }))}
-                      placeholder="6-4, 6-2"
-                      style={styles.scoreRefuteInput}
-                    />
+                    {refuteData.sets.map((set, index) => (
+                      <View key={index} style={styles.setContainer}>
+                        <Paragraph style={styles.setLabel}>{t('set')} {index + 1}</Paragraph>
+                        <View style={styles.scoreInputContainer}>
+                          <TextInput
+                            value={set.team1}
+                            onChangeText={(value) => updateRefuteSet(index, 'team1', value)}
+                            keyboardType="numeric"
+                            style={styles.scoreInput}
+                            maxLength={1}
+                          />
+                          <Paragraph style={styles.scoreSeparator}>-</Paragraph>
+                          <TextInput
+                            value={set.team2}
+                            onChangeText={(value) => updateRefuteSet(index, 'team2', value)}
+                            keyboardType="numeric"
+                            style={styles.scoreInput}
+                            maxLength={1}
+                          />
+                        </View>
+                        {refuteData.sets.length > 1 && (
+                          <IconButton
+                            icon="minus-circle"
+                            size={20}
+                            onPress={() => removeRefuteSet(index)}
+                          />
+                        )}
+                      </View>
+                    ))}
+                    {refuteData.sets.length < 3 && (
+                      <Button
+                        mode="outlined"
+                        onPress={addRefuteSet}
+                        style={styles.addSetButton}
+                      >
+                        {t('addSet') || 'Add Set'}
+                      </Button>
+                    )}
                   </View>
                   <View style={styles.modalActions}>
-                  <Button
-                    mode="outlined"
-                    onPress={() => setShowRefuteModal(false)}
-                    style={styles.modalCancelButton}
-                  >
-                    {t('cancel') || 'Cancel'}
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={handleRefuteMatch}
-                    style={styles.modalSubmitButton}
-                    disabled={loading}
-                  >
-                    {t('submitRefutation') || 'Submit Refutation'}
-                  </Button>
+                    <Button
+                      mode="outlined"
+                      onPress={() => setShowRefuteModal(false)}
+                      style={styles.modalCancelButton}
+                    >
+                      {t('cancel') || 'Cancel'}
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={handleRefuteMatch}
+                      style={styles.modalSubmitButton}
+                      disabled={loading}
+                    >
+                      {t('submitRefutation') || 'Submit Refutation'}
+                    </Button>
+                  </View>
                 </View>
-                </View>
-
-                
               </Card.Content>
             </Card>
           </Modal>
@@ -1242,8 +1395,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary + '20',
   },
-  scoreRefuteInput: {
-    backgroundColor: '#f5f5f5',
+  addSetButton: {
+    marginTop: 8,
   },
   modalActions: {
     flexDirection: 'row',

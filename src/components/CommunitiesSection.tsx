@@ -254,6 +254,7 @@ export default function CommunitiesSection() {
           </Animatable.View>
 
           <Portal>
+            
             <Modal 
               visible={isJoinModalVisible} 
               onDismiss={() => setIsJoinModalVisible(false)} 
