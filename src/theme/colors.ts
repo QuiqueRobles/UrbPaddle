@@ -13,8 +13,8 @@ export const colors = {
   accent: '#4A90E2', // Bright blue, for highlights and calls-to-action
 
   // Neutral colors
-  background: '#1A3C34', // main background
-  surface: '#1A3C34', // White, card and component backgrounds
+  background: '#F5F7FA', // main background
+  surface: '#FFFFFF', // White, card and component backgrounds
   text: '#2D3748', // Dark gray, primary text color
   textSecondary: '#718096', // Medium gray, secondary text color
 
