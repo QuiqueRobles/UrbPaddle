@@ -494,7 +494,7 @@
   "personalInfo": "Información Personal",
   "notSpecified": "No Especificado",
   "noMotivationalSpeech": "No se proporcionó discurso motivacional",
-  "toLevel": "para el Nivel {level}",
+  "toLevel": "para el Nivel",
   "edit": "Editar",
   "save": "Guardar",
   "pendingValidations": "Validaciones Pendientes",
@@ -531,7 +531,11 @@
   "guestAbbr": "I",
     "communityStats": "Estadísticas de la Comunidad",
     "bookingInfo": "Información de Reservas",
-    "viewDetails": "Ver Detalles"
+    "viewDetails": "Ver Detalles",
+  "subscriptionRequired": "Se Requiere Suscripción Activa",
+  "subscriptionRequiredMessage": "Tu comunidad necesita una suscripción premium activa o un pago único premium válido para usar esta función.",
+  "purchasePremium": "Comprar Premium",
+  "past": "Pasado"
 }
 
 

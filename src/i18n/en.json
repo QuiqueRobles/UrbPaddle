@@ -562,7 +562,7 @@
   "personalInfo": "Personal Information",
   "notSpecified": "Not Specified",
   "noMotivationalSpeech": "No motivational speech provided",
-  "toLevel": "to Level {level}",
+  "toLevel": "to Level",
   "edit": "Edit",
   "save": "Save",
   "pendingValidations": "Pending Validations",
@@ -599,5 +599,10 @@
   "guestAbbr": "G",
     "communityStats": "Community Stats",
     "bookingInfo": "Booking Info",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "subscriptionRequired": "Active Subscription Required",
+  "subscriptionRequiredMessage": "Your community needs an active subscription or valid one-time payment to use this feature.",
+  "purchasePremium": "Purchase Premium",
+  "past": "Past"
+    
 }

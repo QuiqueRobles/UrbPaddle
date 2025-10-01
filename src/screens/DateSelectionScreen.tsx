@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity, Linking } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
-import { Button, Title, Text, useTheme } from 'react-native-paper';
+import { Button, Title, Text, useTheme,ActivityIndicator } from 'react-native-paper';
 import { NavigationProp } from '../navigation';
 import { ArrowRight, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { es, enUS } from 'date-fns/locale';
 import { colors } from '../theme/colors';
 import * as Animatable from 'react-native-animatable';
 import { supabase } from '../lib/supabase';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
   navigation: NavigationProp;
@@ -20,15 +21,20 @@ type Props = {
 export default function DateSelectionScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState('');
   const [isResidentOrGroupMember, setIsResidentOrGroupMember] = useState<boolean | null>(null);
+  const [hasValidSubscription, setHasValidSubscription] = useState<boolean | null>(null);
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
 
-  // Check if user is a resident or part of a resident group
+  // Check if user is a resident or part of a resident group and verify subscription status
   useEffect(() => {
-    async function checkResidencyOrGroup() {
+    async function checkResidencyAndSubscription() {
+      console.log('Starting residency and subscription check');
       try {
+        console.log('Fetching user from Supabase');
         const { data: { user } } = await supabase.auth.getUser();
+        console.log('User fetch result:', user ? 'User found' : 'No user');
         if (!user) {
+          console.log('User not logged in, showing alert');
           Alert.alert(
             t('error') || 'Error',
             t('notLoggedIn') || 'You must be logged in to access this feature.',
@@ -37,34 +43,79 @@ export default function DateSelectionScreen({ navigation }: Props) {
           return;
         }
 
-        const { data, error } = await supabase
+        console.log('Fetching profile for user ID:', user.id);
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('resident_community_id, group_owner_id')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('Error fetching profile:', error);
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          console.log('Profile fetch error:', profileError.message);
           Alert.alert(t('error') || 'Error', t('genericError') || 'An error occurred');
           setIsResidentOrGroupMember(false);
+          setHasValidSubscription(false);
           return;
         }
+        console.log('Profile fetched:', profile);
 
-        setIsResidentOrGroupMember(!!data?.resident_community_id || !!data?.group_owner_id);
+        const isResidentOrGroup = !!profile?.resident_community_id || !!profile?.group_owner_id;
+        console.log('Is resident or group member:', isResidentOrGroup);
+        setIsResidentOrGroupMember(isResidentOrGroup);
+
+        if (isResidentOrGroup && profile?.resident_community_id) {
+          console.log('Fetching community data for ID:', profile.resident_community_id);
+          const { data: community, error: communityError } = await supabase
+            .from('community')
+            .select('stripe_subscription_id, stripe_payment_status, one_time_valid_until, product_type')
+            .eq('id', profile.resident_community_id)
+            .single();
+
+          if (communityError) {
+            console.error('Error fetching community:', communityError);
+            console.log('Community fetch error:', communityError.message);
+            Alert.alert(t('error') || 'Error', t('genericError') || 'An error occurred');
+            setHasValidSubscription(false);
+            return;
+          }
+          console.log('Community data fetched:', community);
+
+          const isSubscriptionPaid = 
+            community?.stripe_subscription_id &&
+            community?.stripe_payment_status === 'paid' &&
+            community?.product_type === 'premium';
+
+          const isOneTimeValid = 
+            community?.one_time_valid_until &&
+            isBefore(new Date(), parseISO(community.one_time_valid_until)) &&
+            community?.product_type === 'premium';
+
+          // Now combine them
+          const isSubscriptionValid = isSubscriptionPaid || isOneTimeValid;
+          console.log('Subscription valid:', isSubscriptionValid);
+          setHasValidSubscription(isSubscriptionValid);
+        } else {
+          console.log('No community check needed, setting subscription as valid');
+          setHasValidSubscription(true); // No subscription check needed for group owners
+        }
       } catch (error: any) {
-        console.error('Residency/Group check error:', error);
+        console.error('Residency/Subscription check error:', error);
+        console.log('Caught error:', error.message);
         Alert.alert(t('error') || 'Error', t('genericError') || 'An error occurred');
         setIsResidentOrGroupMember(false);
+        setHasValidSubscription(false);
       }
+      console.log('Residency and subscription check completed');
     }
 
-    checkResidencyOrGroup();
+    checkResidencyAndSubscription();
   }, [t, navigation]);
 
   // Configure calendar locale
   React.useEffect(() => {
     const currentLocale = i18n.language === 'es' ? es : enUS;
-    const firstDay = i18n.language === 'es' ? 1 : 0; // Monday for Spanish, Sunday for English
+    const firstDay = i18n.language === 'es' ? 1 : 0;
 
     LocaleConfig.locales[i18n.language] = {
       monthNames: Array.from({ length: 12 }, (_, i) =>
@@ -85,14 +136,17 @@ export default function DateSelectionScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('Screen focused, resetting selected date');
       setSelectedDate('');
     }, [])
   );
 
   const handleDateSelect = (day: DateData) => {
+    console.log('Date selected:', day.dateString);
     const today = new Date().toISOString().split('T')[0];
     
     if (isBefore(parseISO(day.dateString), parseISO(today))) {
+      console.log('Past date selected, showing alert');
       Alert.alert(
         t('pastDateError') || 'Invalid Date',
         t('pastDateMessage') || 'You cannot select a past date for booking.',
@@ -106,10 +160,12 @@ export default function DateSelectionScreen({ navigation }: Props) {
   };
 
   const handleContinue = () => {
+    console.log('Continue button pressed, selected date:', selectedDate);
     if (selectedDate) {
       const today = new Date().toISOString().split('T')[0];
       
       if (isBefore(parseISO(selectedDate), parseISO(today))) {
+        console.log('Past date detected in continue, showing alert');
         Alert.alert(
           t('pastDateError') || 'Invalid Date',
           t('pastDateMessage') || 'You cannot select a past date for booking.',
@@ -119,7 +175,18 @@ export default function DateSelectionScreen({ navigation }: Props) {
         return;
       }
       
+      console.log('Navigating to CourtSelection with date:', selectedDate);
       navigation.navigate('CourtSelection', { date: selectedDate });
+    }
+  };
+
+  const handlePurchasePremium = async () => {
+    console.log('Opening pricing page: https://qourtify.com/en/pricing');
+    try {
+      await Linking.openURL('https://qourtify.com/en/pricing');
+    } catch (error) {
+      console.error('Error opening URL:', error);
+      Alert.alert(t('error') || 'Error', t('genericError') || 'An error occurred while opening the link.');
     }
   };
 
@@ -128,19 +195,21 @@ export default function DateSelectionScreen({ navigation }: Props) {
   maxDate.setMonth(maxDate.getMonth() + 3);
   const maxDateString = maxDate.toISOString().split('T')[0];
 
-  if (isResidentOrGroupMember === null) {
+  if (isResidentOrGroupMember === null || hasValidSubscription === null) {
+    console.log('Showing loading screen, states:', { isResidentOrGroupMember, hasValidSubscription });
     return (
-      <View style={styles.container}>
-        <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
-          </View>
-        </LinearGradient>
-      </View>
+      <LinearGradient colors={[colors.gradientStart, '#000']} style={styles.container}>
+              <SafeAreaView style={styles.safeArea}>
+                <View style={styles.centered}>
+                  <ActivityIndicator size="large" color="white" />
+                </View>
+              </SafeAreaView>
+            </LinearGradient>
     );
   }
 
   if (!isResidentOrGroupMember) {
+    console.log('User is not resident or group member, showing resident required message');
     return (
       <View style={styles.container}>
         <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
@@ -156,7 +225,10 @@ export default function DateSelectionScreen({ navigation }: Props) {
                 {t('residentRequiredMessage') || 'You must be a resident of a community or part of a resident group to access this feature.'}
               </Text>
               <TouchableOpacity 
-                onPress={() => navigation.navigate('Home', { screen: 'ProfileTab' })} 
+                onPress={() => {
+                  console.log('Navigating to ProfileTab');
+                  navigation.navigate('Home', { screen: 'ProfileTab' });
+                }} 
                 style={styles.profileButton}
               >
                 <LinearGradient
@@ -177,6 +249,45 @@ export default function DateSelectionScreen({ navigation }: Props) {
     );
   }
 
+  if (!hasValidSubscription) {
+    console.log('Invalid or non-premium subscription, showing purchase premium message');
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
+          <ScrollView 
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animatable.View animation="fadeInUp" duration={800} style={styles.messageContainer}>
+              <Text style={styles.messageTitle}>
+                {t('subscriptionRequired') || 'Active Subscription Required'}
+              </Text>
+              <Text style={styles.messageText}>
+                {t('subscriptionRequiredMessage') || 'Your community needs an active premium subscription or valid one-time premium payment to use this feature.'}
+              </Text>
+              <TouchableOpacity 
+                onPress={handlePurchasePremium}
+                style={styles.profileButton}
+              >
+                <LinearGradient
+                  colors={['#00A86B', '#00C853']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.profileButtonText}>
+                    {t('purchasePremium') || 'Purchase Premium'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animatable.View>
+          </ScrollView>
+        </LinearGradient>
+      </View>
+    );
+  }
+
+  console.log('Rendering calendar view, all checks passed');
   return (
     <View style={styles.container}>
       <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
@@ -196,7 +307,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
               }}
               minDate={today}
               maxDate={maxDateString}
-              firstDay={i18n.language === 'es' ? 1 : 0} // Monday for Spanish, Sunday for English
+              firstDay={i18n.language === 'es' ? 1 : 0}
               theme={{
                 backgroundColor: 'transparent',
                 calendarBackground: 'transparent',
@@ -262,6 +373,14 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  safeArea: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   contentContainer: {
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'ios' ? 80 : 60,
@@ -313,7 +432,6 @@ const styles = StyleSheet.create({
   profileButton: {
     width: '100%',
     borderRadius: 12,
-    
     elevation: 4,
     shadowColor: '#00C853',
     shadowOffset: { width: 0, height: 4 },

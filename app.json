@@ -37,7 +37,8 @@
             ]
           }
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Esta app necesita acceder a tu galería para que puedas seleccionar fotos de perfil"
       }
     },
     "android": {

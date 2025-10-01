@@ -11,6 +11,18 @@ import { format, addMinutes, parseISO, parse, isBefore, isAfter, isEqual } from 
 import { Calendar } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import { useTranslation } from "react-i18next"
+import { enUS, es, fr, de, it, ptBR } from "date-fns/locale"
+
+
+const localeMap: { [key: string]: Locale } = {
+  en: enUS,
+  es: es,
+  fr: fr,
+  de: de,
+  it: it,
+  pt: ptBR,
+  // Add more language-to-locale mappings as needed
+}
 
 type RootStackParamList = {
   CourtSelection: { date: string }
@@ -75,10 +87,11 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
   const [userId, setUserId] = useState<string | null>(null)
   const theme = useTheme()
   const { date } = route.params
-  const { t } = useTranslation()
   const gradientStart = "#0e3730ff"
   const gradientMiddle = "#000"
   const gradientEnd = "#000"
+  const { t, i18n } = useTranslation()
+  const currentLocale = localeMap[i18n.language] || enUS
 
   useEffect(() => {
     fetchUserAndCommunity()
@@ -386,7 +399,7 @@ export default function CourtSelectionScreen({ navigation, route }: Props) {
           <Title style={styles.title}>{t("bookACourt")}</Title>
           <View style={styles.dateContainer}>
             <Calendar size={24} color="#fff" />
-            <Text style={styles.dateText}>{format(parseISO(date), "MMMM d, yyyy")}</Text>
+            <Text style={styles.dateText}>{format(parseISO(date), "PPPP", { locale: currentLocale })}</Text>
           </View>
         </View>
 
@@ -568,7 +581,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     marginTop: 16,
-    padding: 8,
+    padding: 16,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 8,
   },
@@ -577,13 +590,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   legendColor: {
-    width: 16,
-    height: 16,
+    width: 8,
+    height: 8,
     borderRadius: 8,
     marginRight: 4,
   },
   legendText: {
     color: "#fff",
+    fontSize:12,
   },
   helperText: {
     textAlign: "center",

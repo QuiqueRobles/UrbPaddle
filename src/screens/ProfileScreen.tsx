@@ -345,7 +345,7 @@ export default function EnhancedProfileScreen() {
             {/* Enhanced XP Progress - Replace the existing block with this */}
             <View style={styles.xpContainer}>
               <Text style={styles.xpText}>
-                Level {profile.level} - {currentLevelXp}/{xpNeededForNextLevel} XP
+                {t('level')} {profile.level} - {currentLevelXp}/{xpNeededForNextLevel} XP
               </Text>
               <View style={styles.xpBarContainer}>
                 <LinearGradient
@@ -358,7 +358,7 @@ export default function EnhancedProfileScreen() {
                 />
               </View>
               <Text style={styles.xpPercentage}>
-                {Math.min(100, ((currentLevelXp / xpNeededForNextLevel) * 100)).toFixed(1)}% to level {profile.level + 1}
+                {Math.min(100, ((currentLevelXp / xpNeededForNextLevel) * 100)).toFixed(1)}% {t('toLevel')} {profile.level + 1}
               </Text>
             </View>
 
