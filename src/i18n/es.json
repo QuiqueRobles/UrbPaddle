@@ -569,8 +569,27 @@
     "errors": {
       "failedFetchProfiles": "Error al cargar los perfiles"
     }
-  }
-  
+  },
+   "status": {
+    "pending": "Pendiente",
+    "confirmed": "Confirmado",
+    "validated": "Validado", 
+    "cancelled": "Cancelado"
+  },
+   "accessDenied": "Acceso Denegado",
+  "communityAccessMessage": "No tienes acceso a esta comunidad. Por favor, contacta al administrador si crees que esto es un error.",
+  "okPressed": "OK Presionado",
+  "loadingCommunities": "Cargando comunidades...",
+  "errorLoadingCommunities": "Error al cargar las comunidades",
+  "errorFetchingProfile": "Error al obtener el perfil de usuario",
+  "navigatingToCommunity": "Navegando a la comunidad",
+  "results": "Resultados",
+  "all": "Todos",
+  "sortByDate": "Ordenar por Fecha",
+  "newestFirst": "Más Nuevos Primero",
+  "oldestFirst": "Más Antiguos Primero",
+  "filterMatches": "Filtrar Partidos",
+  "done": "Listo"
 }
 
 

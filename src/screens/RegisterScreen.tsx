@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { signInWithGoogle } from '../lib/googleAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Animatable from 'react-native-animatable';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -514,12 +515,21 @@ export default function RegisterScreen({ navigation }: Props) {
 
               {/* Terms and Conditions */}
               <View style={styles.checkboxContainer}>
-                <Checkbox
-                  status={acceptTerms ? 'checked' : 'unchecked'}
+                <TouchableOpacity
                   onPress={() => setAcceptTerms(!acceptTerms)}
-                  color="#00C853"
-                />
-                <TouchableOpacity onPress={() => setAcceptTerms(!acceptTerms)} style={styles.checkboxTextContainer}>
+                  style={styles.customCheckbox}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name={acceptTerms ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={24}
+                    color={acceptTerms ? '#00C853' : 'rgba(255,255,255,0.6)'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAcceptTerms(!acceptTerms)}
+                  style={styles.checkboxTextContainer}
+                >
                   <Text style={styles.checkboxText}>
                     {t('acceptTerms') || 'I accept the'}{' '}
                     <Text style={styles.linkText}>{t('termsAndConditions') || 'Terms and Conditions'}</Text>

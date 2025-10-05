@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Dimensions, Text, Platform, Image, ScrollView, TextInput } from 'react-native';
+import { View, Keyboard, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Dimensions, Text, Platform, Image, ScrollView, TextInput, KeyboardAvoidingView } from 'react-native';
 import { Card, useTheme, Surface, Portal, Modal, Chip } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { format, parseISO, isBefore, isAfter } from 'date-fns';
 import { PaddleCourt } from '../components/PaddleCourt';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { Subscription } from '@supabase/supabase-js';
+import { Calendar, DateData } from 'react-native-calendars';
 
 type Match = {
   id: string;
@@ -40,8 +40,9 @@ export default function MatchesScreen() {
   
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showCalendarStart, setShowCalendarStart] = useState(false);
+  const [showCalendarEnd, setShowCalendarEnd] = useState(false);
+  const [markedDates, setMarkedDates] = useState({});
   
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [playerOptions, setPlayerOptions] = useState<{id: string, name: string, avatar_url: string | null}[]>([]);
@@ -55,19 +56,78 @@ export default function MatchesScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
 
+  const [suppressDropdown, setSuppressDropdown] = useState(false);
+
+
   const filteredPlayers = useMemo(() => {
-  console.log("🔍 playerOptions:", playerOptions);
-  console.log("🔍 searchQuery:", searchQuery);
+    if (!searchQuery.trim()) return playerOptions;
 
-  if (!searchQuery.trim()) return playerOptions;
+    return playerOptions.filter(player => {
+      const name = (player.name || "").toLowerCase();
+      const query = searchQuery.toLowerCase();
+      return name.includes(query);
+    });
+  }, [playerOptions, searchQuery]);
 
-  return playerOptions.filter(player => {
-    const name = (player.name || "").toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return name.includes(query);
-  });
-}, [playerOptions, searchQuery]);
-
+  // Actualizar fechas marcadas cuando cambien las fechas de filtro
+  useEffect(() => {
+    const marked: any = {};
+    
+    if (startDate) {
+      const startDateString = format(startDate, 'yyyy-MM-dd');
+      marked[startDateString] = {
+        selected: true,
+        selectedColor: theme.colors.primary,
+        startingDay: true,
+        endingDay: !endDate,
+      };
+    }
+    
+    if (endDate) {
+      const endDateString = format(endDate, 'yyyy-MM-dd');
+      marked[endDateString] = {
+        selected: true,
+        selectedColor: theme.colors.primary,
+        startingDay: !startDate,
+        endingDay: true,
+      };
+    }
+    
+    // Marcar el rango si hay ambas fechas
+    if (startDate && endDate) {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateString = format(currentDate, 'yyyy-MM-dd');
+        if (!marked[dateString]) {
+          marked[dateString] = {
+            selected: true,
+            selectedColor: '#E8F5E8',
+            color: theme.colors.primary,
+          };
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Re-marcar las fechas de inicio y fin
+      marked[format(startDate, 'yyyy-MM-dd')] = {
+        selected: true,
+        selectedColor: theme.colors.primary,
+        startingDay: true,
+        endingDay: startDate.getTime() === endDate.getTime(),
+      };
+      
+      if (startDate.getTime() !== endDate.getTime()) {
+        marked[format(endDate, 'yyyy-MM-dd')] = {
+          selected: true,
+          selectedColor: theme.colors.primary,
+          startingDay: false,
+          endingDay: true,
+        };
+      }
+    }
+    
+    setMarkedDates(marked);
+  }, [startDate, endDate, theme.colors.primary]);
 
   const togglePlayerSelection = (playerId: string) => {
     setSelectedPlayerIds(prev => 
@@ -79,6 +139,38 @@ export default function MatchesScreen() {
 
   const removeSelectedPlayer = (playerId: string) => {
     setSelectedPlayerIds(prev => prev.filter(id => id !== playerId));
+  };
+
+  // Función para manejar la selección de fecha en el calendario
+  const handleDateSelect = (date: DateData, isStart: boolean) => {
+    const selectedDate = new Date(date.dateString);
+    
+    if (isStart) {
+      // Si estamos seleccionando la fecha de inicio
+      if (endDate && selectedDate > endDate) {
+        // Si la fecha de inicio es después de la fecha final, resetear la fecha final
+        setEndDate(null);
+      }
+      setStartDate(selectedDate);
+      setShowCalendarStart(false);
+    } else {
+      // Si estamos seleccionando la fecha final
+      if (startDate && selectedDate < startDate) {
+        // Si la fecha final es antes de la fecha inicial, resetear la fecha inicial
+        setStartDate(null);
+      }
+      setEndDate(selectedDate);
+      setShowCalendarEnd(false);
+    }
+  };
+
+  // Función para limpiar una fecha específica
+  const clearDate = (isStart: boolean) => {
+    if (isStart) {
+      setStartDate(null);
+    } else {
+      setEndDate(null);
+    }
   };
 
   const fetchUserAndMatches = useCallback(async () => {
@@ -112,7 +204,6 @@ export default function MatchesScreen() {
           avatar_url: player.avatar_url
         })).sort((a, b) => a.name.localeCompare(b.name));
       }
-      console.log("✅ Jugadores cargados desde Supabase:", playerFilterOptions);
       setPlayerOptions(playerFilterOptions);
 
       const { data: matchesData, error: matchesError } = await supabase
@@ -223,6 +314,8 @@ export default function MatchesScreen() {
     setSortOrder('desc');
     setSearchQuery('');
     setShowPlayerDropdown(false);
+    setShowCalendarStart(false);
+    setShowCalendarEnd(false);
   }, []);
 
   const renderMatchItem = useCallback(({ item }: { item: Match }) => {
@@ -241,23 +334,7 @@ export default function MatchesScreen() {
     );
   }, [players, t]);
 
-  const handleStartDateChange = (event: any, selectedDate?: Date) => {
-    setShowStartDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setStartDate(selectedDate);
-    }
-  };
-
-  const handleEndDateChange = (event: any, selectedDate?: Date) => {
-    setShowEndDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setEndDate(selectedDate);
-    }
-  };
-
   const renderFilterModal = useCallback(() => {
-    const pickerDisplay = Platform.OS === 'android' ? 'calendar' : 'default';
-
     return (
       <Portal>
         <Modal 
@@ -265,6 +342,8 @@ export default function MatchesScreen() {
           onDismiss={() => {
             setShowFilterModal(false);
             setShowPlayerDropdown(false);
+            setShowCalendarStart(false);
+            setShowCalendarEnd(false);
           }} 
           contentContainerStyle={[styles.modalContainer, {
             shadowColor: "#000",
@@ -277,313 +356,382 @@ export default function MatchesScreen() {
             elevation: 5,
           }]}
         >
-          <Surface style={[styles.filterSection, {
-            backgroundColor: '#FFFFFF',
-            borderRadius: 24,
-          }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('filters')}</Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  setShowFilterModal(false);
-                  setShowPlayerDropdown(false);
-                }}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView 
-              style={styles.modalContent} 
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* Date Range Section */}
-              <View style={styles.filterBlock}>
-                <Text style={styles.filterBlockTitle}>{t('dateRange')}</Text>
-                <View style={styles.dateRangeContainer}>
-                  <TouchableOpacity 
-                    onPress={() => setShowStartDatePicker(true)}
-                    style={styles.dateInput}
-                  >
-                    <Ionicons name="calendar" size={20} color={theme.colors.primary} />
-                    <Text style={styles.dateInputText}>
-                      {startDate ? format(startDate, 'MMM d, yyyy') : t('startDate')}
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                  </TouchableOpacity>
+          
+          
+          <View style={{ width: '100%' }}>
 
-                  <View style={styles.dateRangeSeparator} />
+            <Surface style={[styles.filterSection, {
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+            }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('filters')}</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowFilterModal(false);
+                    setShowPlayerDropdown(false);
+                    setShowCalendarStart(false);
+                    setShowCalendarEnd(false);
+                  }}
+                  style={styles.closeButton}
+                >
+                  <Ionicons name="close" size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView 
+                style={styles.modalContent} 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Date Range Section */}
+                <View style={styles.filterBlock}>
+                  <Text style={styles.filterBlockTitle}>{t('dateRange')}</Text>
                   
-                  <TouchableOpacity 
-                    onPress={() => setShowEndDatePicker(true)}
-                    style={styles.dateInput}
-                  >
-                    <Ionicons name="calendar" size={20} color={theme.colors.primary} />
-                    <Text style={styles.dateInputText}>
-                      {endDate ? format(endDate, 'MMM d, yyyy') : t('endDate')}
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                  </TouchableOpacity>
+                  {/* Date Inputs */}
+                  <View style={styles.dateRangeContainer}>
+                    {/* Start Date */}
+                    <View style={styles.dateInputWrapper}>
+                      <Text style={styles.dateLabel}>{t('startDate')}</Text>
+                      <TouchableOpacity 
+                        onPress={() => {
+                          setShowCalendarStart(true);
+                          setShowCalendarEnd(false);
+                        }}
+                        style={[
+                          styles.dateInput,
+                          showCalendarStart && styles.dateInputActive
+                        ]}
+                      >
+                        <Ionicons name="calendar" size={20} color={theme.colors.primary} />
+                        <Text style={styles.dateInputText}>
+                          {startDate ? format(startDate, 'MMM d, yyyy') : t('selectDate')}
+                        </Text>
+                        {startDate && (
+                          <TouchableOpacity 
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              clearDate(true);
+                            }}
+                            style={styles.clearDateButton}
+                          >
+                            <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* End Date */}
+                    <View style={styles.dateInputWrapper}>
+                      <Text style={styles.dateLabel}>{t('endDate')}</Text>
+                      <TouchableOpacity 
+                        onPress={() => {
+                          setShowCalendarEnd(true);
+                          setShowCalendarStart(false);
+                        }}
+                        style={[
+                          styles.dateInput,
+                          showCalendarEnd && styles.dateInputActive
+                        ]}
+                      >
+                        <Ionicons name="calendar" size={20} color={theme.colors.primary} />
+                        <Text style={styles.dateInputText}>
+                          {endDate ? format(endDate, 'MMM d, yyyy') : t('selectDate')}
+                        </Text>
+                        {endDate && (
+                          <TouchableOpacity 
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              clearDate(false);
+                            }}
+                            style={styles.clearDateButton}
+                          >
+                            <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Calendarios */}
+                  {(showCalendarStart || showCalendarEnd) && (
+                    <View style={styles.calendarContainer}>
+                      <Calendar
+                        markedDates={markedDates}
+                        onDayPress={(day: DateData) => 
+                          handleDateSelect(day, showCalendarStart)
+                        }
+                        minDate={'2020-01-01'}
+                        maxDate={format(new Date(), 'yyyy-MM-dd')}
+                        theme={{
+                          backgroundColor: '#ffffff',
+                          calendarBackground: '#ffffff',
+                          textSectionTitleColor: theme.colors.primary,
+                          selectedDayBackgroundColor: theme.colors.primary,
+                          selectedDayTextColor: '#ffffff',
+                          todayTextColor: theme.colors.primary,
+                          dayTextColor: '#2d4150',
+                          textDisabledColor: '#d9e1e8',
+                          dotColor: theme.colors.primary,
+                          selectedDotColor: '#ffffff',
+                          arrowColor: theme.colors.primary,
+                          monthTextColor: theme.colors.primary,
+                          indicatorColor: theme.colors.primary,
+                          textDayFontWeight: '300',
+                          textMonthFontWeight: 'bold',
+                          textDayHeaderFontWeight: '300',
+                          textDayFontSize: 16,
+                          textMonthFontSize: 16,
+                          textDayHeaderFontSize: 14
+                        }}
+                        style={styles.calendar}
+                      />
+                    </View>
+                  )}
                 </View>
 
-                {showStartDatePicker && (
-                  <View style={styles.pickerContainer}>
-                    <DateTimePicker
-                      testID="startDateTimePicker"
-                      value={startDate || new Date()}
-                      mode="date"
-                      is24Hour={true}
-                      display={pickerDisplay}
-                      onChange={handleStartDateChange}
-                      maximumDate={endDate || undefined}
+                {/* Players Section */}
+                <View style={styles.filterBlock}>
+                  <Text style={styles.filterBlockTitle}>{t('players')}</Text>
+                  
+                  {/* Selected Players Chips */}
+                  {selectedPlayerIds.length > 0 && (
+                    <View style={styles.chipsContainer}>
+                      {selectedPlayerIds.map(playerId => {
+                        const player = playerOptions.find(p => p.id === playerId);
+                        if (!player) return null;
+                        return (
+                          <Chip
+                            key={playerId}
+                            style={styles.playerChip}
+                            onClose={() => removeSelectedPlayer(playerId)}
+                          >
+                            <View style={styles.chipContent}>
+                              {player.avatar_url ? (
+                                <Image source={{ uri: player.avatar_url }} style={styles.chipAvatar} />
+                              ) : (
+                                <View style={[styles.chipAvatar, styles.defaultAvatar]}>
+                                  <Ionicons name="person" size={14} color="#fff" />
+                                </View>
+                              )}
+                              <Text style={styles.chipText}>{player.name}</Text>
+                            </View>
+                          </Chip>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {/* Player Search */}
+                  <View style={styles.searchContainer}>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder={t('searchPlayers')}
+                      placeholderTextColor="#9CA3AF"
+                      value={searchQuery}
+                      onChangeText={(text) => {
+                        setSearchQuery(text);
+                        if (!suppressDropdown) {
+                          setShowPlayerDropdown(text.length > 0);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (!suppressDropdown) {
+                          setShowPlayerDropdown(true);
+                        }
+                      }}
+                      onBlur={() => {}}
+                    />
+
+
+                    <Ionicons 
+                      name="search" 
+                      size={20} 
+                      color="#9CA3AF" 
+                      style={styles.searchIcon} 
                     />
                   </View>
-                )}
 
-                {showEndDatePicker && (
-                  <View style={styles.pickerContainer}>
-                    <DateTimePicker
-                      testID="endDateTimePicker"
-                      value={endDate || new Date()}
-                      mode="date"
-                      is24Hour={true}
-                      display={pickerDisplay}
-                      onChange={handleEndDateChange}
-                      minimumDate={startDate || undefined}
-                    />
-                  </View>
-                )}
-              </View>
+                  {showPlayerDropdown && (
+                    <View style={[styles.dropdownContainer, { 
+                      maxHeight: 200,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 3,
+                      elevation: 5,
+                      zIndex: 1000
+                    }]}>
+                      <FlatList
+                        data={filteredPlayers}
+                        keyExtractor={item => item.id}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            style={[
+                              styles.playerItem,
+                              selectedPlayerIds.includes(item.id) && styles.selectedPlayerItem
+                            ]}
+                            onPress={() => {
+                              togglePlayerSelection(item.id);
+                              setShowPlayerDropdown(false);
+                              setSuppressDropdown(true);
+                              Keyboard.dismiss();
 
-              {/* Players Section */}
-              <View style={styles.filterBlock}>
-                <Text style={styles.filterBlockTitle}>{t('players')}</Text>
-                
-                {/* Selected Players Chips */}
-                {selectedPlayerIds.length > 0 && (
-                  <View style={styles.chipsContainer}>
-                    {selectedPlayerIds.map(playerId => {
-                      const player = playerOptions.find(p => p.id === playerId);
-                      if (!player) return null;
-                      return (
-                        <Chip
-                          key={playerId}
-                          style={styles.playerChip}
-                          onClose={() => removeSelectedPlayer(playerId)}
-                        >
-                          <View style={styles.chipContent}>
-                            {player.avatar_url ? (
-                              <Image source={{ uri: player.avatar_url }} style={styles.chipAvatar} />
+                              // Re-enable dropdown after keyboard settles
+                              setTimeout(() => setSuppressDropdown(false), 500);
+                            }}
+
+                            activeOpacity={0.7}
+                          >
+
+                            {item.avatar_url ? (
+                              <Image source={{ uri: item.avatar_url }} style={styles.playerAvatar} />
                             ) : (
-                              <View style={[styles.chipAvatar, styles.defaultAvatar]}>
-                                <Ionicons name="person" size={14} color="#fff" />
+                              <View style={[styles.playerAvatar, styles.defaultAvatar]}>
+                                <Ionicons name="person" size={16} color="#fff" />
                               </View>
                             )}
-                            <Text style={styles.chipText}>{player.name}</Text>
-                          </View>
-                        </Chip>
-                      );
-                    })}
+                            <Text style={styles.playerName}>{item.name}</Text>
+                            {selectedPlayerIds.includes(item.id) && (
+                              <Ionicons name="checkmark" size={16} color={theme.colors.primary} />
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        keyboardShouldPersistTaps="always"
+                        style={styles.dropdownList}
+                        contentContainerStyle={styles.dropdownListContent}
+                        nestedScrollEnabled
+                        initialNumToRender={10}
+                        windowSize={5}
+                      />
+                    </View>
+                  )}
+                </View>
+
+                {/* Results Section */}
+                <View style={styles.filterBlock}>
+                  <Text style={styles.filterBlockTitle}>{t('results')}</Text>
+                  <View style={styles.filterOptions}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.filterOption, 
+                        resultFilter === 'all' && styles.filterOptionActive
+                      ]}
+                      onPress={() => setResultFilter('all')}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        resultFilter === 'all' && styles.filterOptionTextActive
+                      ]}>
+                        {t('all')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[
+                        styles.filterOption, 
+                        resultFilter === 'wins' && styles.filterOptionActive
+                      ]}
+                      onPress={() => setResultFilter('wins')}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        resultFilter === 'wins' && styles.filterOptionTextActive
+                      ]}>
+                        {t('wins')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[
+                        styles.filterOption, 
+                        resultFilter === 'losses' && styles.filterOptionActive
+                      ]}
+                      onPress={() => setResultFilter('losses')}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        resultFilter === 'losses' && styles.filterOptionTextActive
+                      ]}>
+                        {t('losses')}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                )}
+                </View>
 
-                {/* Player Search */}
-                <View style={styles.searchContainer}>
-                  // En el TextInput de búsqueda, cambia los eventos:
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder={t('searchPlayers')}
-                  placeholderTextColor="#9CA3AF"
-                  value={searchQuery}
-                  onChangeText={(text) => {
-                    setSearchQuery(text);
-                    setShowPlayerDropdown(text.length > 0); // Mostrar solo si hay texto
+                {/* Sort Section */}
+                <View style={styles.filterBlock}>
+                  <Text style={styles.filterBlockTitle}>{t('sortByDate')}</Text>
+                  <View style={styles.filterOptions}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.filterOption, 
+                        sortOrder === 'desc' && styles.filterOptionActive
+                      ]}
+                      onPress={() => setSortOrder('desc')}
+                    >
+                      <Ionicons 
+                        name="arrow-down" 
+                        size={16} 
+                        color={sortOrder === 'desc' ? 'white' : theme.colors.primary} 
+                        style={styles.sortIcon}
+                      />
+                      <Text style={[
+                        styles.filterOptionText,
+                        sortOrder === 'desc' && styles.filterOptionTextActive
+                      ]}>
+                        {t('newestFirst')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[
+                        styles.filterOption, 
+                        sortOrder === 'asc' && styles.filterOptionActive
+                      ]}
+                      onPress={() => setSortOrder('asc')}
+                    >
+                      <Ionicons 
+                        name="arrow-up" 
+                        size={16} 
+                        color={sortOrder === 'asc' ? 'white' : theme.colors.primary} 
+                        style={styles.sortIcon}
+                      />
+                      <Text style={[
+                        styles.filterOptionText,
+                        sortOrder === 'asc' && styles.filterOptionTextActive
+                      ]}>
+                        {t('oldestFirst')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  onPress={resetFilters}
+                  style={[styles.actionButton, styles.secondaryActionButton]}
+                >
+                  <Text style={styles.secondaryActionButtonText}>{t('clear')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowFilterModal(false);
+                    setShowPlayerDropdown(false);
+                    setShowCalendarStart(false);
+                    setShowCalendarEnd(false);
                   }}
-                  onFocus={() => setShowPlayerDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowPlayerDropdown(false), 200)}
-                />
-                  <Ionicons 
-                    name="search" 
-                    size={20} 
-                    color="#9CA3AF" 
-                    style={styles.searchIcon} 
-                  />
-                </View>
-
-                // En la sección del Player Dropdown, reemplaza con esto:
-{showPlayerDropdown && (
-  <View style={[styles.dropdownContainer, { 
-    maxHeight: 200,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 5,
-    zIndex: 1000 // Asegura que aparezca sobre otros elementos
-  }]}>
-    <FlatList
-      data={filteredPlayers}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={[
-            styles.playerItem,
-            selectedPlayerIds.includes(item.id) && styles.selectedPlayerItem
-          ]}
-          onPress={() => {
-            togglePlayerSelection(item.id);
-            setSearchQuery(''); // Limpiar la búsqueda después de seleccionar
-          }}
-          activeOpacity={0.7}
-        >
-          {item.avatar_url ? (
-            <Image source={{ uri: item.avatar_url }} style={styles.playerAvatar} />
-          ) : (
-            <View style={[styles.playerAvatar, styles.defaultAvatar]}>
-              <Ionicons name="person" size={16} color="#fff" />
-            </View>
-          )}
-          <Text style={styles.playerName}>{item.name}</Text>
-          {selectedPlayerIds.includes(item.id) && (
-            <Ionicons name="checkmark" size={16} color={theme.colors.primary} />
-          )}
-        </TouchableOpacity>
-      )}
-      keyboardShouldPersistTaps="always"
-      style={styles.dropdownList}
-      contentContainerStyle={styles.dropdownListContent}
-      nestedScrollEnabled
-      initialNumToRender={10}
-      windowSize={5}
-    />
-  </View>
-)}
-              
+                  style={[styles.actionButton, styles.primaryActionButton]}
+                >
+                  <Text style={styles.primaryActionButtonText}>{t('apply')}</Text>
+                </TouchableOpacity>
               </View>
-
-              {/* Results Section */}
-              <View style={styles.filterBlock}>
-                <Text style={styles.filterBlockTitle}>{t('results')}</Text>
-                <View style={styles.filterOptions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.filterOption, 
-                      resultFilter === 'all' && styles.filterOptionActive
-                    ]}
-                    onPress={() => setResultFilter('all')}
-                  >
-                    <Text style={[
-                      styles.filterOptionText,
-                      resultFilter === 'all' && styles.filterOptionTextActive
-                    ]}>
-                      {t('all')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.filterOption, 
-                      resultFilter === 'wins' && styles.filterOptionActive
-                    ]}
-                    onPress={() => setResultFilter('wins')}
-                  >
-                    <Text style={[
-                      styles.filterOptionText,
-                      resultFilter === 'wins' && styles.filterOptionTextActive
-                    ]}>
-                      {t('wins')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.filterOption, 
-                      resultFilter === 'losses' && styles.filterOptionActive
-                    ]}
-                    onPress={() => setResultFilter('losses')}
-                  >
-                    <Text style={[
-                      styles.filterOptionText,
-                      resultFilter === 'losses' && styles.filterOptionTextActive
-                    ]}>
-                      {t('losses')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Sort Section */}
-              <View style={styles.filterBlock}>
-                <Text style={styles.filterBlockTitle}>{t('sortByDate')}</Text>
-                <View style={styles.filterOptions}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.filterOption, 
-                      sortOrder === 'desc' && styles.filterOptionActive
-                    ]}
-                    onPress={() => setSortOrder('desc')}
-                  >
-                    <Ionicons 
-                      name="arrow-down" 
-                      size={16} 
-                      color={sortOrder === 'desc' ? 'white' : theme.colors.primary} 
-                      style={styles.sortIcon}
-                    />
-                    <Text style={[
-                      styles.filterOptionText,
-                      sortOrder === 'desc' && styles.filterOptionTextActive
-                    ]}>
-                      {t('newestFirst')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.filterOption, 
-                      sortOrder === 'asc' && styles.filterOptionActive
-                    ]}
-                    onPress={() => setSortOrder('asc')}
-                  >
-                    <Ionicons 
-                      name="arrow-up" 
-                      size={16} 
-                      color={sortOrder === 'asc' ? 'white' : theme.colors.primary} 
-                      style={styles.sortIcon}
-                    />
-                    <Text style={[
-                      styles.filterOptionText,
-                      sortOrder === 'asc' && styles.filterOptionTextActive
-                    ]}>
-                      {t('oldestFirst')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                onPress={resetFilters}
-                style={[styles.actionButton, styles.secondaryActionButton]}
-              >
-                <Text style={styles.secondaryActionButtonText}>{t('clear')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => {
-                  setShowFilterModal(false);
-                  setShowPlayerDropdown(false);
-                }}
-                style={[styles.actionButton, styles.primaryActionButton]}
-              >
-                <Text style={styles.primaryActionButtonText}>{t('apply')}</Text>
-              </TouchableOpacity>
-            </View>
-          </Surface>
+            </Surface>
+          </View>
         </Modal>
       </Portal>
     );
   }, [
-    showFilterModal, t, startDate, endDate, showStartDatePicker, showEndDatePicker, 
+    showFilterModal, t, startDate, endDate, showCalendarStart, showCalendarEnd, markedDates,
     playerOptions, selectedPlayerIds, resultFilter, sortOrder, theme.colors, resetFilters,
     searchQuery, showPlayerDropdown, filteredPlayers
   ]);
@@ -717,25 +865,31 @@ const styles = StyleSheet.create({
   },
   dateRangeContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 4,
+    gap: 12,
+  },
+  dateInputWrapper: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
   },
   dateInput: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dateInputActive: {
+    borderColor: '#22be46ff',
+    backgroundColor: '#F0F9FF',
   },
   dateInputText: {
     flex: 1,
@@ -744,15 +898,18 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 14,
   },
-  dateRangeSeparator: {
-    width: 12,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+  clearDateButton: {
+    padding: 2,
   },
-  pickerContainer: {
-    marginTop: 12,
-    alignItems: 'center',
+  calendarContainer: {
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  calendar: {
+    borderRadius: 12,
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -800,22 +957,22 @@ const styles = StyleSheet.create({
     top: 14,
   },
   dropdownContainer: {
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-  borderRadius: 12,
-  marginTop: 4,
-  maxHeight: 200,
-  backgroundColor: 'white',
-  position: 'absolute', // Para que flote sobre otros elementos
-  top: '100%', // Posicionarlo debajo del input
-  left: 0,
-  right: 0,
-  zIndex: 1000,
-},
-dropdownList: {
-  flex: 1,
-  width: '100%',
-},
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    marginTop: 4,
+    maxHeight: 200,
+    backgroundColor: 'white',
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  dropdownList: {
+    flex: 1,
+    width: '100%',
+  },
   dropdownListContent: {
     paddingVertical: 8,
   },

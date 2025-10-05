@@ -794,9 +794,13 @@
       <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {loading && (
-            <View style={styles.loadingContainer}>
+            <LinearGradient 
+              colors={[colors.gradientStart, colors.gradientEnd]} 
+              style={styles.loadingContainer}
+            >
               <ActivityIndicator size="large" color={"white"} />
-            </View>
+              <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+            </LinearGradient>
           )}
 
           <Card style={styles.headerCard}>
@@ -1092,7 +1096,7 @@
     container: {
       flex: 1,
     },
-     loadingContainer: {
+    loadingContainer: {
       position: 'absolute',
       top: 0,
       left: 0,
@@ -1100,8 +1104,13 @@
       bottom: 0,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: '#1A3C34', // Opcional: fondo semitransparente
       zIndex: 999,
+    },
+    loadingText: {
+      marginTop: 16,
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
     },
     scrollContent: {
       flexGrow: 1,

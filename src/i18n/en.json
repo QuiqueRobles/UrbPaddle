@@ -634,6 +634,25 @@
     "errors": {
       "failedFetchProfiles": "Failed to fetch profiles"
     }
-  }
+  },
+   "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed", 
+    "validated": "Validated",
+    "cancelled": "Cancelled"
+  },
+  "okPressed": "OK Pressed",
+  "loadingCommunities": "Loading communities...",
+  "errorLoadingCommunities": "Error loading communities",
+  "errorFetchingProfile": "Error fetching user profile",
+  "navigatingToCommunity": "Navigating to community",
+ 
+  "results": "Results",
+  "all": "All",
+  "sortByDate": "Sort by Date",
+  "newestFirst": "Newest First",
+  "oldestFirst": "Oldest First",
+  "filterMatches": "Filter Matches",
+  "done": "Done"
     
 }

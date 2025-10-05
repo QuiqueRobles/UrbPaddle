@@ -60,7 +60,7 @@ const CommunityMapScreen: React.FC = () => {
           .single();
 
         if (error) {
-          console.error('Error fetching user profile:', error);
+          console.error(t('errorFetchingProfile'), error);
           return;
         }
 
@@ -74,7 +74,7 @@ const CommunityMapScreen: React.FC = () => {
     };
 
     fetchAccessibleCommunities();
-  }, []);
+  }, [t]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -120,17 +120,17 @@ const CommunityMapScreen: React.FC = () => {
       Alert.alert(
         t('accessDenied'),
         t('communityAccessMessage'),
-        [{ text: t('ok'), onPress: () => console.log('OK Pressed') }]
+        [{ text: t('ok'), onPress: () => console.log(t('okPressed')) }]
       );
     }
   }, [translateY, accessibleCommunities, t]);
 
   const handleViewDetails = useCallback(() => {
     if (selectedCommunity) {
-      console.log('Navigating to community:', selectedCommunity.id);
+      console.log(t('navigatingToCommunity'), selectedCommunity.id);
       navigation.navigate('Community', { communityId: selectedCommunity.id });
     }
-  }, [selectedCommunity, navigation]);
+  }, [selectedCommunity, navigation, t]);
 
   const closeCard = useCallback(() => {
     Animated.timing(translateY, {
@@ -168,7 +168,8 @@ const CommunityMapScreen: React.FC = () => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text>{error}</Text>
+        <Text>{t('errorLoadingCommunities')}</Text>
+        <Text style={styles.errorDetail}>{error}</Text>
       </View>
     );
   }
@@ -228,6 +229,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  errorDetail: {
+    marginTop: 10,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

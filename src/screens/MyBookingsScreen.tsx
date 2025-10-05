@@ -165,7 +165,7 @@ export default function MyBookingsScreen() {
           booking_owner_profile:user_id(full_name, username)
         `)
         .or(`user_id.eq.${currentUserId},booked_by_user_id.eq.${currentUserId}`)
-        .or(`date.gt.${nowISODate},and(date.eq.${nowISODate},end_time.gt.${nowTime})`)
+        .or(`date.gt.${nowISODate},and(date.eq.${nowISODate},end_time.gte.${nowTime})`)
         .order("date", { ascending: true })
         .order("start_time", { ascending: true });
 
@@ -177,7 +177,7 @@ export default function MyBookingsScreen() {
           booking_owner_profile:user_id(full_name, username)
         `)
         .or(`user_id.eq.${currentUserId},booked_by_user_id.eq.${currentUserId}`)
-        .or(`date.lt.${nowISODate},and(date.eq.${nowISODate},end_time.lte.${nowTime})`)
+        .or(`date.lt.${nowISODate},and(date.eq.${nowISODate},end_time.lt.${nowTime})`)
         .gte("date", thirtyDaysAgo)
         .order("date", { ascending: false })
         .order("start_time", { ascending: false });
@@ -294,23 +294,32 @@ export default function MyBookingsScreen() {
     return format(bookingDate, t('dateFormat'), { locale: currentLocale });
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed': return <MaterialCommunityIcons name="check-circle" size={16} color="#22C55E" />;
-      case 'cancelled': return <MaterialCommunityIcons name="close-circle" size={16} color="#EF4444" />;
-      case 'pending': return <MaterialCommunityIcons name="clock-outline" size={16} color="#F59E0B" />;
-      default: return <MaterialCommunityIcons name="alert-circle" size={16} color="#6B7280" />;
-    }
-  };
+  const getStatusTranslation = (status: string) => {
+  const statusKey = status?.toLowerCase();
+  return t(`status.${statusKey}`, { defaultValue: status });
+};
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed': return '#22C55E';
-      case 'cancelled': return '#EF4444';
-      case 'pending': return '#F59E0B';
-      default: return '#6B7280';
-    }
-  };
+const getStatusIcon = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'confirmed': 
+    case 'validated': 
+      return <MaterialCommunityIcons name="check-circle" size={16} color="#22C55E" />;
+    case 'cancelled': return <MaterialCommunityIcons name="close-circle" size={16} color="#EF4444" />;
+    case 'pending': return <MaterialCommunityIcons name="clock-outline" size={16} color="#F59E0B" />;
+    default: return <MaterialCommunityIcons name="alert-circle" size={16} color="#6B7280" />;
+  }
+};
+
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'confirmed': 
+    case 'validated': 
+      return '#22C55E';
+    case 'cancelled': return '#EF4444';
+    case 'pending': return '#F59E0B';
+    default: return '#6B7280';
+  }
+};
 
   const getBookedByInfo = (booking: Booking) => {
     if (booking.booked_by_user_id && booking.booked_by_user_id !== booking.user_id) {
@@ -385,7 +394,9 @@ export default function MyBookingsScreen() {
             </View>
             <View style={styles.statusContainer}>
               {getStatusIcon(item.status)}
-              <Paragraph style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Paragraph>
+              <Paragraph style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                {getStatusTranslation(item.status)}
+              </Paragraph>
             </View>
           </View>
 
