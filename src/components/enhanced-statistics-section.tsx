@@ -441,7 +441,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    flexWrap: 'wrap',
     marginRight: 8,
   },
   statsHeaderRight: {

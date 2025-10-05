@@ -35,3 +35,4 @@ yarn-error.*
 *.tsbuildinfo
 
 .json_to_upload.json
+qourtify-10f16e583cf7.json

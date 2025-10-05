@@ -603,6 +603,37 @@
     "subscriptionRequired": "Active Subscription Required",
   "subscriptionRequiredMessage": "Your community needs an active subscription or valid one-time payment to use this feature.",
   "purchasePremium": "Purchase Premium",
-  "past": "Past"
+  "past": "Past",
+  "booking_on_behalf_of": "Booking on behalf of ",
+  "you_are_booking_as_group_member": "You are booking as a group member",
+  
+  "enterApartmentDetails": "Enter Apartment Details",
+  "selectplayersScreen": {
+    "title": "Select Players",
+    "searchPlaceholder": "Search for {{playerSlot}}",
+    "player": "Player",
+    "team": "Team",
+    "you": "YOU",
+    "level": "Level",
+    "resident": "Resident",
+    "guest": "Guest",
+    "status": {
+      "selected": "You are selected as a player",
+      "mustSelect": "You must be one of the players"
+    },
+    "empty": "Empty",
+    "hints": {
+      "tapToSelect": "Tap to select",
+      "searchOrBrowse": "Search or browse",
+      "cancel": "Cancel Selection"
+    },
+    "preview": {
+      "title": "Match Preview",
+      "vs": "VS"
+    },
+    "errors": {
+      "failedFetchProfiles": "Failed to fetch profiles"
+    }
+  }
     
 }

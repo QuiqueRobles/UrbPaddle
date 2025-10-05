@@ -535,7 +535,42 @@
   "subscriptionRequired": "Se Requiere Suscripción Activa",
   "subscriptionRequiredMessage": "Tu comunidad necesita una suscripción premium activa o un pago único premium válido para usar esta función.",
   "purchasePremium": "Comprar Premium",
-  "past": "Pasado"
+  "past": "Pasado",
+  "you_are_booking_as_group_member": "Estás reservando como miembro del grupo",
+  "booking_on_behalf_of": "Reservando en nombre de",
+  "enterApartmentDetails": "Ingresa los detalles del apartamento",
+   "enterApartmentInfo": "Ingresa la información del apartamento",
+  "apartmentInfo": "Apartamento",
+  "apartmentInfoPlaceholder": "Ingresa el número o los detalles de tu apartamento",
+  "submit": "Enviar",
+  "selectplayersScreen": {
+    "title": "Seleccionar Jugadores",
+    "searchPlaceholder": "Buscar {{playerSlot}}",
+    "player": "Jugador",
+    "team": "Equipo",
+    "you": "TÚ",
+    "level": "Nivel",
+    "resident": "Residente",
+    "guest": "Invitado",
+    "status": {
+      "selected": "Estás seleccionado como jugador",
+      "mustSelect": "Debes ser uno de los jugadores"
+    },
+    "empty": "Vacío",
+    "hints": {
+      "tapToSelect": "Toca para seleccionar",
+      "searchOrBrowse": "Busca o navega",
+      "cancel": "Cancelar Selección"
+    },
+    "preview": {
+      "title": "Vista Previa del Partido",
+      "vs": "VS"
+    },
+    "errors": {
+      "failedFetchProfiles": "Error al cargar los perfiles"
+    }
+  }
+  
 }
 
 

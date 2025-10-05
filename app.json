@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
@@ -42,6 +41,7 @@
       }
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFFFFF"
@@ -88,7 +88,8 @@
           "color": "#1A3C34",
           "sounds": []
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

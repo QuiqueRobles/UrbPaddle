@@ -186,7 +186,7 @@ export default function EnhancedProfileScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Profile updated successfully');
+      Alert.alert(t('success'), t('profileUpdated'));
       setEditing(false);
       fetchProfile(session);
     } catch (error) {
@@ -261,10 +261,10 @@ export default function EnhancedProfileScreen() {
         }
 
         setRefreshKey(oldKey => oldKey + 1);
-        Alert.alert('Success', 'Profile picture updated successfully');
+        Alert.alert(t('success'), t('profilePictureUpdated'));
       } catch (error) {
         console.error('Error updating profile picture:', error);
-        Alert.alert('Error', 'Could not update profile picture');
+        Alert.alert(t('error'), t('profilePictureUpdateFailed'));
       } finally {
         setLoading(false);
       }

@@ -112,27 +112,44 @@ export default function DateSelectionScreen({ navigation }: Props) {
     checkResidencyAndSubscription();
   }, [t, navigation]);
 
-  // Configure calendar locale
   React.useEffect(() => {
-    const currentLocale = i18n.language === 'es' ? es : enUS;
-    const firstDay = i18n.language === 'es' ? 1 : 0;
+  const currentLocale = i18n.language === 'es' ? es : enUS;
+  const firstDay = i18n.language === 'es' ? 1 : 0;
 
-    LocaleConfig.locales[i18n.language] = {
-      monthNames: Array.from({ length: 12 }, (_, i) =>
-        format(new Date(2021, i, 1), 'MMMM', { locale: currentLocale })
-      ),
-      monthNamesShort: Array.from({ length: 12 }, (_, i) =>
-        format(new Date(2021, i, 1), 'MMM', { locale: currentLocale })
-      ),
-      dayNames: Array.from({ length: 7 }, (_, i) =>
-        format(new Date(2021, 0, i + (i18n.language === 'es' ? 4 : 3)), 'EEEE', { locale: currentLocale })
-      ),
-      dayNamesShort: Array.from({ length: 7 }, (_, i) =>
-        format(new Date(2021, 0, i + (i18n.language === 'es' ? 4 : 3)), 'EEEEEE', { locale: currentLocale })
-      ),
-    };
-    LocaleConfig.defaultLocale = i18n.language;
-  }, [i18n.language]);
+  const baseDayNames = i18n.language === 'es'
+    ? ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+    : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const baseDayNamesShort = i18n.language === 'es'
+    ? ['lu', 'ma', 'mi', 'ju', 'vi', 'sá', 'do']
+    : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  // Rotate backward for Spanish to compensate for the library's forward shift
+  const dayNames = i18n.language === 'es'
+    ? [baseDayNames[6], ...baseDayNames.slice(0, 6)] // domingo, lunes, martes, ..., sábado
+    : baseDayNames;
+  const dayNamesShort = i18n.language === 'es'
+    ? [baseDayNamesShort[6], ...baseDayNamesShort.slice(0, 6)] // do, lu, ma, ..., sá
+    : baseDayNamesShort;
+
+  LocaleConfig.locales[i18n.language] = {
+    monthNames: Array.from({ length: 12 }, (_, i) =>
+      format(new Date(2021, i, 1), 'MMMM', { locale: currentLocale })
+    ),
+    monthNamesShort: Array.from({ length: 12 }, (_, i) =>
+      format(new Date(2021, i, 1), 'MMM', { locale: currentLocale })
+    ),
+    dayNames,
+    dayNamesShort,
+  };
+  LocaleConfig.defaultLocale = i18n.language;
+
+  // Log for debugging
+  console.log('Current language:', i18n.language);
+  console.log('Day Names:', LocaleConfig.locales[i18n.language].dayNames);
+  console.log('Day Names Short:', LocaleConfig.locales[i18n.language].dayNamesShort);
+  console.log('Calendar firstDay:', firstDay);
+}, [i18n.language]);
+
 
   useFocusEffect(
     useCallback(() => {

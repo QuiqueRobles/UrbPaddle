@@ -199,82 +199,94 @@ export default function CommunitiesSection() {
 
   if (isLoading) {
     return (
-      
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>{t('loading')}</Text>
-          </View>
-        </SafeAreaView>
-      
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>{t('loading')}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    
-      <SafeAreaView style={styles.safeArea}>
-        <Animatable.View animation="fadeInUp" duration={800} style={styles.container}>
-          <Text style={styles.sectionTitle}>{t('yourCommunities')}</Text>
-          
-          {residentCommunity && (
-            <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.communityItem}>
-              <MaterialCommunityIcons name="home" size={20} color="#00C853" />
-              <Text style={styles.communityName}>{t('communityResident', { name: residentCommunity.name })}</Text>
-            </Animatable.View>
-          )}
-
-          {guestCommunities.map((community, index) => (
-            <Animatable.View 
-              key={community.id} 
-              animation="fadeInUp" 
-              duration={800} 
-              delay={400 + index * 100} 
-              style={styles.communityItem}
-            >
-              <MaterialCommunityIcons name="account-group" size={20} color="#00C853" />
-              <Text style={styles.communityName}>{t('communityGuest', { name: community.name })}</Text>
-            </Animatable.View>
-          ))}
-
-          <Animatable.View animation="fadeInUp" duration={800} delay={600}>
-            <TouchableOpacity 
-              onPress={handleJoinCommunityPress} 
-              style={styles.joinButton}
-              activeOpacity={0.7}
-              accessibilityLabel={t('joinCommunity')}
-            >
-              <LinearGradient
-                colors={['#00A86B', '#00C853']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
-              >
-                <Text style={styles.joinButtonText}>{t('joinCommunity')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <Animatable.View animation="fadeInUp" duration={800} style={styles.container}>
+        <Text style={styles.sectionTitle}>{t('yourCommunities')}</Text>
+        
+        {residentCommunity && (
+          <Animatable.View animation="fadeInUp" duration={800} delay={200} style={styles.communityItem}>
+            <MaterialCommunityIcons name="home" size={20} color="#00C853" />
+            <Text style={styles.communityName}>{t('communityResident', { name: residentCommunity.name })}</Text>
           </Animatable.View>
+        )}
 
-          <Portal>
-            
-            <Modal 
-              visible={isJoinModalVisible} 
-              onDismiss={() => setIsJoinModalVisible(false)} 
-              contentContainerStyle={styles.modalContainer}
+        {guestCommunities.map((community, index) => (
+          <Animatable.View 
+            key={community.id} 
+            animation="fadeInUp" 
+            duration={800} 
+            delay={400 + index * 100} 
+            style={styles.communityItem}
+          >
+            <MaterialCommunityIcons name="account-group" size={20} color="#00C853" />
+            <Text style={styles.communityName}>{t('communityGuest', { name: community.name })}</Text>
+          </Animatable.View>
+        ))}
+
+        <Animatable.View animation="fadeInUp" duration={800} delay={600}>
+          <TouchableOpacity 
+            onPress={handleJoinCommunityPress} 
+            style={styles.joinButton}
+            activeOpacity={0.7}
+            accessibilityLabel={t('joinCommunity')}
+          >
+            <LinearGradient
+              colors={['#00A86B', '#00C853']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
             >
-              <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
-                <Text style={styles.joinTitle}>{t('joinCommunity')}</Text>
-                <View style={styles.warningContainer}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FF6B6B" />
-                  <Text style={styles.warningText}>{t('joinWarning')}</Text>
-                </View>
-                <TextInput
-                  label={t('communityJoinCode')}
-                  value={joinCode}
-                  onChangeText={setJoinCode}
-                  style={styles.input}
-                  mode="outlined"
-                  theme={{ colors: { primary: '#00C853', background: 'rgba(255, 255, 255, 0.08)', text: '#fff', placeholder: 'rgba(255, 255, 255, 0.7)' } }}
-                  accessibilityLabel={t('communityJoinCode')}
-                />
+              <Text style={styles.joinButtonText}>{t('joinCommunity')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animatable.View>
+
+        <Portal>
+          <Modal 
+            visible={isJoinModalVisible} 
+            onDismiss={() => setIsJoinModalVisible(false)} 
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Animatable.View 
+              animation="zoomIn" 
+              duration={400} 
+              easing="ease-out-cubic" 
+              style={styles.modalContent}
+            >
+              <Text style={styles.joinTitle}>{t('joinCommunity')}</Text>
+              <View style={styles.warningContainer}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FF6B6B" />
+                <Text style={styles.warningText}>{t('joinWarning')}</Text>
+              </View>
+              <TextInput
+                label={t('communityJoinCode')}
+                value={joinCode}
+                onChangeText={setJoinCode}
+                 style={styles.input}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="transparent"
+                selectionColor="#00C853"
+                textColor='#ffffff'
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                theme={{
+                  colors: {
+                    onSurfaceVariant: 'rgba(255,255,255,0.6)',
+                    outline: 'transparent',
+                  }
+                }}
+                accessibilityLabel={t('communityJoinCode')}
+              />
+              <View style={styles.buttonContainer}>
                 <TouchableOpacity 
                   onPress={handleJoinCommunity} 
                   disabled={isLoading}
@@ -297,45 +309,37 @@ export default function CommunitiesSection() {
                   activeOpacity={0.7}
                   accessibilityLabel={t('close')}
                 >
-                  <LinearGradient
-                    colors={['#00A86B', '#00C853']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    <Text style={styles.joinButtonText}>{t('close')}</Text>
-                  </LinearGradient>
+                  <Text style={styles.closeButtonText}>{t('close')}</Text>
                 </TouchableOpacity>
-              </Animatable.View>
-            </Modal>
-            <Modal 
-              visible={isApartmentFormVisible} 
-              onDismiss={handleCloseApartmentModal} 
-              contentContainerStyle={styles.modalContainer}
+              </View>
+            </Animatable.View>
+          </Modal>
+          <Modal 
+            visible={isApartmentFormVisible} 
+            onDismiss={handleCloseApartmentModal} 
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Animatable.View 
+              animation="zoomIn" 
+              duration={400} 
+              easing="ease-out-cubic" 
+              style={styles.modalContent}
             >
-              <Animatable.View animation="fadeInUp" duration={800} style={styles.modalContent}>
-                <Text style={styles.joinTitle}>{t('enterApartmentDetails')}</Text>
-                <ApartmentForm onSubmit={handleApartmentSubmit} />
-                <TouchableOpacity 
-                  onPress={handleCloseApartmentModal} 
-                  style={styles.closeButton}
-                  activeOpacity={0.7}
-                  accessibilityLabel={t('close')}
-                >
-                  <LinearGradient
-                    colors={['#00A86B', '#00C853']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    <Text style={styles.joinButtonText}>{t('close')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animatable.View>
-            </Modal>
-          </Portal>
-        </Animatable.View>
-      </SafeAreaView>
+              <Text style={styles.joinTitle}>{t('enterApartmentDetails')}</Text>
+              <ApartmentForm onSubmit={handleApartmentSubmit} />
+              <TouchableOpacity 
+                onPress={handleCloseApartmentModal} 
+                style={styles.closeButton}
+                activeOpacity={0.7}
+                accessibilityLabel={t('close')}
+              >
+                <Text style={styles.closeButtonText}>{t('close')}</Text>
+              </TouchableOpacity>
+            </Animatable.View>
+          </Modal>
+        </Portal>
+      </Animatable.View>
+    </SafeAreaView>
   );
 }
 
@@ -420,53 +424,62 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    margin: 0, // Override parent margin
+    padding: 0, // Remove padding to ensure full-screen centering
   },
   modalContent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 150,
-    borderRadius: 16,
+    backgroundColor: 'rgba(18, 18, 22, 0.95)',
+    borderRadius: 20,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    elevation: 8,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    elevation: 12,
     shadowColor: '#00C853',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    alignSelf: 'center',
+    marginTop: 150,
   },
   joinTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '600',
     color: '#ffffff',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+    letterSpacing: 0.3,
   },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.2)',
   },
   warningText: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
     color: '#FF6B6B',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   input: {
-    marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.56)',
-    borderRadius: 8,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    fontSize: 16,
+  },
+  buttonContainer: {
+    gap: 12,
   },
   modalJoinButton: {
-    marginBottom: 16,
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#00C853',
@@ -476,10 +489,15 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#00C853',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 0.5,
   },
 });

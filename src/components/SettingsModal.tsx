@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Flag from 'react-native-flags';
+import * as Animatable from 'react-native-animatable';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -53,6 +54,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
   ];
 
   return (
+    <Animatable.View style={{ flex: 1, backgroundColor: 'white' }} animation="slideInUp" duration={300} useNativeDriver>
     <ScrollView>
       <Title style={styles.title}>{t('settings')}</Title>
       
@@ -108,6 +110,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, navigation }) =>
         {t('close')}
       </GradientButton>
     </ScrollView>
+    </Animatable.View>
   );
 };
 

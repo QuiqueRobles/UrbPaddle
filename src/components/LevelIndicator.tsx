@@ -4,6 +4,8 @@ import { Text, Portal, Modal, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import * as Animatable from 'react-native-animatable';
+
 
 type LevelInfo = {
   name: string;
@@ -72,6 +74,12 @@ export default function LevelIndicator({ level }: LevelIndicatorProps) {
           onDismiss={() => setInfoModalVisible(false)} 
           contentContainerStyle={styles.modalContainer}
         >
+          <Animatable.View 
+                        animation="zoomIn" 
+                        duration={400} 
+                        easing="ease-out-cubic" 
+                        style={styles.modalContainer}
+                      >
           <ScrollView style={styles.modalScrollView}>
             <Text style={styles.modalTitle}>{t('levelSystem')}</Text>
             <Text style={styles.modalText}>
@@ -100,6 +108,7 @@ export default function LevelIndicator({ level }: LevelIndicatorProps) {
               </View>
             ))}
           </ScrollView>
+          </Animatable.View>
           <IconButton
             icon="close"
             size={24}

@@ -10,7 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { enUS, es, fr, it } from 'date-fns/locale'; // Import the locales you need (e.g., en-US, es, fr)
+import { enUS, es, fr, it } from 'date-fns/locale';
+import * as Animatable from 'react-native-animatable';
 
 type Booking = {
   id: string;
@@ -46,10 +47,9 @@ export default function MyBookingsScreen() {
   const [maxBookings, setMaxBookings] = useState<number | null>(null);
   const [currentBookingsCount, setCurrentBookingsCount] = useState(0);
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation(); // Destructure i18n to get the current language
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation();
 
-  // Map i18next language codes to date-fns locales
   const getDateFnsLocale = (language: string) => {
     switch (language) {
       case 'es':
@@ -288,7 +288,7 @@ export default function MyBookingsScreen() {
 
   const getDateLabel = (date: string) => {
     const bookingDate = parseISO(date);
-    const currentLocale = getDateFnsLocale(i18n.language); // Use the current language from i18n
+    const currentLocale = getDateFnsLocale(i18n.language);
     if (isToday(bookingDate)) return t('today');
     if (isTomorrow(bookingDate)) return t('tomorrow');
     return format(bookingDate, t('dateFormat'), { locale: currentLocale });
@@ -328,14 +328,14 @@ export default function MyBookingsScreen() {
     const isNearLimit = currentBookingsCount === maxBookings;
 
     return (
-      <View style={styles.quotaContainer}>
+      <Animatable.View animation="bounceIn" duration={800} style={styles.quotaContainer}>
         <MaterialCommunityIcons name="information-outline" size={16} color="#D1D5DB" />
         <View style={[styles.quotaBadge, isOverLimit ? styles.quotaOverLimit : isNearLimit ? styles.quotaNearLimit : styles.quotaNormal]}>
           <Paragraph style={[styles.quotaText, isOverLimit ? styles.quotaOverLimitText : isNearLimit ? styles.quotaNearLimitText : styles.quotaNormalText]}>
             {currentBookingsCount}/{maxBookings} {t('bookingsUsed')}
           </Paragraph>
         </View>
-      </View>
+      </Animatable.View>
     );
   };
 
@@ -375,68 +375,74 @@ export default function MyBookingsScreen() {
   };
 
   const renderBookingItem = ({ item, isPast }: { item: Booking; isPast: boolean }) => (
-    <Card style={[styles.card, isPast && styles.pastBooking]}>
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardTitleContainer}>
-            <MaterialCommunityIcons name="tennis" size={20} color="#22C55E" />
-            <Title style={styles.courtTitle}>{t('court_number', { number: item.court_number })}</Title>
+    <Animatable.View animation="fadeInUp" duration={800} delay={100 * (futureBookings.indexOf(item) + pastBookings.indexOf(item))}>
+      <Card style={[styles.card, isPast && styles.pastBooking]}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleContainer}>
+              <MaterialCommunityIcons name="tennis" size={20} color="#22C55E" />
+              <Title style={styles.courtTitle}>{t('court_number', { number: item.court_number })}</Title>
+            </View>
+            <View style={styles.statusContainer}>
+              {getStatusIcon(item.status)}
+              <Paragraph style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Paragraph>
+            </View>
           </View>
-          <View style={styles.statusContainer}>
-            {getStatusIcon(item.status)}
-            <Paragraph style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Paragraph>
-          </View>
-        </View>
 
-        <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="calendar" size={18} color="#22C55E" />
-            <Paragraph style={styles.infoText}>{getDateLabel(item.date)}</Paragraph>
+          <View style={styles.cardContent}>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="calendar" size={18} color="#22C55E" />
+              <Paragraph style={styles.infoText}>{getDateLabel(item.date)}</Paragraph>
+            </View>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="clock-outline" size={18} color="#22C55E" />
+              <Paragraph style={styles.infoText}>
+                {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
+              </Paragraph>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="clock-outline" size={18} color="#22C55E" />
-            <Paragraph style={styles.infoText}>
-              {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
-            </Paragraph>
+
+          <View style={styles.badgeContainer}>
+            {renderUniversalBookedByBadge(item)}
+            {renderBookingInfo(item)}
           </View>
-        </View>
 
-        <View style={styles.badgeContainer}>
-          {renderUniversalBookedByBadge(item)}
-          {renderBookingInfo(item)}
-        </View>
-
-        <View style={styles.buttonContainer}>
-          {!isPast && item.status !== 'cancelled' && (
-            <Button
-              mode="contained"
-              onPress={() => handleCancelBooking(item.id)}
-              style={styles.cancelButton}
-              labelStyle={styles.cancelButtonText}
-              icon="cancel"
-            >
-              {t('cancelBooking')}
-            </Button>
-          )}
-          {isPast && !item.has_match && item.status !== 'cancelled' && (
-            <Button
-              mode="contained"
-              onPress={() => handleAddMatchResult(item)}
-              style={styles.addResultButton}
-              labelStyle={styles.addResultButtonText}
-              icon="plus"
-            >
-              {t('addMatchResult')}
-            </Button>
-          )}
-          {isPast && item.has_match && (
-            <Chip style={styles.matchAddedChip} textStyle={styles.matchAddedChipText} icon="check">
-              {t('matchAdded')}
-            </Chip>
-          )}
-        </View>
-      </Card.Content>
-    </Card>
+          <View style={styles.buttonContainer}>
+            {!isPast && item.status !== 'cancelled' && (
+              <Animatable.View animation="pulse" duration={300} iterationCount={1} trigger="onPress">
+                <Button
+                  mode="contained"
+                  onPress={() => handleCancelBooking(item.id)}
+                  style={styles.cancelButton}
+                  labelStyle={styles.cancelButtonText}
+                  icon="cancel"
+                >
+                  {t('cancelBooking')}
+                </Button>
+              </Animatable.View>
+            )}
+            {isPast && !item.has_match && item.status !== 'cancelled' && (
+              <Animatable.View animation="pulse" duration={300} iterationCount={1} trigger="onPress">
+                <Button
+                  mode="contained"
+                  onPress={() => handleAddMatchResult(item)}
+                  style={styles.addResultButton}
+                  labelStyle={styles.addResultButtonText}
+                  icon="plus"
+                >
+                  {t('addMatchResult')}
+                </Button>
+              </Animatable.View>
+            )}
+            {isPast && item.has_match && (
+              <Chip style={styles.matchAddedChip} textStyle={styles.matchAddedChipText} icon="check">
+                {t('matchAdded')}
+              </Chip>
+            )}
+          </View>
+        </Card.Content>
+      </Card>
+    </Animatable.View>
   );
 
   if (loading) {
@@ -444,7 +450,9 @@ export default function MyBookingsScreen() {
       <LinearGradient colors={[colors.gradientStart, '#000']} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="white" />
+            <Animatable.View animation="rotate" duration={1500} iterationCount="infinite">
+              <ActivityIndicator size="large" color="white" />
+            </Animatable.View>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -458,20 +466,23 @@ export default function MyBookingsScreen() {
           contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#22C55E']} tintColor="#22C55E" />}
         >
-          <View style={styles.header}>
-            <Title style={styles.title}>{t('myBookings')}</Title>
-            {renderBookingQuota()}
-          </View>
+          <Animatable.View animation="fadeInDown" duration={800}>
+            <View style={styles.header}>
+              <Title style={styles.title}>{t('myBookings')}</Title>
+              {renderBookingQuota()}
+            </View>
+          </Animatable.View>
 
-          {/* Future Bookings Section */}
           <View style={styles.sectionContainer}>
             {futureBookings.length > 0 && (
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <MaterialCommunityIcons name="calendar-clock" size={20} color="#22C55E" />
-                  <Title style={styles.sectionTitle}>{t('upcomingBookings')} ({futureBookings.length})</Title>
+              <Animatable.View animation="fadeInUp" duration={800} delay={200}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitleContainer}>
+                    <MaterialCommunityIcons name="calendar-clock" size={20} color="#22C55E" />
+                    <Title style={styles.sectionTitle}>{t('upcomingBookings')} ({futureBookings.length})</Title>
+                  </View>
                 </View>
-              </View>
+              </Animatable.View>
             )}
             <FlatList
               data={futureBookings.map(booking => ({ ...booking, isPast: false }))}
@@ -481,26 +492,33 @@ export default function MyBookingsScreen() {
               scrollEnabled={false}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons name="calendar-blank" size={48} color="#D1D5DB" />
-                  <Paragraph style={styles.noBookings}>{t('noUpcomingBookings')}</Paragraph>
-                  <Button mode="contained" onPress={onRefresh} style={styles.refreshButton} labelStyle={styles.refreshButtonText}>
-                    {t('refresh')}
-                  </Button>
-                </View>
+                <Animatable.View animation="zoomIn" duration={800} style={styles.emptyState}>
+                  <Animatable.View animation="bounceIn" duration={800} delay={200}>
+                    <MaterialCommunityIcons name="calendar-blank" size={48} color="#D1D5DB" />
+                  </Animatable.View>
+                  <Animatable.Text animation="fadeIn" duration={800} delay={400} style={styles.noBookings}>
+                    {t('noUpcomingBookings')}
+                  </Animatable.Text>
+                  <Animatable.View animation="bounceIn" duration={800} delay={600}>
+                    <Button mode="contained" onPress={onRefresh} style={styles.refreshButton} labelStyle={styles.refreshButtonText}>
+                      {t('refresh')}
+                    </Button>
+                  </Animatable.View>
+                </Animatable.View>
               }
             />
           </View>
 
-          {/* Past Bookings Section */}
           <View style={styles.sectionContainer}>
             {pastBookings.length > 0 && (
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <MaterialCommunityIcons name="calendar-check" size={20} color="#22C55E" />
-                  <Title style={styles.sectionTitle}>{t('pastBookings')} ({pastBookings.length})</Title>
+              <Animatable.View animation="fadeInUp" duration={800} delay={400}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitleContainer}>
+                    <MaterialCommunityIcons name="calendar-check" size={20} color="#22C55E" />
+                    <Title style={styles.sectionTitle}>{t('pastBookings')} ({pastBookings.length})</Title>
+                  </View>
                 </View>
-              </View>
+              </Animatable.View>
             )}
             <FlatList
               data={pastBookings.map(booking => ({ ...booking, isPast: true }))}
@@ -510,13 +528,19 @@ export default function MyBookingsScreen() {
               scrollEnabled={false}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons name="calendar-blank" size={48} color="#D1D5DB" />
-                  <Paragraph style={styles.noBookings}>{t('noPastBookings')}</Paragraph>
-                  <Button mode="contained" onPress={onRefresh} style={styles.refreshButton} labelStyle={styles.refreshButtonText}>
-                    {t('refresh')}
-                  </Button>
-                </View>
+                <Animatable.View animation="zoomIn" duration={800} style={styles.emptyState}>
+                  <Animatable.View animation="bounceIn" duration={800} delay={200}>
+                    <MaterialCommunityIcons name="calendar-blank" size={48} color="#D1D5DB" />
+                  </Animatable.View>
+                  <Animatable.Text animation="fadeIn" duration={800} delay={400} style={styles.noBookings}>
+                    {t('noPastBookings')}
+                  </Animatable.Text>
+                  <Animatable.View animation="bounceIn" duration={800} delay={600}>
+                    <Button mode="contained" onPress={onRefresh} style={styles.refreshButton} labelStyle={styles.refreshButtonText}>
+                      {t('refresh')}
+                    </Button>
+                  </Animatable.View>
+                </Animatable.View>
               }
             />
           </View>
