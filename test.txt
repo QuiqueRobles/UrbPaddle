@@ -1,2 +1,1 @@
 Recordar que no funciona el añadir a un partido a alguien del grupo en el móvil.
-Recordar que las notificaciones de recordar añadir resultado y de notificación alguien ha validado o propuesto un resultado

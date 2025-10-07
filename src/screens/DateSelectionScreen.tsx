@@ -83,7 +83,7 @@ export default function DateSelectionScreen({ navigation }: Props) {
 
           const isSubscriptionPaid = 
             community?.stripe_subscription_id &&
-            community?.stripe_payment_status === 'paid' &&
+            community?.stripe_payment_status === 'active' &&
             community?.product_type === 'premium';
 
           const isOneTimeValid = 

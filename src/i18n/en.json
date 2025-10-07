@@ -614,6 +614,8 @@
     "player": "Player",
     "team": "Team",
     "you": "YOU",
+    "info": "You can select residents, guests or group members",
+    "groupMember": "Group Member",
     "level": "Level",
     "resident": "Resident",
     "guest": "Guest",

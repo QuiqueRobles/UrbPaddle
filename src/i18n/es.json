@@ -547,6 +547,8 @@
     "title": "Seleccionar Jugadores",
     "searchPlaceholder": "Buscar {{playerSlot}}",
     "player": "Jugador",
+    "groupMember": "Grupo",
+    "info": "Puedes seleccionar residentes, invitados o miembros de grupo. Si tu compañero no está registrado en tu comunidad,\n!Añádelo¡",
     "team": "Equipo",
     "you": "TÚ",
     "level": "Nivel",
